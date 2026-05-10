@@ -1,20 +1,13 @@
 import { redirect } from "next/navigation";
-import { LockKeyhole } from "lucide-react";
+import { Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LoginMotion } from "./login-motion";
-import { SubmitButton } from "./submit-button";
+import { LoginForm } from "./login-form";
 
 type LoginPageProps = {
-  searchParams?: {
-    error?: string;
-  };
+  searchParams?: { error?: string };
 };
 
-async function signIn(formData: FormData) {
+async function signIn(formData: FormData): Promise<void> {
   "use server";
 
   const email = String(formData.get("email") ?? "");
@@ -32,44 +25,100 @@ async function signIn(formData: FormData) {
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-10 text-slate-100">
-      <LoginMotion>
-        <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-blue-500 text-white shadow-lg shadow-blue-500/20">
-            <LockKeyhole className="h-7 w-7" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">ACTIUM</h1>
-            <p className="mt-1 text-sm text-slate-400">Portal de clientes</p>
-          </div>
+    <div className="flex min-h-screen bg-actium-graphite">
+      {/* Panel izquierdo — hero */}
+      <div
+        className="relative hidden w-[55%] flex-col justify-between overflow-hidden lg:flex"
+        style={{
+          background:
+            "linear-gradient(135deg, #1a1208 0%, #282828 50%, #1a1208 100%)",
+        }}
+      >
+        {/* Grid técnico sutil */}
+        <div
+          className="absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "linear-gradient(#F25C05 1px, transparent 1px), linear-gradient(90deg, #F25C05 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
+
+        {/* Líneas diagonales — sensación de estructura metálica */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -left-20 top-0 h-[120%] w-1 rotate-[20deg] bg-gradient-to-b from-transparent via-actium-orange/10 to-transparent" />
+          <div className="absolute left-32 top-0 h-[120%] w-px rotate-[20deg] bg-gradient-to-b from-transparent via-actium-orange/10 to-transparent" />
+          <div className="absolute left-64 top-0 h-[120%] w-1 rotate-[20deg] bg-gradient-to-b from-transparent via-actium-orange/10 to-transparent" />
+          <div className="absolute right-0 top-0 h-[120%] w-px rotate-[20deg] bg-gradient-to-b from-transparent via-actium-orange/10 to-transparent" />
         </div>
 
-        <Card className="border-white/10 bg-slate-900/90 text-slate-100 shadow-2xl">
-          <CardHeader>
-            <CardTitle>Iniciar sesion</CardTitle>
-            <CardDescription className="text-slate-400">Accede con tu correo y contrasena asignados.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={signIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" autoComplete="email" required className="border-white/10 bg-slate-950" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" name="password" type="password" autoComplete="current-password" required className="border-white/10 bg-slate-950" />
-              </div>
-              {searchParams?.error ? (
-                <p className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{searchParams.error}</p>
-              ) : null}
-              <SubmitButton />
-            </form>
-            <Button variant="link" className="mt-4 w-full text-slate-400">
-              Soporte ACTIUM
-            </Button>
-          </CardContent>
-        </Card>
-      </LoginMotion>
-    </main>
+        <div className="relative mt-auto p-12 pb-14">
+          <h2 className="font-display mb-3 text-4xl leading-tight text-actium-seashell">
+            Infraestructura forjada con
+            <br />
+            inteligencia
+          </h2>
+          <p className="mb-10 max-w-sm text-sm leading-relaxed text-[--text-secondary]">
+            Soluciones avanzadas de gestión para el sector de la construcción metálica y el desarrollo de
+            infraestructuras críticas.
+          </p>
+
+          <div className="flex items-center gap-10">
+            <div>
+              <p className="font-display text-3xl text-actium-orange">12k+</p>
+              <p className="text-xs text-[--text-muted]">Proyectos activos</p>
+            </div>
+            <div className="h-10 w-px bg-[--border-default]" />
+            <div>
+              <p className="font-display text-3xl text-actium-orange">98.4%</p>
+              <p className="text-xs text-[--text-muted]">Precisión estructural</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Panel derecho — formulario */}
+      <div className="flex flex-1 flex-col items-center justify-center bg-actium-graphite px-8 py-12">
+        <div className="w-full max-w-md">
+          {/* Logo */}
+          <div className="mb-8 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-actium-orange shadow-actium">
+              <Wrench className="h-5 w-5 text-white" strokeWidth={1.5} />
+            </div>
+            <span className="font-display text-xl tracking-widest text-actium-seashell">
+              ACTIUM
+            </span>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-8">
+            <h1 className="font-display text-3xl text-actium-seashell">Bienvenido de nuevo</h1>
+            <p className="mt-2 text-sm leading-relaxed text-[--text-secondary]">
+              Ingrese sus credenciales para acceder a la plataforma de gestión de infraestructura.
+            </p>
+          </div>
+
+          <LoginForm error={searchParams?.error} action={signIn} />
+
+          <div className="my-7 border-t border-[--border-subtle]" />
+
+          <p className="mb-5 text-center text-sm text-[--text-secondary]">
+            ¿No tiene una cuenta corporativa?{" "}
+            <button className="font-semibold text-actium-orange transition-colors hover:text-actium-orange-hover">
+              Solicitar acceso
+            </button>
+          </p>
+
+          <div className="mb-6 flex justify-center gap-6 text-xs text-[--text-muted]">
+            <button className="transition-colors hover:text-[--text-secondary]">Términos de servicio</button>
+            <button className="transition-colors hover:text-[--text-secondary]">Política de privacidad</button>
+          </div>
+
+          <p className="text-center text-xs text-[--text-muted]">
+            © 2026 Actium Industrial S.A.S. Todos los derechos reservados.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

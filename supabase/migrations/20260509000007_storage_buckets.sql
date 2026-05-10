@@ -69,7 +69,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Path convention: {empresa_id}/{subempresa_id}/{...}/{filename}
 -- Esta funcion permite que las policies de storage validen el tenant
 -- sin necesidad de un join contra la tabla de proyectos/empleados.
-CREATE OR REPLACE FUNCTION storage.path_empresa_id(obj_path TEXT)
+CREATE OR REPLACE FUNCTION public.path_empresa_id(obj_path TEXT)
 RETURNS UUID AS $$
 BEGIN
   RETURN split_part(obj_path, '/', 1)::UUID;
@@ -93,7 +93,7 @@ CREATE POLICY "logos_insert_admin"
       auth.jwt() ->> 'rol' IN ('super_admin', 'admin')
       AND (
         auth.jwt() ->> 'rol' = 'super_admin'
-        OR storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+        OR path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
       )
     )
   );
@@ -106,7 +106,7 @@ CREATE POLICY "logos_delete_admin"
       auth.jwt() ->> 'rol' = 'super_admin'
       OR (
         auth.jwt() ->> 'rol' = 'admin'
-        AND storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+        AND path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
       )
     )
   );
@@ -120,7 +120,7 @@ CREATE POLICY "fotos_proyectos_select"
     bucket_id = 'fotos-proyectos'
     AND (
       auth.jwt() ->> 'rol' = 'super_admin'
-      OR storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+      OR path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
     )
   );
 
@@ -130,7 +130,7 @@ CREATE POLICY "fotos_proyectos_insert"
     bucket_id = 'fotos-proyectos'
     AND (
       auth.jwt() ->> 'rol' = 'super_admin'
-      OR storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+      OR path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
     )
   );
 
@@ -140,7 +140,7 @@ CREATE POLICY "fotos_proyectos_delete"
     bucket_id = 'fotos-proyectos'
     AND (
       auth.jwt() ->> 'rol' IN ('super_admin', 'admin')
-      OR storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+      OR path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
     )
   );
 
@@ -155,7 +155,7 @@ CREATE POLICY "docs_empleados_select"
       auth.jwt() ->> 'rol' = 'super_admin'
       OR (
         auth.jwt() ->> 'rol' IN ('admin', 'sst')
-        AND storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+        AND path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
       )
     )
   );
@@ -168,7 +168,7 @@ CREATE POLICY "docs_empleados_insert"
       auth.jwt() ->> 'rol' = 'super_admin'
       OR (
         auth.jwt() ->> 'rol' IN ('admin', 'sst')
-        AND storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+        AND path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
       )
     )
   );
@@ -193,7 +193,7 @@ CREATE POLICY "pdfs_soportes_select"
       auth.jwt() ->> 'rol' = 'super_admin'
       OR (
         auth.jwt() ->> 'rol' IN ('admin', 'sst', 'operativo')
-        AND storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+        AND path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
       )
     )
   );
@@ -206,7 +206,7 @@ CREATE POLICY "pdfs_soportes_insert"
       auth.jwt() ->> 'rol' = 'super_admin'
       OR (
         auth.jwt() ->> 'rol' IN ('admin', 'sst', 'operativo')
-        AND storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+        AND path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
       )
     )
   );
@@ -220,7 +220,7 @@ CREATE POLICY "pdfs_formularios_select"
     bucket_id = 'pdfs-formularios'
     AND (
       auth.jwt() ->> 'rol' = 'super_admin'
-      OR storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+      OR path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
     )
   );
 
@@ -232,7 +232,7 @@ CREATE POLICY "pdfs_formularios_insert"
       auth.jwt() ->> 'rol' = 'super_admin'
       OR (
         auth.jwt() ->> 'rol' IN ('admin', 'sst', 'operativo')
-        AND storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+        AND path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
       )
     )
   );
@@ -247,7 +247,7 @@ CREATE POLICY "firmas_select"
     bucket_id = 'firmas'
     AND (
       auth.jwt() ->> 'rol' = 'super_admin'
-      OR storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+      OR path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
     )
   );
 
@@ -257,6 +257,6 @@ CREATE POLICY "firmas_insert"
     bucket_id = 'firmas'
     AND (
       auth.jwt() ->> 'rol' = 'super_admin'
-      OR storage.path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
+      OR path_empresa_id(name) = (auth.jwt() ->> 'empresa_id')::UUID
     )
   );

@@ -1,0 +1,7 @@
+node_modules
+.next/
+.env*.local
+*.zip
+tsconfig.tsbuildinfo
+supabase/.branches/
+supabase/.temp/

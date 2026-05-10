@@ -10,6 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // shadcn tokens (mapeados a la paleta Actium vía CSS vars en globals.css)
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -43,16 +44,53 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        sidebar: "#0F172A",
+
+        // Marca Actium
         actium: {
-          background: "#F8FAFC",
-          accent: "#3B82F6",
+          orange: "#F25C05",
+          "orange-hover": "#D94F04",
+          amber: "#F27405",
+          sandy: "#F28729",
+          saddle: "#8C470B",
+          espresso: "#592C12",
+          graphite: "#282828",
+          dim: "#424242",
+          gray: "#6B6B6B",
+          seashell: "#FFF5EE",
         },
+
+        // Superficies (alias a CSS vars para soportar dark/light)
+        "bg-primary": "var(--bg-primary)",
+        "bg-secondary": "var(--bg-secondary)",
+        "bg-elevated": "var(--bg-elevated)",
+        "bg-hover": "var(--bg-hover)",
+        "text-primary": "var(--text-primary)",
+        "text-secondary": "var(--text-secondary)",
+        "text-muted": "var(--text-muted)",
+        "border-default": "var(--border-default)",
+        "border-subtle": "var(--border-subtle)",
+
+        // Semánticos
+        success: "#22C55E",
+        warning: "#F59E0B",
+        danger: "#EF4444",
+        info: "#3B82F6",
+      },
+      fontFamily: {
+        display: ["Ancorli", "var(--font-jakarta)", "system-ui", "sans-serif"],
+        body: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
       },
       borderRadius: {
+        actium: "12px",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        actium: "0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)",
+        "actium-lg": "0 4px 12px rgba(0,0,0,0.4)",
+        "actium-glow": "0 0 20px rgba(242,92,5,0.15)",
       },
     },
   },
