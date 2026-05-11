@@ -76,8 +76,8 @@ export function WorkersTable({ empleados, proyectos }: WorkersTableProps) {
   }
 
   return (
-    <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-[#1A1A1A]">
-      <table className="w-full border-collapse text-left">
+    <div className="w-full overflow-x-auto rounded-xl border border-white/5 bg-[#1A1A1A]">
+      <table className="w-full min-w-[800px] border-collapse text-left">
         <thead>
           <tr className="border-b border-white/5 bg-white/[0.02]">
             <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-white/40">Trabajador</th>

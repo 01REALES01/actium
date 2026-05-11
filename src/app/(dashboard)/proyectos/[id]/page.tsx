@@ -91,27 +91,29 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
     <div className="flex flex-col gap-8 pb-12">
       {/* Top Header Section */}
       <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-4xl font-bold tracking-tight text-white uppercase">
+        <div className="text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start gap-3">
+            <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white uppercase">
               {proyecto.nombre}{" "}
               <span className="text-white/30 ml-2">#{proyecto.codigo}</span>
             </h1>
           </div>
-          <p className="mt-2 text-sm font-medium text-white/40 uppercase tracking-widest">
+          <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest">
             {proyecto.descripcion ??
               "Infraestructura Metalmecánica — Terminal Logística Norte"}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-6 py-3 text-xs font-bold text-white transition-all hover:bg-white/10">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-white/10">
             <Download className="h-4 w-4" />
-            Exportar Reporte
+            <span className="hidden sm:inline">Exportar Reporte</span>
+            <span className="sm:hidden">Reporte</span>
           </button>
-          <button className="flex items-center gap-2 rounded-lg bg-[#FF916E] px-6 py-3 text-xs font-bold text-[#1A1A1A] transition-all hover:bg-[#FF916E]/90">
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#FF916E] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-[#1A1A1A] transition-all hover:bg-[#FF916E]/90">
             <Plus className="h-4 w-4" />
-            Nuevo Registro
+            <span className="hidden sm:inline">Nuevo Registro</span>
+            <span className="sm:hidden">Registro</span>
           </button>
         </div>
       </div>

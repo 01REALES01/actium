@@ -107,9 +107,9 @@ export function ProjectProgressChart({ data }: ProjectProgressChartProps) {
         </ResponsiveContainer>
 
         {/* Deviation Box */}
-        <div className="absolute bottom-10 right-10 rounded-lg border border-white/5 bg-white/5 p-4 backdrop-blur-sm">
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-wider">Desviación</p>
-          <p className="text-2xl font-bold text-[#FF916E]">{deviationFormatted}</p>
+        <div className="absolute bottom-4 right-4 md:bottom-10 md:right-10 rounded-lg border border-white/5 bg-white/5 p-2 md:p-4 backdrop-blur-sm">
+          <p className="text-[8px] md:text-[10px] font-bold text-white/40 uppercase tracking-wider">Desviación</p>
+          <p className="text-lg md:text-2xl font-bold text-[#FF916E]">{deviationFormatted}</p>
         </div>
       </div>
     </div>

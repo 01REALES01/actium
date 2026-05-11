@@ -1,4 +1,6 @@
 "use client";
+import * as React from "react";
+
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -34,12 +36,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarNav } from "@/components/ui/sidebar";
 
 const navigation = [
-  { href: "/dashboard", label: "Panel", icon: LayoutGrid },
+  { href: "/proyectos", label: "Panel", icon: LayoutGrid },
   { href: "/proyectos", label: "Proyectos", icon: FolderKanban },
   { href: "/field-workers", label: "Personal de Campo", icon: Users },
   { href: "/inventory", label: "Inventario", icon: Package },
   { href: "/reports", label: "Reportes", icon: BarChart3 },
 ];
+
 
 const secondaryNavigation = [
   { href: "/settings", label: "Configuración", icon: Settings },
@@ -151,9 +154,18 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
     router.refresh();
   }
 
+  const [open, setOpen] = React.useState(false);
+
   return (
     <div className="min-h-screen bg-[#121212] text-white">
-      {/* Premium Sidebar */}
+      {/* Mobile Sidebar (Sheet) */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent side="left" className="w-72 border-r border-white/5 bg-[#1A1A1A] p-0 text-white">
+          <SidebarBody />
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Sidebar */}
       <motion.div
         initial={{ x: -24, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -164,9 +176,19 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
       </motion.div>
 
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-white/5 bg-[#121212]/80 px-8 backdrop-blur-xl">
-          <div className="flex flex-1 items-center gap-8">
-            <div className="relative flex-1 max-w-md">
+        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-white/5 bg-[#121212]/80 px-4 md:px-8 backdrop-blur-xl">
+          <div className="flex flex-1 items-center gap-4 md:gap-8">
+            {/* Mobile Menu Trigger */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-white/40 hover:text-white"
+              onClick={() => setOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+
+            <div className="relative flex-1 max-w-md hidden md:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
               <input 
                 type="text" 
@@ -176,15 +198,15 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <button className="p-2.5 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
+          <div className="flex items-center gap-3 md:gap-6">
+            <div className="flex items-center gap-1 md:gap-2">
+              <button className="p-2 md:p-2.5 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
                 <Bell className="h-5 w-5" />
               </button>
-              <button className="p-2.5 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
+              <button className="p-2 md:p-2.5 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all hidden sm:block">
                 <MessageSquare className="h-5 w-5" />
               </button>
-              <button className="p-2.5 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all">
+              <button className="p-2 md:p-2.5 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all hidden sm:block">
                 <HelpCircle className="h-5 w-5" />
               </button>
             </div>
@@ -193,13 +215,13 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-4 p-1.5 rounded-xl hover:bg-white/5 transition-all group">
-                  <div className="flex flex-col items-end mr-1">
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Ing. Ricardo S.</span>
-                    <span className="text-[10px] font-bold text-orange-500 uppercase tracking-widest">Director de Obra</span>
+                <button className="flex items-center gap-3 md:gap-4 p-1.5 rounded-xl hover:bg-white/5 transition-all group">
+                  <div className="flex flex-col items-end mr-1 hidden sm:flex">
+                    <span className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider">Ing. Ricardo S.</span>
+                    <span className="text-[8px] md:text-[10px] font-bold text-orange-500 uppercase tracking-widest">Director de Obra</span>
                   </div>
-                  <Avatar className="h-10 w-10 border-2 border-white/10 group-hover:border-orange-500/50 transition-all">
-                    <AvatarFallback className="bg-orange-500/10 text-xs font-bold text-orange-500">
+                  <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-white/10 group-hover:border-orange-500/50 transition-all">
+                    <AvatarFallback className="bg-orange-500/10 text-[10px] md:text-xs font-bold text-orange-500">
                       RS
                     </AvatarFallback>
                   </Avatar>
@@ -217,9 +239,10 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1600px] px-8 py-10">{children}</main>
+        <main className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-6 md:py-10">{children}</main>
       </div>
     </div>
   );
+
 }
 

@@ -59,29 +59,29 @@ export default async function FieldWorkersPage() {
     <div className="flex flex-col gap-8 pb-12">
       {/* Header Section */}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight text-white uppercase">
+        <div className="text-center lg:text-left">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white uppercase">
             Registro de Personal
           </h1>
-          <p className="mt-2 text-sm font-medium text-white/40 uppercase tracking-widest">
+          <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest max-w-2xl mx-auto lg:mx-0">
             Gestión de cumplimiento de certificaciones y despliegue en sitios industriales activos.
           </p>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex gap-4">
-            <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-4 min-w-[140px]">
+        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+          <div className="flex gap-4 w-full sm:w-auto">
+            <div className="flex-1 sm:flex-none rounded-xl border border-white/5 bg-[#1A1A1A] p-4 sm:min-w-[140px] text-center sm:text-left">
               <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Personal Activo</p>
-              <p className="text-2xl font-bold text-white mt-1">{totalActivos.toLocaleString("es-CO")}</p>
+              <p className="text-xl md:text-2xl font-bold text-white mt-1">{totalActivos.toLocaleString("es-CO")}</p>
             </div>
-            <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-4 min-w-[140px]">
+            <div className="flex-1 sm:flex-none rounded-xl border border-white/5 bg-[#1A1A1A] p-4 sm:min-w-[140px] text-center sm:text-left">
               <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Alertas</p>
-              <p className={`text-2xl font-bold mt-1 ${alertasVencimiento.length > 0 ? "text-amber-500" : "text-white"}`}>
+              <p className={`text-xl md:text-2xl font-bold mt-1 ${alertasVencimiento.length > 0 ? "text-amber-500" : "text-white"}`}>
                 {alertasVencimiento.length}
               </p>
             </div>
           </div>
-          <button className="flex h-14 items-center gap-2 rounded-xl bg-[#FF916E] px-6 text-xs font-bold text-[#1A1A1A] transition-all hover:bg-[#FF916E]/90">
+          <button className="flex h-12 md:h-14 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#FF916E] px-6 text-xs font-bold text-[#1A1A1A] transition-all hover:bg-[#FF916E]/90">
             <Plus className="h-4 w-4" />
             Registrar Nuevo Trabajador
           </button>
