@@ -6,7 +6,9 @@ export default function PresupuestoPage() {
       <CardHeader>
         <CardTitle>Presupuesto</CardTitle>
       </CardHeader>
-      <CardContent className="text-sm text-slate-500">Base del modulo de presupuesto preparada para la siguiente fase.</CardContent>
+      <CardContent className="text-sm text-[--text-secondary]">
+        Base del módulo de presupuesto preparada para la siguiente fase.
+      </CardContent>
     </Card>
   );
 }

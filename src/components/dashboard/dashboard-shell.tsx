@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { BarChart3, FolderKanban, HardHat, LogOut, Menu, WalletCards } from "lucide-react";
+import { FolderKanban, HardHat, LogOut, Menu, WalletCards, Wrench } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -44,11 +44,12 @@ function NavigationLinks() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 hover:text-white",
-              active && "bg-blue-500 text-white hover:bg-blue-500",
+              "flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-[--text-secondary] transition-colors hover:bg-[--bg-hover] hover:text-[--text-primary]",
+              active &&
+                "border-l-2 border-actium-orange bg-actium-orange/10 font-medium text-actium-orange hover:bg-actium-orange/10 hover:text-actium-orange",
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5" strokeWidth={1.5} />
             {item.label}
           </Link>
         );
@@ -60,12 +61,12 @@ function NavigationLinks() {
 function Brand() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-blue-500 text-white">
-        <BarChart3 className="h-5 w-5" />
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-actium-orange shadow-actium">
+        <Wrench className="h-5 w-5 text-white" strokeWidth={1.5} />
       </div>
       <div>
-        <p className="text-base font-semibold text-white">ACTIUM</p>
-        <p className="text-xs text-slate-400">Portal de clientes</p>
+        <p className="font-display text-lg tracking-widest text-[--text-primary]">ACTIUM</p>
+        <p className="text-xs text-[--text-muted]">Portal de clientes</p>
       </div>
     </div>
   );
@@ -81,7 +82,9 @@ function SidebarBody() {
         <NavigationLinks />
       </SidebarContent>
       <SidebarFooter>
-        <p className="text-xs leading-5 text-slate-400">Operacion, SST y presupuesto en un solo panel.</p>
+        <p className="text-xs leading-5 text-[--text-muted]">
+          Operación, SST y presupuesto en un solo panel.
+        </p>
       </SidebarFooter>
     </>
   );
@@ -99,7 +102,7 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-950">
+    <div className="min-h-screen bg-[--bg-primary] text-[--text-primary]">
       <motion.div
         initial={{ x: -24, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -111,23 +114,26 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
         </Sidebar>
       </motion.div>
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white/90 px-4 backdrop-blur md:px-8">
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-[--border-subtle] bg-[--bg-primary]/90 px-4 backdrop-blur md:px-8">
           <div className="flex items-center gap-3">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="lg:hidden">
-                  <Menu className="h-4 w-4" />
-                  <span className="sr-only">Abrir navegacion</span>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Menu className="h-5 w-5" strokeWidth={1.5} />
+                  <span className="sr-only">Abrir navegación</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 border-slate-800 bg-sidebar p-0 text-slate-100">
+              <SheetContent
+                side="left"
+                className="w-64 border-r border-[--border-subtle] bg-[--bg-secondary] p-0 text-[--text-primary]"
+              >
                 <SidebarBody />
               </SheetContent>
             </Sheet>
             <div>
-              <p className="text-sm text-slate-500">Portal ACTIUM</p>
-              <h1 className="text-lg font-semibold">Dashboard</h1>
+              <p className="text-xs uppercase tracking-wider text-[--text-muted]">Portal ACTIUM</p>
+              <h1 className="font-display text-xl text-[--text-primary]">Dashboard</h1>
             </div>
           </div>
 
@@ -135,23 +141,27 @@ export function DashboardShell({ children, userEmail }: DashboardShellProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-3 px-2">
                 <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-slate-900 text-xs text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="bg-actium-orange/20 text-xs font-semibold text-actium-orange">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
-                <span className="hidden max-w-48 truncate text-sm md:inline">{userEmail ?? "Usuario"}</span>
+                <span className="hidden max-w-48 truncate text-sm text-[--text-secondary] md:inline">
+                  {userEmail ?? "Usuario"}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>Cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
-                Cerrar sesion
+                <LogOut className="h-4 w-4" strokeWidth={1.5} />
+                Cerrar sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
 
-        <main className="px-4 py-6 md:px-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1400px] px-6 py-6">{children}</main>
       </div>
     </div>
   );

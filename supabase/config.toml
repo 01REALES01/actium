@@ -51,6 +51,10 @@ double_confirm_changes = true
 enable_confirmations = false
 secure_password_change = false
 
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
+
 [edge_runtime]
 enabled = true
 policy = "oneshot"

@@ -130,7 +130,7 @@ CREATE POLICY "usuarios_delete" ON public.usuarios
 -- =============================================================================
 CREATE POLICY "proyectos_select" ON public.proyectos
   FOR SELECT USING (
-    public.auth_tiene_acceso_proyecto(id)
+    public.auth_tiene_acceso_proyecto(id, empresa_id, subempresa_id)
     AND deleted_at IS NULL
   );
 
@@ -145,10 +145,13 @@ CREATE POLICY "proyectos_insert" ON public.proyectos
 
 CREATE POLICY "proyectos_update" ON public.proyectos
   FOR UPDATE USING (
-    public.auth_es_super_admin()
-    OR (
-      public.auth_es_admin_o_superior()
-      AND empresa_id = public.auth_empresa_id()
+    public.auth_tiene_acceso_proyecto(id, empresa_id, subempresa_id)
+    AND (
+      public.auth_es_super_admin()
+      OR (
+        public.auth_es_admin_o_superior()
+        AND empresa_id = public.auth_empresa_id()
+      )
     )
   );
 
@@ -383,17 +386,17 @@ CREATE POLICY "inc_evidencias_insert" ON public.incidente_evidencias
 -- FORMULARIOS Y TABLAS HIJAS SST
 -- =============================================================================
 CREATE POLICY "formularios_select" ON public.formularios
-  FOR SELECT USING (public.auth_tiene_acceso_proyecto(proyecto_id));
+  FOR SELECT USING (public.auth_tiene_acceso_proyecto(proyecto_id, empresa_id, subempresa_id));
 
 CREATE POLICY "formularios_insert" ON public.formularios
   FOR INSERT WITH CHECK (
-    public.auth_tiene_acceso_proyecto(proyecto_id)
+    public.auth_tiene_acceso_proyecto(proyecto_id, empresa_id, subempresa_id)
     AND public.auth_rol() IN ('super_admin', 'admin', 'sst', 'operativo')
   );
 
 CREATE POLICY "formularios_update" ON public.formularios
   FOR UPDATE USING (
-    public.auth_tiene_acceso_proyecto(proyecto_id)
+    public.auth_tiene_acceso_proyecto(proyecto_id, empresa_id, subempresa_id)
     AND public.auth_rol() IN ('super_admin', 'admin', 'sst', 'operativo')
   );
 
@@ -536,11 +539,11 @@ CREATE POLICY "rubros_delete" ON public.rubros
 -- Movimientos: cualquier rol con acceso al proyecto puede SOLICITAR;
 -- solo admin/financiero pueden APROBAR/RECHAZAR (via UPDATE de estado)
 CREATE POLICY "movimientos_select" ON public.movimientos
-  FOR SELECT USING (public.auth_tiene_acceso_proyecto(proyecto_id));
+  FOR SELECT USING (public.auth_tiene_acceso_proyecto(proyecto_id, empresa_id));
 
 CREATE POLICY "movimientos_insert" ON public.movimientos
   FOR INSERT WITH CHECK (
-    public.auth_tiene_acceso_proyecto(proyecto_id)
+    public.auth_tiene_acceso_proyecto(proyecto_id, empresa_id)
     AND public.auth_rol() IN ('super_admin', 'admin', 'financiero', 'operativo', 'sst')
   );
 

@@ -35,42 +35,125 @@ SET session_replication_role = replica;
 -- a0000000-0000-0000-0000-000000000002  Mantenimiento Subestacion — Mantenimiento
 
 -- =============================================================================
--- AUTH.USERS (seed directo para entorno local)
+-- AUTH.USERS (seed directo — incluye campos requeridos por GoTrue)
 -- =============================================================================
-INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at)
+INSERT INTO auth.users (
+  instance_id, id, aud, role,
+  email, encrypted_password, email_confirmed_at,
+  confirmation_token, recovery_token,
+  email_change, email_change_token_new, email_change_token_current,
+  phone_change, phone_change_token,
+  reauthentication_token,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at
+)
 VALUES
-  ('00000000-0000-0000-0000-000000000001', 'superadmin@actium.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000001',
+   'authenticated', 'authenticated',
+   'superadmin@actium.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"super_admin","nombre":"Super Admin"}', NOW(), NOW()),
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"super_admin","nombre":"Super Admin"}'::jsonb,
+   NOW(), NOW()),
 
-  ('00000000-0000-0000-0000-000000000002', 'admin@argos.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000002',
+   'authenticated', 'authenticated',
+   'admin@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"admin","nombre":"Admin Argos","empresa_id":"ee000000-0000-0000-0000-000000000001"}', NOW(), NOW()),
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"admin","nombre":"Admin Argos","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
+   NOW(), NOW()),
 
-  ('00000000-0000-0000-0000-000000000003', 'principal@argos.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000003',
+   'authenticated', 'authenticated',
+   'principal@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"cliente_principal","nombre":"Cliente Principal","empresa_id":"ee000000-0000-0000-0000-000000000001"}', NOW(), NOW()),
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"cliente_principal","nombre":"Cliente Principal","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
+   NOW(), NOW()),
 
-  ('00000000-0000-0000-0000-000000000004', 'ops@argos.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000004',
+   'authenticated', 'authenticated',
+   'ops@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"subcliente","nombre":"Subcliente Operaciones","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000001"}', NOW(), NOW()),
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"subcliente","nombre":"Subcliente Operaciones","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000001"}'::jsonb,
+   NOW(), NOW()),
 
-  ('00000000-0000-0000-0000-000000000005', 'mant@argos.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000005',
+   'authenticated', 'authenticated',
+   'mant@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"subcliente","nombre":"Subcliente Mantenimiento","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000002"}', NOW(), NOW()),
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"subcliente","nombre":"Subcliente Mantenimiento","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000002"}'::jsonb,
+   NOW(), NOW()),
 
-  ('00000000-0000-0000-0000-000000000006', 'sst@argos.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000006',
+   'authenticated', 'authenticated',
+   'sst@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"sst","nombre":"Gestor SST","empresa_id":"ee000000-0000-0000-0000-000000000001"}', NOW(), NOW()),
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"sst","nombre":"Gestor SST","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
+   NOW(), NOW()),
 
-  ('00000000-0000-0000-0000-000000000007', 'operativo@argos.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000007',
+   'authenticated', 'authenticated',
+   'operativo@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"operativo","nombre":"Tecnico Campo","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000001"}', NOW(), NOW()),
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"operativo","nombre":"Tecnico Campo","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000001"}'::jsonb,
+   NOW(), NOW()),
 
-  ('00000000-0000-0000-0000-000000000008', 'financiero@argos.dev',
+  ('00000000-0000-0000-0000-000000000000',
+   '00000000-0000-0000-0000-000000000008',
+   'authenticated', 'authenticated',
+   'financiero@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '{"rol":"financiero","nombre":"Gestor Financiero","empresa_id":"ee000000-0000-0000-0000-000000000001"}', NOW(), NOW())
+   '', '', '', '', '', '', '',
+   '{"provider":"email","providers":["email"]}'::jsonb,
+   '{"rol":"financiero","nombre":"Gestor Financiero","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
+   NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
+
+-- =============================================================================
+-- AUTH.IDENTITIES (requerido por signInWithPassword con provider email)
+-- =============================================================================
+INSERT INTO auth.identities (
+  provider_id, user_id, identity_data,
+  provider, last_sign_in_at, created_at, updated_at
+)
+SELECT
+  u.email,
+  u.id,
+  jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+  'email',
+  NOW(), NOW(), NOW()
+FROM auth.users u
+WHERE u.id IN (
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000003',
+  '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000005',
+  '00000000-0000-0000-0000-000000000006',
+  '00000000-0000-0000-0000-000000000007',
+  '00000000-0000-0000-0000-000000000008'
+)
+ON CONFLICT (provider, provider_id) DO NOTHING;
 
 -- =============================================================================
 -- EMPRESA
@@ -210,7 +293,7 @@ VALUES (
   'medico', '2026-03-10', '2026-03-12',
   'Incapacidad medica por gripa — EPS Compensar Formula 2026-03-09',
   '00000000-0000-0000-0000-000000000006'
-);
+) ON CONFLICT DO NOTHING;
 
 INSERT INTO public.incidentes (
   id, empleado_id, proyecto_id, tipo, severidad, fecha,
@@ -226,7 +309,7 @@ VALUES (
   'Señalización reforzada y charla de seguridad con el equipo.',
   FALSE,
   '00000000-0000-0000-0000-000000000006'
-);
+) ON CONFLICT (id) DO NOTHING;
 
 -- =============================================================================
 -- FORMULARIO ATS DE EJEMPLO
@@ -243,24 +326,26 @@ VALUES (
   'ats', 'completado',
   '2026-04-06', 'Bogota', 'Calle 80 con Av. Boyaca', 'Zona norte poste 47',
   '00000000-0000-0000-0000-000000000007'
-);
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.ats_detalles (formulario_id, permiso_altura, permiso_caliente, decision)
 VALUES (
   'f0000000-0000-0000-0000-000000000001',
   TRUE, FALSE, 'proceder'
-);
+) ON CONFLICT (formulario_id) DO NOTHING;
 
 INSERT INTO public.ats_trabajadores (formulario_id, empleado_id, cargo)
 VALUES
   ('f0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'Electricista Jefe'),
-  ('f0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000002', 'Auxiliar');
+  ('f0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000002', 'Auxiliar')
+ON CONFLICT DO NOTHING;
 
 INSERT INTO public.ats_pasos (formulario_id, orden, paso, peligros, controles)
 VALUES
   ('f0000000-0000-0000-0000-000000000001', 1, 'Aislar el circuito en BT', 'Arco electrico', 'Desenergizar y bloquear con candado personal'),
   ('f0000000-0000-0000-0000-000000000001', 2, 'Verificar ausencia de tension', 'Tension residual', 'Usar multimetro Cat III antes de tocar conductores'),
-  ('f0000000-0000-0000-0000-000000000001', 3, 'Reemplazo de proteccion', 'Caida de herramienta', 'Usar porta-herramientas con correa de seguridad');
+  ('f0000000-0000-0000-0000-000000000001', 3, 'Reemplazo de proteccion', 'Caida de herramienta', 'Usar porta-herramientas con correa de seguridad')
+ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- RUBROS Y MOVIMIENTOS PRESUPUESTALES
@@ -309,7 +394,8 @@ VALUES
    '00000000-0000-0000-0000-000000000008',
    '00000000-0000-0000-0000-000000000002',
    '2026-03-02 11:00:00+00',
-   NULL);
+   NULL)
+ON CONFLICT DO NOTHING;
 
 -- Restaurar comportamiento de replicacion
 SET session_replication_role = DEFAULT;

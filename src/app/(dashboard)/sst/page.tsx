@@ -6,7 +6,9 @@ export default function SstPage() {
       <CardHeader>
         <CardTitle>SST</CardTitle>
       </CardHeader>
-      <CardContent className="text-sm text-slate-500">Base del modulo SST preparada para la siguiente fase.</CardContent>
+      <CardContent className="text-sm text-[--text-secondary]">
+        Base del módulo SST preparada para la siguiente fase.
+      </CardContent>
     </Card>
   );
 }

@@ -22,7 +22,15 @@ function Tabs({ defaultValue, className, children, ...props }: React.HTMLAttribu
 }
 
 function TabsList({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground", className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        "inline-flex h-10 items-center justify-center rounded-xl border border-[--border-subtle] bg-[--bg-elevated] p-1 text-[--text-secondary]",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 function TabsTrigger({ value, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { value: string }) {
@@ -33,8 +41,10 @@ function TabsTrigger({ value, className, ...props }: React.ButtonHTMLAttributes<
       type="button"
       onClick={() => context?.setValue(value)}
       className={cn(
-        "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium transition-all",
-        active && "bg-background text-foreground shadow-sm",
+        "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+        active
+          ? "bg-actium-orange/15 text-actium-orange"
+          : "hover:text-[--text-primary]",
         className,
       )}
       {...props}

@@ -101,28 +101,39 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 -- TRUE si el usuario puede acceder al proyecto dado
 -- Operativo: solo proyectos donde esta explicitamente asignado
 -- Demas roles: heredan acceso por subempresa/empresa
-CREATE OR REPLACE FUNCTION public.auth_tiene_acceso_proyecto(p_proyecto_id UUID)
+CREATE OR REPLACE FUNCTION public.auth_tiene_acceso_proyecto(
+  p_proyecto_id    UUID,
+  p_empresa_id     UUID DEFAULT NULL,
+  p_subempresa_id  UUID DEFAULT NULL
+)
 RETURNS BOOLEAN AS $$
 DECLARE
-  v_rol           user_role;
-  v_empresa_id    UUID;
-  v_subempresa_id UUID;
+  v_rol                user_role;
+  v_user_empresa_id    UUID;
+  v_user_subempresa_id UUID;
+  v_proj_empresa_id    UUID;
+  v_proj_subempresa_id UUID;
 BEGIN
-  v_rol           := public.auth_rol();
-  v_empresa_id    := public.auth_empresa_id();
-  v_subempresa_id := public.auth_subempresa_id();
+  v_rol                := public.auth_rol();
+  v_user_empresa_id    := public.auth_empresa_id();
+  v_user_subempresa_id := public.auth_subempresa_id();
 
   IF public.auth_es_super_admin() THEN
     RETURN TRUE;
   END IF;
 
-  -- Verifica que el proyecto pertenezca a la empresa del usuario
-  IF NOT EXISTS (
-    SELECT 1 FROM public.proyectos
-    WHERE id = p_proyecto_id
-      AND empresa_id = v_empresa_id
-      AND deleted_at IS NULL
-  ) THEN
+  -- Usar valores provistos o buscar si son NULL (solo si no es super_admin)
+  v_proj_empresa_id    := p_empresa_id;
+  v_proj_subempresa_id := p_subempresa_id;
+
+  IF v_proj_empresa_id IS NULL THEN
+    SELECT empresa_id, subempresa_id INTO v_proj_empresa_id, v_proj_subempresa_id
+    FROM public.proyectos
+    WHERE id = p_proyecto_id AND deleted_at IS NULL;
+  END IF;
+
+  -- Si no existe el proyecto o no pertenece a la empresa del usuario
+  IF v_proj_empresa_id IS NULL OR v_proj_empresa_id <> v_user_empresa_id THEN
     RETURN FALSE;
   END IF;
 
@@ -138,12 +149,7 @@ BEGIN
 
   -- Subcliente: solo proyectos de su subempresa
   IF v_rol = 'subcliente' THEN
-    RETURN EXISTS (
-      SELECT 1 FROM public.proyectos
-      WHERE id = p_proyecto_id
-        AND subempresa_id = v_subempresa_id
-        AND deleted_at IS NULL
-    );
+    RETURN v_proj_subempresa_id = v_user_subempresa_id;
   END IF;
 
   -- Admin, cliente_principal, sst, financiero: todos los proyectos de la empresa
