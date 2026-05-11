@@ -539,11 +539,11 @@ CREATE POLICY "rubros_delete" ON public.rubros
 -- Movimientos: cualquier rol con acceso al proyecto puede SOLICITAR;
 -- solo admin/financiero pueden APROBAR/RECHAZAR (via UPDATE de estado)
 CREATE POLICY "movimientos_select" ON public.movimientos
-  FOR SELECT USING (public.auth_tiene_acceso_proyecto(proyecto_id, empresa_id));
+  FOR SELECT USING (public.auth_tiene_acceso_proyecto(proyecto_id));
 
 CREATE POLICY "movimientos_insert" ON public.movimientos
   FOR INSERT WITH CHECK (
-    public.auth_tiene_acceso_proyecto(proyecto_id, empresa_id)
+    public.auth_tiene_acceso_proyecto(proyecto_id)
     AND public.auth_rol() IN ('super_admin', 'admin', 'financiero', 'operativo', 'sst')
   );
 

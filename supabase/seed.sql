@@ -53,7 +53,7 @@ VALUES
    'authenticated', 'authenticated',
    'superadmin@actium.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"super_admin","nombre":"Super Admin"}'::jsonb,
    NOW(), NOW()),
@@ -63,7 +63,7 @@ VALUES
    'authenticated', 'authenticated',
    'admin@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"admin","nombre":"Admin Argos","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
    NOW(), NOW()),
@@ -73,7 +73,7 @@ VALUES
    'authenticated', 'authenticated',
    'principal@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"cliente_principal","nombre":"Cliente Principal","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
    NOW(), NOW()),
@@ -83,7 +83,7 @@ VALUES
    'authenticated', 'authenticated',
    'ops@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"subcliente","nombre":"Subcliente Operaciones","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000001"}'::jsonb,
    NOW(), NOW()),
@@ -93,7 +93,7 @@ VALUES
    'authenticated', 'authenticated',
    'mant@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"subcliente","nombre":"Subcliente Mantenimiento","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000002"}'::jsonb,
    NOW(), NOW()),
@@ -103,7 +103,7 @@ VALUES
    'authenticated', 'authenticated',
    'sst@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"sst","nombre":"Gestor SST","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
    NOW(), NOW()),
@@ -113,7 +113,7 @@ VALUES
    'authenticated', 'authenticated',
    'operativo@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"operativo","nombre":"Tecnico Campo","empresa_id":"ee000000-0000-0000-0000-000000000001","subempresa_id":"5e000000-0000-0000-0000-000000000001"}'::jsonb,
    NOW(), NOW()),
@@ -123,7 +123,7 @@ VALUES
    'authenticated', 'authenticated',
    'financiero@argos.dev',
    crypt('seed1234', gen_salt('bf')), NOW(),
-   '', '', '', '', '', '', '',
+   '', '', '', '', '', '', '', '',
    '{"provider":"email","providers":["email"]}'::jsonb,
    '{"rol":"financiero","nombre":"Gestor Financiero","empresa_id":"ee000000-0000-0000-0000-000000000001"}'::jsonb,
    NOW(), NOW())
@@ -399,3 +399,90 @@ ON CONFLICT DO NOTHING;
 
 -- Restaurar comportamiento de replicacion
 SET session_replication_role = DEFAULT;
+
+
+-- =============================================================================
+-- MAS EMPLEADOS
+-- =============================================================================
+INSERT INTO public.empleados (id, empresa_id, subempresa_id, cedula, nombre, cargo, profesion, telefono, eps, arl, fecha_ingreso, activo)
+VALUES
+  ('e0000000-0000-0000-0000-000000000004', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000001', '1050607080', 'Lucia Santos', 'Inspectora de Seguridad', 'Ingeniera SST', '+57 314 4567890', 'Sura', 'Sura', '2022-01-15', TRUE),
+  ('e0000000-0000-0000-0000-000000000005', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000001', '1060708090', 'Jorge Villamil', 'Lider de Montaje', 'Tecnico Montador', '+57 315 5678901', 'Sanitas', 'Positiva', '2023-05-10', TRUE),
+  ('e0000000-0000-0000-0000-000000000006', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000001', '1070809000', 'Karina Blanco', 'Ingeniera Electrica', 'Ingeniera Electrica', '+57 316 6789012', 'Compensar', 'Sura', '2024-02-20', TRUE),
+  ('e0000000-0000-0000-0000-000000000007', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000001', '1080900011', 'Luis Fernando Rojas', 'Ayudante', 'Bachiller', '+57 317 7890123', 'Famisanar', 'Positiva', '2025-01-05', TRUE),
+  ('e0000000-0000-0000-0000-000000000008', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000001', '1090001122', 'Ana Maria Velez', 'Soldador', 'Tecnico Soldador', '+57 318 8901234', 'Sura', 'Sura', '2024-08-11', TRUE),
+  ('e0000000-0000-0000-0000-000000000009', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000002', '1100112233', 'Pedro Pablo Leon', 'Operador Maquinaria', 'Operador', '+57 319 9012345', 'Sanitas', 'Positiva', '2023-11-25', TRUE),
+  ('e0000000-0000-0000-0000-000000000010', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000002', '1110223344', 'Diana Carolina Perea', 'Supervisor de Obra', 'Arquitecta', '+57 320 0123456', 'Compensar', 'Sura', '2022-09-01', TRUE),
+  ('e0000000-0000-0000-0000-000000000011', 'ee000000-0000-0000-0000-000000000001', '5e000000-0000-0000-0000-000000000001', '1120334455', 'Roberto Carlos Gomez', 'Electricista', 'Tecnico Electrico', '+57 321 1234567', 'Sura', 'Positiva', '2025-02-15', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.empleado_proyectos (empleado_id, proyecto_id, asignado_por)
+VALUES
+  ('e0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000007', 'a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000008', 'a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000009', 'a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000011', 'a0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000006')
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- DOCUMENTOS SST (para probar Alertas y Vencimientos)
+-- =============================================================================
+INSERT INTO public.empleado_documentos (empleado_id, tipo, storage_path, vigencia_desde, vigencia_hasta)
+VALUES
+  ('e0000000-0000-0000-0000-000000000001', 'arl', 'url_dummy_arl', '2025-01-01', (CURRENT_DATE + INTERVAL '6 months')::DATE),
+  ('e0000000-0000-0000-0000-000000000001', 'certificacion_altura', 'url_dummy_alt', '2025-01-01', (CURRENT_DATE + INTERVAL '6 months')::DATE),
+  ('e0000000-0000-0000-0000-000000000001', 'examen_medico', 'url_dummy_med', '2025-01-01', (CURRENT_DATE + INTERVAL '6 months')::DATE),
+  ('e0000000-0000-0000-0000-000000000002', 'arl', 'url_dummy_arl', '2025-01-10', (CURRENT_DATE + INTERVAL '8 months')::DATE),
+  ('e0000000-0000-0000-0000-000000000002', 'certificacion_altura', 'url_dummy_alt', '2025-01-10', (CURRENT_DATE + INTERVAL '8 months')::DATE),
+  ('e0000000-0000-0000-0000-000000000004', 'arl', 'url_dummy_arl', '2025-01-15', (CURRENT_DATE + INTERVAL '10 days')::DATE),
+  ('e0000000-0000-0000-0000-000000000004', 'examen_medico', 'url_dummy_med', '2025-01-15', (CURRENT_DATE + INTERVAL '10 days')::DATE),
+  ('e0000000-0000-0000-0000-000000000005', 'certificacion_altura', 'url_dummy_alt', '2023-05-10', (CURRENT_DATE - INTERVAL '5 days')::DATE),
+  ('e0000000-0000-0000-0000-000000000005', 'arl', 'url_dummy_arl', '2023-05-10', (CURRENT_DATE + INTERVAL '1 year')::DATE),
+  ('e0000000-0000-0000-0000-000000000006', 'eps', 'url_dummy_eps', '2024-02-20', (CURRENT_DATE + INTERVAL '3 months')::DATE),
+  ('e0000000-0000-0000-0000-000000000006', 'arl', 'url_dummy_arl', '2024-02-20', (CURRENT_DATE + INTERVAL '3 months')::DATE),
+  ('e0000000-0000-0000-0000-000000000007', 'examen_medico', 'url_dummy_med', '2024-01-05', (CURRENT_DATE - INTERVAL '1 month')::DATE),
+  ('e0000000-0000-0000-0000-000000000007', 'arl', 'url_dummy_arl', '2024-01-05', (CURRENT_DATE + INTERVAL '15 days')::DATE)
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- MAS INCIDENTES Y ACCIDENTES
+-- =============================================================================
+INSERT INTO public.incidentes (id, empleado_id, proyecto_id, tipo, severidad, fecha, descripcion, causas, acciones_tomadas, registrado_por)
+VALUES
+  ('1c000000-0000-0000-0000-000000000002', 'e0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', 'accidente', 'grave', '2026-05-01 14:00:00+00', 'Caida de altura desde andamio (2m). Fractura de tibia y perone.', 'Falta de aseguramiento en linea de vida', 'Traslado a centro medico, investigacion del accidente, reentrenamiento en alturas', '00000000-0000-0000-0000-000000000006'),
+  ('1c000000-0000-0000-0000-000000000003', 'e0000000-0000-0000-0000-000000000006', 'a0000000-0000-0000-0000-000000000001', 'casi_accidente', 'moderado', '2026-05-08 09:15:00+00', 'Cortocircuito en tablero temporal, chispas cerca del trabajador.', 'Cableado expuesto y humedad en el ambiente', 'Reemplazo de tablero temporal, instalacion de guardas', '00000000-0000-0000-0000-000000000006'),
+  ('1c000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000009', 'a0000000-0000-0000-0000-000000000002', 'accidente', 'moderado', '2026-04-20 11:45:00+00', 'Corte profundo en mano derecha operando cortadora.', 'Uso incorrecto del equipo, distraccion', 'Sutura en centro medico (5 puntos), dotacion de guantes anticorte', '00000000-0000-0000-0000-000000000006')
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- MAS AUSENTISMOS
+-- =============================================================================
+INSERT INTO public.ausentismos (empleado_id, proyecto_id, tipo, fecha_inicio, fecha_fin, razon, registrado_por)
+VALUES
+  ('e0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'vacaciones', '2026-05-15', '2026-05-30', 'Vacaciones anuales programadas', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', 'incapacidad', '2026-05-02', '2026-06-01', 'Incapacidad por fractura de pierna', '00000000-0000-0000-0000-000000000006'),
+  ('e0000000-0000-0000-0000-000000000008', 'a0000000-0000-0000-0000-000000000001', 'personal', '2026-05-05', '2026-05-05', 'Calamidad domestica', '00000000-0000-0000-0000-000000000006')
+ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- MAS AVANCES DIARIOS PARA GRAFICOS
+-- =============================================================================
+INSERT INTO public.proyecto_avances (proyecto_id, fecha, avance_real, avance_proyectado, registrado_por)
+VALUES
+  ('a0000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '6 days', 42.0, 45.0, '00000000-0000-0000-0000-000000000006'),
+  ('a0000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '5 days', 42.5, 46.0, '00000000-0000-0000-0000-000000000006'),
+  ('a0000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '4 days', 44.0, 47.0, '00000000-0000-0000-0000-000000000006'),
+  ('a0000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '3 days', 45.5, 48.0, '00000000-0000-0000-0000-000000000006'),
+  ('a0000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '2 days', 46.0, 49.0, '00000000-0000-0000-0000-000000000006'),
+  ('a0000000-0000-0000-0000-000000000001', CURRENT_DATE - INTERVAL '1 days', 48.0, 50.0, '00000000-0000-0000-0000-000000000006'),
+  ('a0000000-0000-0000-0000-000000000001', CURRENT_DATE, 49.5, 51.0, '00000000-0000-0000-0000-000000000006')
+ON CONFLICT (proyecto_id, fecha) DO UPDATE SET 
+  avance_real = EXCLUDED.avance_real, 
+  avance_proyectado = EXCLUDED.avance_proyectado;
+
+
+

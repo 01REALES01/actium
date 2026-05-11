@@ -27,10 +27,11 @@ export async function registrarAvanceAction(
     p_avance_real: parsed.data.avanceReal,
     p_avance_proyectado: parsed.data.avanceProyectado,
     p_notas: parsed.data.notas ?? null,
-  });
+  } as any);
 
   if (error) throw new Error(error.message);
 
   revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
   return { id: data as string };
 }
+

@@ -1,11 +1,11 @@
-import type { TypedSupabaseClient, Tables, Views } from "@/types/database.types";
+import type { TypedSupabaseClient, Tables } from "@/types/database.types";
 
 type Client = TypedSupabaseClient;
 
 export async function getRubrosBalance(
   supabase: Client,
   proyectoId: string,
-): Promise<Views<"vw_rubro_balance">[]> {
+): Promise<Tables<"vw_rubro_balance">[]> {
   const { data, error } = await supabase
     .from("vw_rubro_balance")
     .select("*")
@@ -29,3 +29,4 @@ export async function listMovimientos(
   if (error) throw error;
   return data ?? [];
 }
+

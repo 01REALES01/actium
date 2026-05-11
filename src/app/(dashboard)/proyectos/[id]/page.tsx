@@ -1,164 +1,165 @@
 import { notFound } from "next/navigation";
-import { Activity, AlertTriangle, Banknote, TrendingUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProjectProgressChart } from "@/components/projects/project-progress-chart";
+import { Download, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getProyecto, getProyectoAvances } from "@/lib/data/proyectos";
-import { getRubrosBalance } from "@/lib/data/presupuesto";
-import { listIncidentes } from "@/lib/data/sst";
-import type { ProyectoEstado } from "@/types/database.types";
+import {
+  getSSTStats,
+  getEmpleadosAsignados,
+  getAusentismosHistorial,
+  getIncidentesPorProyecto,
+  getAvancesSemanaActual,
+  getAvanceHoy,
+} from "@/lib/data/sst";
+import { SSTCard } from "@/components/projects/sst-card";
+import { ProjectProgressChart } from "@/components/projects/project-progress-chart";
+import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
+import { WeeklyComplianceChart } from "@/components/projects/weekly-compliance-chart";
+import { PhotoGallery } from "@/components/projects/photo-gallery";
+import { ObservationsSection } from "@/components/projects/observations-section";
 
 type ProjectPageProps = {
   params: { id: string };
 };
 
-function money(value: number | null | undefined) {
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(value ?? 0);
-}
-
-function estadoVariant(estado: ProyectoEstado | null | undefined) {
-  if (estado === "cancelado") return "destructive" as const;
-  if (estado === "pausado") return "warning" as const;
-  if (estado === "completado") return "success" as const;
-  if (estado === "en_curso") return "info" as const;
-  return "default" as const;
-}
+// Fallbacks mock para cuando no haya datos seed suficientes
+const FALLBACK_WEEKLY = [
+  { dia: "LUN", proyectado: 45, real: 42 },
+  { dia: "MAR", proyectado: 45, real: 48 },
+  { dia: "MIE", proyectado: 45, real: 40 },
+  { dia: "JUE", proyectado: 45, real: 35 },
+  { dia: "VIE", proyectado: 45, real: 42 },
+];
+const FALLBACK_CHART = [
+  { fecha: "01 May", avance: 10, proyectado: 12 },
+  { fecha: "05 May", avance: 25, proyectado: 22 },
+  { fecha: "10 May", avance: 45, proyectado: 40 },
+  { fecha: "15 May", avance: 60, proyectado: 58 },
+];
 
 export default async function ProyectoDashboardPage({ params }: ProjectPageProps) {
   const supabase = createClient();
 
-  const [proyecto, avances, balances, incidentes30d] = await Promise.all([
+  // Fetch en paralelo para reducir latencia
+  const [
+    proyecto,
+    avances,
+    sstStats,
+    empleados,
+    ausentismos,
+    incidentes,
+    accidentes,
+    avancesSemana,
+    avanceHoy,
+  ] = await Promise.all([
     getProyecto(supabase, params.id),
     getProyectoAvances(supabase, params.id),
-    getRubrosBalance(supabase, params.id),
-    listIncidentes(supabase, params.id),
+    getSSTStats(supabase, params.id),
+    getEmpleadosAsignados(supabase, params.id),
+    getAusentismosHistorial(supabase, params.id),
+    getIncidentesPorProyecto(supabase, params.id, "incidente"),
+    getIncidentesPorProyecto(supabase, params.id, "accidente"),
+    getAvancesSemanaActual(supabase, params.id),
+    getAvanceHoy(supabase, params.id),
   ]);
 
   if (!proyecto) notFound();
 
-  const presupuestoTotal = proyecto.presupuesto_total ?? 0;
-  const presupuestoEjecutado = balances.reduce((sum, r) => sum + (r.ejecutado ?? 0), 0);
-  const ejecucion =
-    presupuestoTotal > 0 ? Math.round((presupuestoEjecutado / presupuestoTotal) * 100) : 0;
+  // Gráfica de progreso acumulado (histórico)
+  const chartData =
+    avances.length > 0
+      ? avances.map((a) => ({
+          fecha: new Date(a.fecha).toLocaleDateString("es-CO", {
+            day: "2-digit",
+            month: "short",
+          }),
+          avance: Number(a.avance_real),
+          proyectado: Number(a.avance_proyectado),
+        }))
+      : FALLBACK_CHART;
 
-  const avanceActual = avances.at(-1)?.avance_real ?? 0;
-  const avanceProyectado = avances.at(-1)?.avance_proyectado ?? 0;
+  // Gráfica semanal: usa datos reales si hay, sino fallback visual
+  const weeklyData = avancesSemana.length > 0 ? avancesSemana : FALLBACK_WEEKLY;
 
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const incidentes30dCount = incidentes30d.filter((i) => i.fecha >= cutoff).length;
-
-  const chartData = avances.map((a) => ({
-    fecha: new Date(a.fecha).toLocaleDateString("es-CO", { day: "2-digit", month: "short" }),
-    avance: a.avance_real,
-    proyectado: a.avance_proyectado,
-  }));
-
-  const kpis = [
-    {
-      label: "Avance real",
-      value: `${avanceActual}%`,
-      detail: `vs ${avanceProyectado}% proyectado`,
-      icon: TrendingUp,
-    },
-    {
-      label: "Presupuesto ejecutado",
-      value: `${ejecucion}%`,
-      detail: `${money(presupuestoEjecutado)} ejecutados`,
-      icon: Banknote,
-    },
-    {
-      label: "Incidentes SST",
-      value: String(incidentes30dCount),
-      detail: "Últimos 30 días",
-      icon: AlertTriangle,
-    },
-  ];
+  // Avance de hoy: usa datos reales si hay, sino el último avance disponible como referencia
+  const avanceDiario = avanceHoy ?? {
+    real: avances.length > 0 ? Number(avances[avances.length - 1].avance_real) : 42.5,
+    proyectado:
+      avances.length > 0 ? Number(avances[avances.length - 1].avance_proyectado) : 38.0,
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
+    <div className="flex flex-col gap-8 pb-12">
+      {/* Top Header Section */}
+      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2">
-            <Badge variant={estadoVariant(proyecto.estado)}>{proyecto.estado}</Badge>
-            <span className="text-sm text-[--text-muted]">{proyecto.codigo}</span>
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl font-bold tracking-tight text-white uppercase">
+              {proyecto.nombre}{" "}
+              <span className="text-white/30 ml-2">#{proyecto.codigo}</span>
+            </h1>
           </div>
-          <h2 className="font-display text-3xl text-[--text-primary]">{proyecto.nombre}</h2>
-          <p className="mt-1 text-sm text-[--text-secondary]">Indicadores ejecutivos del proyecto.</p>
+          <p className="mt-2 text-sm font-medium text-white/40 uppercase tracking-widest">
+            {proyecto.descripcion ??
+              "Infraestructura Metalmecánica — Terminal Logística Norte"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-6 py-3 text-xs font-bold text-white transition-all hover:bg-white/10">
+            <Download className="h-4 w-4" />
+            Exportar Reporte
+          </button>
+          <button className="flex items-center gap-2 rounded-lg bg-[#FF916E] px-6 py-3 text-xs font-bold text-[#1A1A1A] transition-all hover:bg-[#FF916E]/90">
+            <Plus className="h-4 w-4" />
+            Nuevo Registro
+          </button>
         </div>
       </div>
 
-      <Tabs defaultValue="resumen">
-        <TabsList>
-          <TabsTrigger value="resumen">Resumen</TabsTrigger>
-          <TabsTrigger value="sst">SST</TabsTrigger>
-          <TabsTrigger value="presupuesto">Presupuesto</TabsTrigger>
-        </TabsList>
+      {/* Main Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* SST Section — datos reales de Supabase */}
+        <div className="lg:col-span-4">
+          <SSTCard
+            stats={sstStats}
+            proyectoNombre={proyecto.nombre}
+            empleados={empleados}
+            ausentismos={ausentismos}
+            incidentes={incidentes}
+            accidentes={accidentes}
+          />
+        </div>
 
-        <TabsContent value="resumen" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            {kpis.map((kpi) => {
-              const Icon = kpi.icon;
-              return (
-                <Card key={kpi.label}>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="font-sans text-sm font-medium text-[--text-secondary]">
-                      {kpi.label}
-                    </CardTitle>
-                    <Icon className="h-4 w-4 text-actium-orange" strokeWidth={1.5} />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-display text-4xl text-[--text-primary]">{kpi.value}</div>
-                    <p className="mt-1 text-sm text-[--text-secondary]">{kpi.detail}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+        {/* Main Progress Chart — histórico acumulado */}
+        <div className="lg:col-span-8">
+          <ProjectProgressChart data={chartData} />
+        </div>
+      </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Activity className="h-5 w-5 text-actium-orange" strokeWidth={1.5} />
-                Avance del proyecto
-              </CardTitle>
-              <CardDescription>Avance real contra avance proyectado.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ProjectProgressChart data={chartData} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Secondary Row: Mini Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
+        {/* Avance de hoy — 2 barras */}
+        <div className="lg:col-span-5">
+          <DailyProgressChart
+            real={avanceDiario.real}
+            proyectado={avanceDiario.proyectado}
+          />
+        </div>
+        {/* Desempeño semanal — líneas y puntos */}
+        <div className="lg:col-span-7">
+          <WeeklyComplianceChart data={weeklyData} />
+        </div>
+      </div>
 
-        <TabsContent value="sst">
-          <Card>
-            <CardHeader>
-              <CardTitle>SST</CardTitle>
-              <CardDescription>Indicadores de seguridad y salud en el trabajo.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-[--text-secondary]">
-              Módulo listo para conectar formularios e incidentes.
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* Tertiary Row: Photo Gallery */}
+      <div className="w-full">
+        <PhotoGallery />
+      </div>
 
-        <TabsContent value="presupuesto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Presupuesto</CardTitle>
-              <CardDescription>Ejecución presupuestal del proyecto.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-[--text-secondary]">
-              {money(presupuestoEjecutado)} ejecutados de {money(presupuestoTotal)}.
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Quaternary Row: Observations */}
+      <div className="w-full">
+        <ObservationsSection />
+      </div>
     </div>
   );
 }

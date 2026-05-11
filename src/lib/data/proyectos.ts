@@ -1,4 +1,4 @@
-import type { TypedSupabaseClient, Tables, Views } from "@/types/database.types";
+import type { TypedSupabaseClient, Tables } from "@/types/database.types";
 
 type Client = TypedSupabaseClient;
 
@@ -48,7 +48,7 @@ export async function getProyectoAvances(
 export async function getProyectoResumen(
   supabase: Client,
   proyectoId: string,
-): Promise<Views<"vw_proyecto_resumen"> | null> {
+): Promise<Tables<"vw_proyecto_resumen"> | null> {
   const { data, error } = await supabase
     .from("vw_proyecto_resumen")
     .select("*")
@@ -64,7 +64,7 @@ export async function getProyectoResumen(
 
 export async function listProyectosResumen(
   supabase: Client,
-): Promise<Views<"vw_proyecto_resumen">[]> {
+): Promise<Tables<"vw_proyecto_resumen">[]> {
   const { data, error } = await supabase
     .from("vw_proyecto_resumen")
     .select("*")
@@ -73,3 +73,4 @@ export async function listProyectosResumen(
   if (error) throw error;
   return data ?? [];
 }
+

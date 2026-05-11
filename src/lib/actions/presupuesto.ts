@@ -29,7 +29,7 @@ export async function solicitarMovimientoAction(
     p_monto: parsed.data.monto,
     p_justificacion: parsed.data.justificacion,
     p_rubro_origen_id: parsed.data.rubroOrigenId ?? null,
-  });
+  } as any);
 
   if (error) throw new Error(error.message);
 
@@ -39,21 +39,23 @@ export async function solicitarMovimientoAction(
 
 export async function aprobarMovimientoAction(movimientoId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase.rpc("aprobar_movimiento", { p_movimiento_id: movimientoId });
+  const { error } = await supabase.rpc("aprobar_movimiento", { p_movimiento_id: movimientoId } as any);
   if (error) throw new Error(error.message);
   revalidatePath("/presupuesto");
 }
 
 export async function rechazarMovimientoAction(movimientoId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase.rpc("rechazar_movimiento", { p_movimiento_id: movimientoId });
+  const { error } = await supabase.rpc("rechazar_movimiento", { p_movimiento_id: movimientoId } as any);
   if (error) throw new Error(error.message);
   revalidatePath("/presupuesto");
 }
 
 export async function ejecutarMovimientoAction(movimientoId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase.rpc("ejecutar_movimiento", { p_movimiento_id: movimientoId });
+  const { error } = await supabase.rpc("ejecutar_movimiento", { p_movimiento_id: movimientoId } as any);
   if (error) throw new Error(error.message);
   revalidatePath("/presupuesto");
 }
+
+
