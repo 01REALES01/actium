@@ -1,39 +1,183 @@
+"use client";
+
+import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { Camera } from "lucide-react";
+import { Camera, Upload, X, Loader2 } from "lucide-react";
+import { uploadFotoAction } from "@/lib/actions/proyectos";
+import type { FotoConUrl } from "@/lib/data/proyectos";
 
-const photos = [
-  { id: 1, src: "/images/gallery/welding.png", alt: "Soldadura" },
-  { id: 2, src: "/images/gallery/tower.png", alt: "Estructura" },
-  { id: 3, src: "/images/gallery/blueprint.png", alt: "Planos" },
-  { id: 4, src: "/images/gallery/truck.png", alt: "Logística" },
-];
+type Props = {
+  fotos: FotoConUrl[];
+  proyectoId: string;
+  empresaId: string;
+  subempresaId: string;
+};
 
-export function PhotoGallery() {
+export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subempresaId }: Props) {
+  const [fotos, setFotos] = useState(initialFotos);
+  const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Solo se permiten archivos de imagen.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("El archivo no puede superar 10 MB.");
+      return;
+    }
+
+    setError(null);
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+
+    const formData = new FormData();
+    formData.append("foto", file);
+    formData.append("proyectoId", proyectoId);
+    formData.append("empresaId", empresaId);
+    formData.append("subempresaId", subempresaId);
+
+    const optimisticFoto: FotoConUrl = {
+      id: crypto.randomUUID(),
+      proyecto_id: proyectoId,
+      storage_path: "",
+      nombre: file.name,
+      descripcion: null,
+      autor_id: null,
+      exif_json: null,
+      tamano_bytes: file.size,
+      lat: null,
+      lng: null,
+      capturada_at: null,
+      uploaded_at: new Date().toISOString(),
+      signedUrl: objectUrl,
+    };
+
+    setFotos((prev) => [optimisticFoto, ...prev]);
+
+    startTransition(async () => {
+      try {
+        await uploadFotoAction(formData);
+        URL.revokeObjectURL(objectUrl);
+        setPreview(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No fue posible subir la foto. Intenta de nuevo.");
+        setFotos(initialFotos);
+        URL.revokeObjectURL(objectUrl);
+        setPreview(null);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    });
+  }
+
+  const displayFotos = fotos.slice(0, 8);
+  const empty = displayFotos.length === 0;
+
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Camera className="h-4 w-4 text-orange-500" />
-          <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">REGISTRO FOTOGRÁFICO DE OBRA</h3>
+          <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
+            Registro Fotográfico de Obra
+          </h3>
+          {!empty && (
+            <span className="text-[10px] font-bold text-white/30">
+              ({fotos.length} foto{fotos.length !== 1 ? "s" : ""})
+            </span>
+          )}
         </div>
-        <button className="text-[10px] font-bold text-white/40 uppercase tracking-widest hover:text-white transition-colors">
-          VER TODO EL HISTORIAL
-        </button>
+
+        <div className="flex items-center gap-3">
+          {isPending && (
+            <Loader2 className="h-4 w-4 text-white/40 animate-spin" />
+          )}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isPending}
+            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold text-white/60 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            Subir Foto
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {photos.map((photo) => (
-          <div key={photo.id} className="group relative aspect-video overflow-hidden rounded-lg bg-white/5">
-            <Image
-              src={photo.src}
-              alt={photo.alt}
-              fill
-              className="object-cover opacity-80 transition-all duration-500 group-hover:scale-110 group-hover:opacity-100 grayscale hover:grayscale-0"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-          </div>
-        ))}
-      </div>
+      {error && (
+        <div className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5">
+          <p className="text-xs text-red-400">{error}</p>
+          <button onClick={() => setError(null)}>
+            <X className="h-3.5 w-3.5 text-red-400/60 hover:text-red-400" />
+          </button>
+        </div>
+      )}
+
+      {empty ? (
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-white/10 bg-white/[0.02] py-12 cursor-pointer hover:border-white/20 hover:bg-white/[0.04] transition-all"
+        >
+          <Camera className="h-8 w-8 text-white/20" />
+          <p className="text-xs text-white/30">
+            Aún no hay fotos registradas. Haz clic para subir la primera.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {displayFotos.map((foto) => (
+            <div
+              key={foto.id}
+              className="group relative aspect-video overflow-hidden rounded-lg bg-white/5"
+            >
+              {foto.signedUrl ? (
+                <Image
+                  src={foto.signedUrl}
+                  alt={foto.nombre ?? foto.descripcion ?? "Foto de obra"}
+                  fill
+                  className="object-cover opacity-80 transition-all duration-500 group-hover:scale-110 group-hover:opacity-100 grayscale group-hover:grayscale-0"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+                  <Camera className="h-6 w-6 text-white/20" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              {foto.nombre && (
+                <div className="absolute bottom-0 left-0 right-0 p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                  <p className="text-[9px] font-bold text-white/80 uppercase tracking-wider truncate">
+                    {foto.nombre}
+                  </p>
+                </div>
+              )}
+              {foto.signedUrl === foto.id && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                  <Loader2 className="h-5 w-5 text-white animate-spin" />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {fotos.length > 8 && (
+            <div className="relative aspect-video overflow-hidden rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
+              <span className="text-sm font-bold text-white/40">+{fotos.length - 8}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

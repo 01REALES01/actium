@@ -116,11 +116,21 @@ NUNCA azul/verde/morado como color principal de gráfica. Semánticos solo para 
 
 ## 5. Layout
 
-- Sidebar fija `w-64` + main `flex-1 max-w-[1400px] mx-auto px-6 py-6`
-- KPI grid: `grid grid-cols-2 md:grid-cols-4 gap-4` (máximo 4 KPIs por fila)
+> **MOBILE FIRST — regla rectora.** La mayoría del uso real es en obra, desde un celular. Diseña y construye para móvil PRIMERO, luego escala a tablet/desktop. Nunca al revés.
+>
+> - Escribe las clases base de Tailwind para móvil (sin prefijo) y añade `md:` / `lg:` solo para agrandar en pantallas grandes — nunca uses el desktop como base y `max-md:` para "arreglar" el móvil.
+> - El layout debe ser usable y completo a **375px de ancho** sin scroll horizontal, sin texto cortado y sin elementos solapados.
+> - Targets táctiles mínimo **44×44px** (botones, toggles, items de nav, filas de tabla accionables). Nada de hovers como única forma de interacción.
+> - Tablas: en móvil deben colapsar a tarjetas apiladas o permitir scroll horizontal contenido (`overflow-x-auto`), nunca romper el layout.
+> - Sidebar es drawer en móvil (oculta por defecto, abre con botón). El contenido principal ocupa el ancho completo en móvil.
+> - Formularios SST en una sola columna en móvil; campos a ancho completo, teclados apropiados (`type="tel"`, `inputMode`, etc.).
+> - Modales: a pantalla completa o casi en móvil, no centrados con márgenes que dejen el contenido apretado.
+
+- Sidebar fija `w-64` (desktop) + main `flex-1 max-w-[1400px] mx-auto px-6 py-6`
+- KPI grid: `grid grid-cols-2 md:grid-cols-4 gap-4` (móvil arranca en 2 columnas, máximo 4 KPIs por fila)
 - Card grid: `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
 - Secciones entre sí: `mb-8`. Dentro de card: `space-y-3`
-- Breakpoints: < 768 mobile (sidebar drawer), 768–1024 tablet, > 1024 desktop
+- Breakpoints: < 768 mobile (sidebar drawer, base de diseño), 768–1024 tablet, > 1024 desktop
 
 ---
 
@@ -200,6 +210,9 @@ src/
 
 ## 12. Checklist pre-commit (UI)
 
+- [ ] **Mobile first:** diseñado desde 375px hacia arriba, sin scroll horizontal ni texto cortado
+- [ ] **Targets táctiles ≥ 44×44px**, sin depender solo de hover
+- [ ] Tablas colapsan a tarjetas o scroll contenido en móvil
 - [ ] Solo colores de la paleta Actium (sin grises/azules inventados)
 - [ ] Plus Jakarta Sans en todos los textos
 - [ ] CTA primario es `bg-actium-orange`

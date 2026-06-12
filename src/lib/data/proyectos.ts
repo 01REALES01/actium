@@ -2,6 +2,14 @@ import type { TypedSupabaseClient, Tables } from "@/types/database.types";
 
 type Client = TypedSupabaseClient;
 
+export type ObservacionConAutor = Tables<"observaciones"> & {
+  usuarios: Pick<Tables<"usuarios">, "nombre" | "cargo"> | null;
+};
+
+export type FotoConUrl = Tables<"fotos"> & {
+  signedUrl: string | null;
+};
+
 export async function listProyectos(supabase: Client): Promise<Tables<"proyectos">[]> {
   const { data, error } = await supabase
     .from("proyectos")
@@ -72,5 +80,50 @@ export async function listProyectosResumen(
 
   if (error) throw error;
   return data ?? [];
+}
+
+export async function getObservaciones(
+  supabase: Client,
+  proyectoId: string,
+): Promise<ObservacionConAutor[]> {
+  const { data, error } = await supabase
+    .from("observaciones")
+    .select("*, usuarios:autor_id (nombre, cargo)")
+    .eq("proyecto_id", proyectoId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) throw error;
+  return (data ?? []) as ObservacionConAutor[];
+}
+
+export async function getFotos(
+  supabase: Client,
+  proyectoId: string,
+): Promise<FotoConUrl[]> {
+  const { data, error } = await supabase
+    .from("fotos")
+    .select("*")
+    .eq("proyecto_id", proyectoId)
+    .order("uploaded_at", { ascending: false })
+    .limit(8);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return [];
+
+  const fotosConUrl = await Promise.all(
+    data.map(async (foto) => {
+      try {
+        const { data: urlData } = await supabase.storage
+          .from("fotos-proyectos")
+          .createSignedUrl(foto.storage_path, 3600);
+        return { ...foto, signedUrl: urlData?.signedUrl ?? null };
+      } catch {
+        return { ...foto, signedUrl: null };
+      }
+    }),
+  );
+
+  return fotosConUrl;
 }
 

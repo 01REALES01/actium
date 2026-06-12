@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { listProyectos } from "@/lib/data/proyectos";
+import { getPerfilActual, puedeGestionarProyectos } from "@/lib/auth/roles";
 import type { ProyectoEstado } from "@/types/database.types";
 
 function formatDate(value?: string | null) {
@@ -24,6 +25,9 @@ export default async function ProyectosPage() {
   let proyectos: Awaited<ReturnType<typeof listProyectos>> = [];
   let errorMessage: string | null = null;
 
+  const perfil = await getPerfilActual(supabase);
+  const puedeCrear = puedeGestionarProyectos(perfil?.rol);
+
   try {
     proyectos = await listProyectos(supabase);
   } catch (error) {
@@ -32,11 +36,22 @@ export default async function ProyectosPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-display text-3xl text-[--text-primary]">Proyectos</h2>
-        <p className="mt-1 text-sm text-[--text-secondary]">
-          Vista general de proyectos disponibles para su cuenta.
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="font-display text-3xl text-[--text-primary]">Proyectos</h2>
+          <p className="mt-1 text-sm text-[--text-secondary]">
+            Vista general de proyectos disponibles para su cuenta.
+          </p>
+        </div>
+        {puedeCrear ? (
+          <Link
+            href="/proyectos/nuevo"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-actium-orange px-6 py-2.5 text-sm font-semibold text-white shadow-actium transition-all duration-200 hover:bg-actium-orange-hover hover:shadow-actium-lg"
+          >
+            <Plus className="h-4 w-4" strokeWidth={1.5} />
+            Nuevo Proyecto
+          </Link>
+        ) : null}
       </div>
 
       {errorMessage ? (

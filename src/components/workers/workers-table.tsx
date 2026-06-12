@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import { MoreVertical, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import type { EmpleadoConDocumentos } from "@/lib/data/sst";
 import type { Tables } from "@/types/database.types";
+import { WorkerDetailsModal } from "./worker-details-modal";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -67,6 +69,9 @@ interface WorkersTableProps {
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export function WorkersTable({ empleados, proyectos }: WorkersTableProps) {
+  const [selectedWorker, setSelectedWorker] = useState<EmpleadoConProyecto | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
   if (empleados.length === 0) {
     return (
       <div className="w-full rounded-xl border border-white/5 bg-[#1A1A1A] p-12 text-center">
@@ -93,7 +98,14 @@ export function WorkersTable({ empleados, proyectos }: WorkersTableProps) {
           {empleados.map((emp) => {
             const status = getDocStatus(emp);
             return (
-              <tr key={emp.id} className="transition-colors hover:bg-white/[0.02] group">
+              <tr 
+                key={emp.id} 
+                className="transition-colors hover:bg-white/[0.04] group cursor-pointer"
+                onClick={() => {
+                  setSelectedWorker(emp);
+                  setModalOpen(true);
+                }}
+              >
                 {/* Identidad */}
                 <td className="px-6 py-5">
                   <div className="flex items-center gap-4">
@@ -170,6 +182,13 @@ export function WorkersTable({ empleados, proyectos }: WorkersTableProps) {
           {empleados.length} trabajador{empleados.length !== 1 ? "es" : ""} registrado{empleados.length !== 1 ? "s" : ""}
         </p>
       </div>
+
+      <WorkerDetailsModal 
+        open={modalOpen} 
+        onOpenChange={setModalOpen} 
+        empleado={selectedWorker} 
+        empresaId={selectedWorker?.empresa_id} 
+      />
     </div>
   );
 }

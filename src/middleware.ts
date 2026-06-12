@@ -44,6 +44,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Nota: el guard de /admin (solo super_admin) vive en el layout server de
+  // app/(dashboard)/admin/layout.tsx, que consulta la tabla `usuarios`
+  // directamente. Es más confiable que leer el claim del JWT, que depende de
+  // que el custom_access_token_hook esté activado en Supabase.
+
   return response;
 }
 

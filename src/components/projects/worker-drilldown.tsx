@@ -340,9 +340,21 @@ export function WorkerDrillDown({
             <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">
               Total: {totalLabel()}
             </p>
-            <button className="rounded-xl bg-orange-500 px-8 py-4 text-xs font-bold text-[#1A1A1A] uppercase tracking-widest hover:bg-orange-400 transition-all shadow-[0_0_20px_rgba(255,145,110,0.2)]">
-              {actionLabel()}
-            </button>
+            {isEvent || type === "ausentismo" ? (
+              <a
+                href="/sst"
+                className="rounded-xl bg-orange-500 px-8 py-4 text-xs font-bold text-[#1A1A1A] uppercase tracking-widest hover:bg-orange-400 transition-all shadow-[0_0_20px_rgba(255,145,110,0.2)] inline-block"
+              >
+                Ver Módulo SST Completo
+              </a>
+            ) : (
+              <a
+                href="/field-workers"
+                className="rounded-xl bg-orange-500 px-8 py-4 text-xs font-bold text-[#1A1A1A] uppercase tracking-widest hover:bg-orange-400 transition-all shadow-[0_0_20px_rgba(255,145,110,0.2)] inline-block"
+              >
+                Ver Gestión de Personal
+              </a>
+            )}
           </div>
         </div>
       </DialogContent>

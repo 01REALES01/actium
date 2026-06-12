@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Plus } from "lucide-react";
+import { Download, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getProyecto, getProyectoAvances } from "@/lib/data/proyectos";
+import { getPerfilActual, puedeGestionarProyectos } from "@/lib/auth/roles";
+import { getProyecto, getProyectoAvances, getObservaciones, getFotos } from "@/lib/data/proyectos";
 import {
   getSSTStats,
   getEmpleadosAsignados,
@@ -16,12 +18,14 @@ import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { WeeklyComplianceChart } from "@/components/projects/weekly-compliance-chart";
 import { PhotoGallery } from "@/components/projects/photo-gallery";
 import { ObservationsSection } from "@/components/projects/observations-section";
+import { NuevoRegistroModal } from "@/components/projects/nuevo-registro-modal";
+import { NuevoIncidenteModal } from "@/components/projects/nuevo-incidente-modal";
+import { NuevoAusentismoModal } from "@/components/projects/nuevo-ausentismo-modal";
 
 type ProjectPageProps = {
   params: { id: string };
 };
 
-// Fallbacks mock para cuando no haya datos seed suficientes
 const FALLBACK_WEEKLY = [
   { dia: "LUN", proyectado: 45, real: 42 },
   { dia: "MAR", proyectado: 45, real: 48 },
@@ -39,7 +43,6 @@ const FALLBACK_CHART = [
 export default async function ProyectoDashboardPage({ params }: ProjectPageProps) {
   const supabase = createClient();
 
-  // Fetch en paralelo para reducir latencia
   const [
     proyecto,
     avances,
@@ -50,6 +53,9 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
     accidentes,
     avancesSemana,
     avanceHoy,
+    observaciones,
+    fotos,
+    perfil,
   ] = await Promise.all([
     getProyecto(supabase, params.id),
     getProyectoAvances(supabase, params.id),
@@ -60,11 +66,15 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
     getIncidentesPorProyecto(supabase, params.id, "accidente"),
     getAvancesSemanaActual(supabase, params.id),
     getAvanceHoy(supabase, params.id),
+    getObservaciones(supabase, params.id),
+    getFotos(supabase, params.id),
+    getPerfilActual(supabase),
   ]);
 
   if (!proyecto) notFound();
 
-  // Gráfica de progreso acumulado (histórico)
+  const puedeEditar = puedeGestionarProyectos(perfil?.rol);
+
   const chartData =
     avances.length > 0
       ? avances.map((a) => ({
@@ -77,10 +87,8 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
         }))
       : FALLBACK_CHART;
 
-  // Gráfica semanal: usa datos reales si hay, sino fallback visual
   const weeklyData = avancesSemana.length > 0 ? avancesSemana : FALLBACK_WEEKLY;
 
-  // Avance de hoy: usa datos reales si hay, sino el último avance disponible como referencia
   const avanceDiario = avanceHoy ?? {
     real: avances.length > 0 ? Number(avances[avances.length - 1].avance_real) : 42.5,
     proyectado:
@@ -89,7 +97,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
 
   return (
     <div className="flex flex-col gap-8 pb-12">
-      {/* Top Header Section */}
+      {/* Header */}
       <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
         <div className="text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-3">
@@ -99,28 +107,36 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
             </h1>
           </div>
           <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest">
-            {proyecto.descripcion ??
-              "Infraestructura Metalmecánica — Terminal Logística Norte"}
+            {proyecto.descripcion ?? proyecto.ubicacion ?? "Infraestructura Metalmecánica"}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-white/10">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+          {puedeEditar ? (
+            <Link
+              href={`/proyectos/${proyecto.id}/editar`}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 md:px-6 py-2 md:py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-white/10"
+            >
+              <Pencil className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar Proyecto</span>
+              <span className="sm:hidden">Editar</span>
+            </Link>
+          ) : null}
+          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 md:px-6 py-2 md:py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-white/10">
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Exportar Reporte</span>
             <span className="sm:hidden">Reporte</span>
           </button>
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#FF916E] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-[#1A1A1A] transition-all hover:bg-[#FF916E]/90">
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nuevo Registro</span>
-            <span className="sm:hidden">Registro</span>
-          </button>
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+            <NuevoRegistroModal proyectoId={proyecto.id} />
+            <NuevoIncidenteModal proyectoId={proyecto.id} empleadosActivos={empleados} />
+            <NuevoAusentismoModal proyectoId={proyecto.id} empleadosActivos={empleados} />
+          </div>
         </div>
       </div>
 
-      {/* Main Dashboard Grid */}
+      {/* KPIs SST + Gráfica histórica */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* SST Section — datos reales de Supabase */}
         <div className="lg:col-span-4">
           <SSTCard
             stats={sstStats}
@@ -131,36 +147,40 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
             accidentes={accidentes}
           />
         </div>
-
-        {/* Main Progress Chart — histórico acumulado */}
         <div className="lg:col-span-8">
           <ProjectProgressChart data={chartData} />
         </div>
       </div>
 
-      {/* Secondary Row: Mini Charts */}
+      {/* Avance diario + Semana */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
-        {/* Avance de hoy — 2 barras */}
         <div className="lg:col-span-5">
           <DailyProgressChart
             real={avanceDiario.real}
             proyectado={avanceDiario.proyectado}
           />
         </div>
-        {/* Desempeño semanal — líneas y puntos */}
         <div className="lg:col-span-7">
           <WeeklyComplianceChart data={weeklyData} />
         </div>
       </div>
 
-      {/* Tertiary Row: Photo Gallery */}
+      {/* Galería fotográfica */}
       <div className="w-full">
-        <PhotoGallery />
+        <PhotoGallery
+          fotos={fotos}
+          proyectoId={proyecto.id}
+          empresaId={proyecto.empresa_id}
+          subempresaId={proyecto.subempresa_id}
+        />
       </div>
 
-      {/* Quaternary Row: Observations */}
+      {/* Observaciones */}
       <div className="w-full">
-        <ObservationsSection />
+        <ObservationsSection
+          observaciones={observaciones}
+          proyectoId={proyecto.id}
+        />
       </div>
     </div>
   );
