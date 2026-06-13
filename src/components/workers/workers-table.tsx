@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { MoreVertical, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
+import { Upload, MapPin } from "lucide-react";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import type { EmpleadoConDocumentos } from "@/lib/data/sst";
 import type { Tables } from "@/types/database.types";
@@ -68,7 +69,8 @@ interface WorkersTableProps {
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export function WorkersTable({ empleados, proyectos }: WorkersTableProps) {
+export function WorkersTable({ empleados }: WorkersTableProps) {
+  const router = useRouter();
   const [selectedWorker, setSelectedWorker] = useState<EmpleadoConProyecto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -98,13 +100,10 @@ export function WorkersTable({ empleados, proyectos }: WorkersTableProps) {
           {empleados.map((emp) => {
             const status = getDocStatus(emp);
             return (
-              <tr 
-                key={emp.id} 
+              <tr
+                key={emp.id}
                 className="transition-colors hover:bg-white/[0.04] group cursor-pointer"
-                onClick={() => {
-                  setSelectedWorker(emp);
-                  setModalOpen(true);
-                }}
+                onClick={() => router.push(`/field-workers/${emp.id}`)}
               >
                 {/* Identidad */}
                 <td className="px-6 py-5">
@@ -166,8 +165,18 @@ export function WorkersTable({ empleados, proyectos }: WorkersTableProps) {
 
                 {/* Acciones */}
                 <td className="px-6 py-5 text-right">
-                  <button className="rounded-lg p-1.5 text-white/20 hover:bg-white/5 hover:text-white transition-all">
-                    <MoreVertical className="h-5 w-5" />
+                  <button
+                    type="button"
+                    title="Subir documentos"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedWorker(emp);
+                      setModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
+                  >
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden sm:inline">Documentos</span>
                   </button>
                 </td>
               </tr>

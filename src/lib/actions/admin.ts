@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual } from "@/lib/auth/roles";
 
 // Todas estas acciones son de super_admin. La RLS de la base de datos ya
@@ -152,4 +153,55 @@ export async function asignarEmpresaUsuarioAction(
 
   if (error) throw new Error(error.message);
   revalidatePath("/admin/usuarios");
+}
+
+// ─── Crear usuario nuevo (requiere service_role) ──────────────────────────────
+// Crea la cuenta en auth.users vía Admin API. El trigger handle_new_user lee
+// estos metadatos y crea automáticamente la fila en public.usuarios.
+
+const CrearUsuarioSchema = z.object({
+  email: z.string().email().max(160),
+  nombre: z.string().min(2).max(160),
+  password: z.string().min(8).max(72),
+  rol: z.enum(ROL_VALUES),
+  empresaId: z.string().min(1).nullable().optional(),
+  subempresaId: z.string().min(1).nullable().optional(),
+  telefono: z.string().max(40).optional(),
+  cedula: z.string().max(40).optional(),
+  cargo: z.string().max(120).optional(),
+});
+
+export async function crearUsuarioAction(
+  input: z.infer<typeof CrearUsuarioSchema>,
+): Promise<{ id: string }> {
+  const parsed = CrearUsuarioSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  // Verificación de permisos ANTES de tocar el cliente admin (que salta RLS).
+  await assertSuperAdmin();
+
+  const data = parsed.data;
+  const admin = createAdminClient();
+
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email: data.email,
+    password: data.password,
+    email_confirm: true, // sin correo de confirmación; queda activo de inmediato
+    user_metadata: {
+      nombre: data.nombre,
+      rol: data.rol,
+      empresa_id: data.empresaId ?? "",
+      subempresa_id: data.subempresaId ?? "",
+      telefono: data.telefono ?? "",
+      cedula: data.cedula ?? "",
+      cargo: data.cargo ?? "",
+    },
+  });
+
+  if (error || !created?.user) {
+    throw new Error(error?.message ?? "No fue posible crear el usuario.");
+  }
+
+  revalidatePath("/admin/usuarios");
+  return { id: created.user.id };
 }

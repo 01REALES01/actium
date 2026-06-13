@@ -205,6 +205,70 @@ export async function getAusentismosHistorial(
   return (data ?? []) as AusentismoConEmpleado[];
 }
 
+// ─── Perfil de un empleado (historial completo) ──────────────────────────────
+
+export type AusentismoConProyecto = Tables<"ausentismos"> & {
+  proyectos: Pick<Tables<"proyectos">, "nombre"> | null;
+};
+
+export type IncidenteConProyecto = Tables<"incidentes"> & {
+  proyectos: Pick<Tables<"proyectos">, "nombre"> | null;
+};
+
+export type EmpleadoPerfil = {
+  empleado: Tables<"empleados">;
+  documentos: EmpleadoDocumento[];
+  ausentismos: AusentismoConProyecto[];
+  incidentes: IncidenteConProyecto[];
+  proyectos: { id: string; nombre: string }[];
+};
+
+export async function getEmpleadoPerfil(
+  supabase: Client,
+  empleadoId: string,
+): Promise<EmpleadoPerfil | null> {
+  const { data: empleado, error: errEmp } = await supabase
+    .from("empleados")
+    .select("*")
+    .eq("id", empleadoId)
+    .maybeSingle();
+
+  if (errEmp) throw errEmp;
+  if (!empleado) return null;
+
+  const [documentosRes, ausentismosRes, incidentesRes, asignacionesRes] = await Promise.all([
+    supabase.from("empleado_documentos").select("*").eq("empleado_id", empleadoId),
+    supabase
+      .from("ausentismos")
+      .select(`*, proyectos:proyecto_id ( nombre )`)
+      .eq("empleado_id", empleadoId)
+      .order("fecha_inicio", { ascending: false }),
+    supabase
+      .from("incidentes")
+      .select(`*, proyectos:proyecto_id ( nombre )`)
+      .eq("empleado_id", empleadoId)
+      .order("fecha", { ascending: false }),
+    supabase
+      .from("empleado_proyectos")
+      .select(`proyecto_id, proyectos:proyecto_id ( id, nombre )`)
+      .eq("empleado_id", empleadoId)
+      .is("retirado_at", null),
+  ]);
+
+  const proyectos = (asignacionesRes.data ?? [])
+    .map((a: any) => a.proyectos)
+    .filter(Boolean)
+    .map((p: any) => ({ id: p.id as string, nombre: p.nombre as string }));
+
+  return {
+    empleado: empleado as Tables<"empleados">,
+    documentos: (documentosRes.data ?? []) as EmpleadoDocumento[],
+    ausentismos: (ausentismosRes.data ?? []) as AusentismoConProyecto[],
+    incidentes: (incidentesRes.data ?? []) as IncidenteConProyecto[],
+    proyectos,
+  };
+}
+
 // ─── Incidentes del proyecto con info del empleado ────────────────────────────
 
 export async function getIncidentesPorProyecto(

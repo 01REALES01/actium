@@ -11,6 +11,7 @@ import {
   UserMinus,
   Flame,
   Lock,
+  ClipboardList,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listFormularios } from "@/lib/data/sst";
@@ -86,8 +87,15 @@ export default async function SstDashboardPage({
           <div className="flex rounded-xl border border-white/10 bg-white/5 p-1 w-fit hidden lg:flex mr-4">
             <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
               <List className="h-4 w-4 text-orange-500" />
-              <span className="hidden sm:inline">Historial</span>
+              <span className="hidden sm:inline">Permisos</span>
             </div>
+            <Link
+              href="/sst/bitacora"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
+            >
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Bitácora</span>
+            </Link>
             <Link
               href="/sst/calendario"
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
@@ -119,8 +127,15 @@ export default async function SstDashboardPage({
       <div className="flex rounded-xl border border-white/10 bg-white/5 p-1 w-fit lg:hidden mb-2">
         <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
           <List className="h-4 w-4 text-orange-500" />
-          <span className="hidden sm:inline">Historial</span>
+          <span className="hidden sm:inline">Permisos</span>
         </div>
+        <Link
+          href="/sst/bitacora"
+          className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
+        >
+          <ClipboardList className="h-4 w-4" />
+          <span className="hidden sm:inline">Bitácora</span>
+        </Link>
         <Link
           href="/sst/calendario"
           className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"

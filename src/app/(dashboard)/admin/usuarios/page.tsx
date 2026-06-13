@@ -4,6 +4,7 @@ import { getPerfilActual } from "@/lib/auth/roles";
 import { UsuarioRolSelect } from "@/components/admin/usuario-rol-select";
 import { UsuarioEmpresaSelect } from "@/components/admin/usuario-empresa-select";
 import { UsuarioActivoToggle } from "@/components/admin/usuario-activo-toggle";
+import { CrearUsuarioModal } from "@/components/admin/crear-usuario-modal";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,12 @@ export default async function AdminUsuariosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-white/40">
-        {usuarios.length} {usuarios.length === 1 ? "usuario registrado" : "usuarios registrados"}
-      </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-white/40">
+          {usuarios.length} {usuarios.length === 1 ? "usuario registrado" : "usuarios registrados"}
+        </p>
+        <CrearUsuarioModal empresas={empresasOpciones} />
+      </div>
 
       {usuarios.length === 0 ? (
         <div className="rounded-actium border border-white/5 bg-white/[0.03] p-10 text-center text-sm text-white/40">

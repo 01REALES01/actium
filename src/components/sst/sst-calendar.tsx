@@ -1,17 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, AlertTriangle, UserMinus, ShieldCheck, X } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, AlertTriangle, UserMinus, ShieldCheck, X, ClipboardList, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SSTEvent = {
   id: string;
   fecha: Date; // Usado para posicionarlo en el día exacto
-  tipo: "ats" | "incidente" | "ausentismo";
+  tipo: "ats" | "incidente" | "ausentismo" | "parte";
   titulo: string;
   subtitulo?: string;
   estado?: string;
   severidad?: string;
+  href?: string; // Si está presente, el evento enlaza a su detalle (ej. parte diario)
 };
 
 export function SSTCalendar({ eventos }: { eventos: SSTEvent[] }) {
@@ -128,10 +130,11 @@ export function SSTCalendar({ eventos }: { eventos: SSTEvent[] }) {
                         "w-full truncate rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
                         ev.tipo === "ats" && "bg-green-500/20 text-green-400",
                         ev.tipo === "incidente" && "bg-red-500/20 text-red-400",
-                        ev.tipo === "ausentismo" && "bg-orange-500/20 text-orange-400"
+                        ev.tipo === "ausentismo" && "bg-orange-500/20 text-orange-400",
+                        ev.tipo === "parte" && "bg-[#F25C05]/20 text-[#F28729]"
                       )}
                     >
-                      {ev.tipo === "ats" ? "ATS" : ev.tipo === "incidente" ? "INC" : "AUS"}
+                      {ev.tipo === "ats" ? "ATS" : ev.tipo === "incidente" ? "INC" : ev.tipo === "parte" ? "PARTE" : "AUS"}
                     </div>
                   ))}
                   {dayEvents.length > 3 && (
@@ -174,44 +177,60 @@ export function SSTCalendar({ eventos }: { eventos: SSTEvent[] }) {
                 <p className="text-[10px]">No hay registros para esta fecha.</p>
               </div>
             ) : (
-              selectedEvents.map((ev) => (
-                <div
-                  key={ev.id}
-                  className={cn(
-                    "flex flex-col gap-2 rounded-xl border p-4",
-                    ev.tipo === "ats" && "border-green-500/20 bg-green-500/5",
-                    ev.tipo === "incidente" && "border-red-500/20 bg-red-500/5",
-                    ev.tipo === "ausentismo" && "border-orange-500/20 bg-orange-500/5"
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    {ev.tipo === "ats" && <ShieldCheck className="h-4 w-4 text-green-500" />}
-                    {ev.tipo === "incidente" && <AlertTriangle className="h-4 w-4 text-red-500" />}
-                    {ev.tipo === "ausentismo" && <UserMinus className="h-4 w-4 text-orange-500" />}
-                    
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                      {ev.tipo}
-                    </span>
-                    
-                    {ev.severidad && (
-                      <span className="ml-auto rounded-full bg-red-500/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-red-400">
-                        {ev.severidad}
+              selectedEvents.map((ev) => {
+                const inner = (
+                  <>
+                    <div className="flex items-center gap-2">
+                      {ev.tipo === "ats" && <ShieldCheck className="h-4 w-4 text-green-500" />}
+                      {ev.tipo === "incidente" && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                      {ev.tipo === "ausentismo" && <UserMinus className="h-4 w-4 text-orange-500" />}
+                      {ev.tipo === "parte" && <ClipboardList className="h-4 w-4 text-[#F25C05]" />}
+
+                      <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                        {ev.tipo}
                       </span>
-                    )}
-                    {ev.estado && ev.tipo === "ats" && (
-                      <span className="ml-auto rounded-full bg-green-500/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-green-400">
-                        {ev.estado}
-                      </span>
-                    )}
+
+                      {ev.severidad && (
+                        <span className="ml-auto rounded-full bg-red-500/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-red-400">
+                          {ev.severidad}
+                        </span>
+                      )}
+                      {ev.estado && ev.tipo === "ats" && (
+                        <span className="ml-auto rounded-full bg-green-500/20 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-green-400">
+                          {ev.estado}
+                        </span>
+                      )}
+                      {ev.href && (
+                        <ArrowRight className="ml-auto h-4 w-4 text-[#F28729]" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">{ev.titulo}</p>
+                      {ev.subtitulo && (
+                        <p className="mt-1 text-[10px] text-white/60">{ev.subtitulo}</p>
+                      )}
+                    </div>
+                  </>
+                );
+
+                const cardClass = cn(
+                  "flex flex-col gap-2 rounded-xl border p-4 transition-colors",
+                  ev.tipo === "ats" && "border-green-500/20 bg-green-500/5",
+                  ev.tipo === "incidente" && "border-red-500/20 bg-red-500/5",
+                  ev.tipo === "ausentismo" && "border-orange-500/20 bg-orange-500/5",
+                  ev.tipo === "parte" && "border-[#F25C05]/20 bg-[#F25C05]/5 hover:bg-[#F25C05]/10"
+                );
+
+                return ev.href ? (
+                  <Link key={ev.id} href={ev.href} className={cardClass}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <div key={ev.id} className={cardClass}>
+                    {inner}
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-white">{ev.titulo}</p>
-                    {ev.subtitulo && (
-                      <p className="mt-1 text-[10px] text-white/60">{ev.subtitulo}</p>
-                    )}
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

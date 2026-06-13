@@ -33,6 +33,7 @@ export async function addEmployeeDocumentAction(
   }
 
   revalidatePath("/field-workers");
+  revalidatePath(`/field-workers/${empleadoId}`);
   return { success: true };
 }
 

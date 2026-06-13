@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronLeft, ShieldAlert, FileText, Clock, MapPin, User, CalendarDays, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ShieldAlert, FileText, MapPin, User, CalendarDays, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { PersonalEjecutor, type TrabajadorItem } from "@/components/sst/personal-ejecutor";
+import { AtsAcciones } from "@/components/sst/ats-acciones";
 import type { Tables } from "@/types/database.types";
 
 type Props = {
@@ -22,6 +25,11 @@ export default async function FormularioDetallePage({ params }: Props) {
   if (error || !formData) notFound();
   const form = formData as Tables<"formularios">;
 
+  const perfil = await getPerfilActual(supabase);
+  const puedeGestionar = puedeCrearFormularioSST(perfil?.rol);
+  const formAbierto = form.estado !== "firmado" && form.estado !== "archivado";
+  const puedeEditar = form.tipo === "ats" && formAbierto && puedeGestionar;
+
   // Obtener proyecto asociado
   const { data: proyectoData } = await supabase
     .from("proyectos")
@@ -40,24 +48,33 @@ export default async function FormularioDetallePage({ params }: Props) {
     : { data: null };
   const creador = creadorResult.data as { nombre: string; email: string } | null;
 
-  // Si es ATS, obtener detalles, pasos y trabajadores
-  let atsDetalles: any = null;
+  // Si es ATS, obtener pasos y trabajadores
   let atsPasos: any[] = [];
   let atsTrabajadores: any[] = [];
 
   if (form.tipo === "ats") {
-    const [detallesRes, pasosRes, trabajadoresRes] = await Promise.all([
-      supabase.from("ats_detalles").select("*").eq("formulario_id", form.id).maybeSingle(),
+    const [pasosRes, trabajadoresRes] = await Promise.all([
       supabase.from("ats_pasos").select("*").eq("formulario_id", form.id).order("orden"),
       supabase
         .from("ats_trabajadores")
         .select(`*, empleados:empleado_id (nombre, cargo, cedula)`)
         .eq("formulario_id", form.id),
     ]);
-    atsDetalles = detallesRes.data;
     atsPasos = pasosRes.data ?? [];
     atsTrabajadores = trabajadoresRes.data ?? [];
   }
+
+  // Personal ejecutor (excluye la fila del responsable: empleado_id null).
+  const ejecutores: TrabajadorItem[] = atsTrabajadores
+    .filter((t: any) => t.empleado_id)
+    .map((t: any) => ({
+      id: t.id,
+      nombre: t.empleados?.nombre || t.nombre_libre || "—",
+      cargo: t.empleados?.cargo || t.cargo || "Operario",
+      cedula: t.empleados?.cedula ?? null,
+      firmada: Boolean(t.firma_path),
+    }));
+  const hayFirmas = ejecutores.some((t) => t.firmada);
 
   const estadoColor: Record<string, string> = {
     borrador: "border-amber-500/30 bg-amber-500/10 text-amber-400",
@@ -103,13 +120,32 @@ export default async function FormularioDetallePage({ params }: Props) {
               </div>
             </div>
           </div>
-          <Badge
-            variant="outline"
-            className={`px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase border w-fit ${estadoColor[form.estado] || estadoColor.archivado}`}
-          >
-            {form.estado}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge
+              variant="outline"
+              className={`px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase border w-fit ${estadoColor[form.estado] || estadoColor.archivado}`}
+            >
+              {form.estado}
+            </Badge>
+            {puedeEditar && (
+              <Link
+                href={`/sst/${form.id}/editar`}
+                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-white/10"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Editar
+              </Link>
+            )}
+          </div>
         </div>
+
+        {form.tipo === "ats" && (
+          <AtsAcciones
+            formularioId={form.id}
+            estado={form.estado}
+            puedeGestionar={puedeGestionar}
+            hayFirmas={hayFirmas}
+          />
+        )}
       </div>
 
       {/* Info General */}
@@ -183,19 +219,25 @@ export default async function FormularioDetallePage({ params }: Props) {
             {atsPasos.map((paso, idx) => (
               <div key={paso.id} className="rounded-lg border border-white/5 bg-white/[0.02] p-4">
                 <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">Paso {idx + 1}</p>
-                <p className="text-sm font-medium text-white mb-3">{paso.descripcion}</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-sm font-medium text-white mb-3">{paso.paso}</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="rounded-lg bg-amber-500/5 border border-amber-500/10 p-3">
                     <p className="text-[9px] font-bold text-amber-500/80 uppercase tracking-widest mb-1">
                       Peligros Identificados
                     </p>
-                    <p className="text-xs text-white/70">{paso.peligro_identificado || "—"}</p>
+                    <p className="text-xs text-white/70">{paso.peligros || "—"}</p>
+                  </div>
+                  <div className="rounded-lg bg-white/[0.03] border border-white/10 p-3">
+                    <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest mb-1">
+                      Consecuencias
+                    </p>
+                    <p className="text-xs text-white/70">{paso.consecuencias || "—"}</p>
                   </div>
                   <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-3">
                     <p className="text-[9px] font-bold text-emerald-500/80 uppercase tracking-widest mb-1">
                       Controles Propuestos
                     </p>
-                    <p className="text-xs text-white/70">{paso.control_propuesto || "—"}</p>
+                    <p className="text-xs text-white/70">{paso.controles || "—"}</p>
                   </div>
                 </div>
               </div>
@@ -205,55 +247,20 @@ export default async function FormularioDetallePage({ params }: Props) {
       )}
 
       {/* ATS: Personal Ejecutor */}
-      {form.tipo === "ats" && atsTrabajadores.length > 0 && (
+      {form.tipo === "ats" && ejecutores.length > 0 && (
         <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
           <h2 className="flex items-center gap-2 text-xs font-bold tracking-widest text-[#F25C05] uppercase mb-6">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F25C05]/10 text-[10px]">
-              {atsTrabajadores.length}
+              {ejecutores.length}
             </span>
             Personal Ejecutor
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {atsTrabajadores.map((t: any) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-white/5 bg-white/[0.02]"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F25C05]/10 text-xs font-bold text-[#F25C05] shrink-0">
-                  {t.empleados?.nombre?.charAt(0) || "?"}
-                </div>
-                <div className="overflow-hidden">
-                  <p className="text-xs font-bold text-white truncate">{t.empleados?.nombre || "—"}</p>
-                  <p className="text-[9px] text-white/40 uppercase tracking-widest truncate">
-                    {t.empleados?.cargo || "Operario"} &bull; CC: {t.empleados?.cedula || "—"}
-                  </p>
-                </div>
-                {t.firma_url ? (
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 ml-auto shrink-0" />
-                ) : (
-                  <Clock className="h-4 w-4 text-white/20 ml-auto shrink-0" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Firma del supervisor */}
-      {atsDetalles?.firma_supervisor_url && (
-        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
-          <h2 className="text-xs font-bold tracking-widest text-[#F25C05] uppercase mb-4">
-            Firma del Supervisor
-          </h2>
-          <div className="rounded-lg border border-white/5 bg-white/[0.02] p-4 flex items-center gap-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
-            <div>
-              <p className="text-xs font-bold text-white">Firma registrada</p>
-              <p className="text-[10px] text-white/40 mt-0.5">
-                Almacenada en: {atsDetalles.firma_supervisor_url.split("/").pop()}
-              </p>
-            </div>
-          </div>
+          <PersonalEjecutor
+            trabajadores={ejecutores}
+            empresaId={form.empresa_id}
+            subempresaId={form.subempresa_id}
+            editable={puedeEditar}
+          />
         </div>
       )}
 

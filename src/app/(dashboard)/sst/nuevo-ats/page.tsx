@@ -1,23 +1,27 @@
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listProyectos } from "@/lib/data/proyectos";
+import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import { AtsForm } from "@/components/sst/ats-form";
 
 export default async function NuevoATSPage() {
   const supabase = createClient();
-  const proyectos = await listProyectos(supabase);
-  
-  // Obtener empleados con sus proyectos asignados (a través de empleado_proyectos)
-  const { data: asignacionesData } = await supabase
-    .from('empleado_proyectos')
-    .select(`
-      proyecto_id,
-      empleados:empleado_id (id, nombre, cedula, cargo)
-    `)
-    .is('retirado_at', null);
 
-  // Aplanar: cada asignación produce un empleado con su proyecto_id
+  const perfil = await getPerfilActual(supabase);
+  if (!puedeCrearFormularioSST(perfil?.rol)) {
+    redirect("/sst");
+  }
+
+  const proyectos = await listProyectos(supabase);
+
+  // Empleados con su proyecto asignado (vía empleado_proyectos)
+  const { data: asignacionesData } = await supabase
+    .from("empleado_proyectos")
+    .select(`proyecto_id, empleados:empleado_id (id, nombre, cedula, cargo)`)
+    .is("retirado_at", null);
+
   const empleados = (asignacionesData || [])
     .filter((a: any) => a.empleados)
     .map((a: any) => ({
@@ -28,11 +32,17 @@ export default async function NuevoATSPage() {
       proyecto_id: a.proyecto_id,
     }));
 
+  const proyectosOpt = proyectos.map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    empresa_id: p.empresa_id,
+    subempresa_id: p.subempresa_id,
+  }));
+
   return (
     <div className="flex flex-col gap-8 pb-12">
-      {/* Header */}
       <div className="flex flex-col gap-6">
-        <Link 
+        <Link
           href="/sst"
           className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors w-fit"
         >
@@ -48,7 +58,12 @@ export default async function NuevoATSPage() {
         </div>
       </div>
 
-      <AtsForm proyectos={proyectos} empleados={empleados} />
+      <AtsForm
+        modo="crear"
+        proyectos={proyectosOpt}
+        empleados={empleados}
+        responsableNombre={perfil?.nombre ?? "Responsable"}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, AlertCircle, AlertTriangle, Info } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import type {
   EmpleadoConDocumentos,
   AusentismoConEmpleado,
@@ -253,7 +254,12 @@ export function WorkerDrillDown({
                               {aus.empleados?.nombre?.charAt(0) ?? "?"}
                             </div>
                             <div>
-                              <p className="text-sm font-bold text-white">{aus.empleados?.nombre ?? "—"}</p>
+                              <Link
+                                href={`/field-workers/${aus.empleado_id}`}
+                                className="text-sm font-bold text-white hover:text-[#FF916E] transition-colors"
+                              >
+                                {aus.empleados?.nombre ?? "—"}
+                              </Link>
                               <p className="text-[10px] text-white/30 uppercase tracking-widest">{aus.empleados?.cargo ?? "—"}</p>
                             </div>
                           </div>
@@ -297,7 +303,12 @@ export function WorkerDrillDown({
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-base font-bold text-white truncate">{emp.nombre}</p>
+                              <Link
+                                href={`/field-workers/${emp.id}`}
+                                className="block text-base font-bold text-white truncate hover:text-[#FF916E] transition-colors"
+                              >
+                                {emp.nombre}
+                              </Link>
                               <p className="text-[10px] font-medium text-white/30 uppercase tracking-widest truncate mt-0.5">
                                 {emp.cargo ?? emp.profesion ?? "—"}
                               </p>

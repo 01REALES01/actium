@@ -46,6 +46,17 @@ export function puedeGestionarSST(rol: UserRole | null | undefined): boolean {
   return rol === "super_admin" || rol === "admin" || rol === "sst";
 }
 
+/**
+ * Puede crear/editar formularios SST en campo (ATS, permisos).
+ * Coincide con la RLS de `formularios`: incluye operativo, que es quien
+ * normalmente diligencia el ATS diario en obra.
+ */
+export function puedeCrearFormularioSST(rol: UserRole | null | undefined): boolean {
+  return (
+    rol === "super_admin" || rol === "admin" || rol === "sst" || rol === "operativo"
+  );
+}
+
 // ─── Navegación reactiva al rol ───────────────────────────────────────────────
 
 export type NavKey =
