@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Download, Pencil } from "lucide-react";
+import { Pencil, ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, puedeGestionarProyectos } from "@/lib/auth/roles";
 import { getProyecto, getProyectoAvances, getObservaciones, getFotos } from "@/lib/data/proyectos";
 import {
@@ -12,36 +13,40 @@ import {
   getAvancesSemanaActual,
   getAvanceHoy,
 } from "@/lib/data/sst";
+import { getParteDelDia } from "@/lib/data/partes-sst";
+import { hoyLocal } from "@/lib/fecha";
 import { SSTCard } from "@/components/projects/sst-card";
 import { ProjectProgressChart } from "@/components/projects/project-progress-chart";
 import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { WeeklyComplianceChart } from "@/components/projects/weekly-compliance-chart";
 import { PhotoGallery } from "@/components/projects/photo-gallery";
 import { ObservationsSection } from "@/components/projects/observations-section";
-import { NuevoRegistroModal } from "@/components/projects/nuevo-registro-modal";
-import { NuevoIncidenteModal } from "@/components/projects/nuevo-incidente-modal";
-import { NuevoAusentismoModal } from "@/components/projects/nuevo-ausentismo-modal";
 
 type ProjectPageProps = {
   params: { id: string };
 };
 
-const FALLBACK_WEEKLY = [
-  { dia: "LUN", proyectado: 45, real: 42 },
-  { dia: "MAR", proyectado: 45, real: 48 },
-  { dia: "MIE", proyectado: 45, real: 40 },
-  { dia: "JUE", proyectado: 45, real: 35 },
-  { dia: "VIE", proyectado: 45, real: 42 },
-];
-const FALLBACK_CHART = [
-  { fecha: "01 May", avance: 10, proyectado: 12 },
-  { fecha: "05 May", avance: 25, proyectado: 22 },
-  { fecha: "10 May", avance: 45, proyectado: 40 },
-  { fecha: "15 May", avance: 60, proyectado: 58 },
-];
+function EmptyPanel({ titulo, mensaje }: { titulo: string; mensaje: string }) {
+  return (
+    <div className="flex h-full min-h-[220px] flex-col rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
+      <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">{titulo}</h3>
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <p className="text-sm text-white/40">{mensaje}</p>
+      </div>
+    </div>
+  );
+}
 
 export default async function ProyectoDashboardPage({ params }: ProjectPageProps) {
   const supabase = createClient();
+
+  const hoy = hoyLocal();
+
+  // Las LECTURAS de SST/avances/fotos/observaciones van por el cliente admin:
+  // esas tablas tienen RLS activo y la función auth_rol() del proyecto está rota,
+  // por lo que con el cliente de sesión devuelven vacío sin error. El perfil
+  // (identidad) sí se lee con el cliente de sesión.
+  const db = createAdminClient();
 
   const [
     proyecto,
@@ -56,44 +61,42 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
     observaciones,
     fotos,
     perfil,
+    parteHoy,
   ] = await Promise.all([
-    getProyecto(supabase, params.id),
-    getProyectoAvances(supabase, params.id),
-    getSSTStats(supabase, params.id),
-    getEmpleadosAsignados(supabase, params.id),
-    getAusentismosHistorial(supabase, params.id),
-    getIncidentesPorProyecto(supabase, params.id, "incidente"),
-    getIncidentesPorProyecto(supabase, params.id, "accidente"),
-    getAvancesSemanaActual(supabase, params.id),
-    getAvanceHoy(supabase, params.id),
-    getObservaciones(supabase, params.id),
-    getFotos(supabase, params.id),
+    getProyecto(db, params.id),
+    getProyectoAvances(db, params.id),
+    getSSTStats(db, params.id),
+    getEmpleadosAsignados(db, params.id),
+    getAusentismosHistorial(db, params.id),
+    getIncidentesPorProyecto(db, params.id, "incidente"),
+    getIncidentesPorProyecto(db, params.id, "accidente"),
+    getAvancesSemanaActual(db, params.id),
+    getAvanceHoy(db, params.id),
+    getObservaciones(db, params.id),
+    getFotos(db, params.id),
     getPerfilActual(supabase),
+    getParteDelDia(db, params.id, hoy),
   ]);
 
   if (!proyecto) notFound();
 
   const puedeEditar = puedeGestionarProyectos(perfil?.rol);
 
-  const chartData =
-    avances.length > 0
-      ? avances.map((a) => ({
-          fecha: new Date(a.fecha).toLocaleDateString("es-CO", {
-            day: "2-digit",
-            month: "short",
-          }),
-          avance: Number(a.avance_real),
-          proyectado: Number(a.avance_proyectado),
-        }))
-      : FALLBACK_CHART;
+  const chartData = avances.map((a) => ({
+    fecha: new Date(a.fecha).toLocaleDateString("es-CO", {
+      day: "2-digit",
+      month: "short",
+    }),
+    avance: Number(a.avance_real),
+    proyectado: Number(a.avance_proyectado),
+  }));
 
-  const weeklyData = avancesSemana.length > 0 ? avancesSemana : FALLBACK_WEEKLY;
+  const accidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo === "accidente").length : 0;
+  const incidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo !== "accidente").length : 0;
 
-  const avanceDiario = avanceHoy ?? {
-    real: avances.length > 0 ? Number(avances[avances.length - 1].avance_real) : 42.5,
-    proyectado:
-      avances.length > 0 ? Number(avances[avances.length - 1].avance_proyectado) : 38.0,
-  };
+  // Presentes hoy = asignados que NO tienen inasistencia registrada hoy.
+  const ausentesHoyIds = new Set((parteHoy?.inasistencias ?? []).map((i) => i.empleado_id));
+  const empleadosEnOperacion = empleados.filter((e) => !ausentesHoyIds.has(e.id));
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -111,27 +114,14 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
-          {puedeEditar ? (
-            <Link
-              href={`/proyectos/${proyecto.id}/editar`}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 md:px-6 py-2 md:py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-white/10"
-            >
-              <Pencil className="h-4 w-4" />
-              <span className="hidden sm:inline">Editar Proyecto</span>
-              <span className="sm:hidden">Editar</span>
-            </Link>
-          ) : null}
-          <button className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 md:px-6 py-2 md:py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-white/10">
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Exportar Reporte</span>
-            <span className="sm:hidden">Reporte</span>
-          </button>
-          <div className="flex gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
-            <NuevoRegistroModal proyectoId={proyecto.id} />
-            <NuevoIncidenteModal proyectoId={proyecto.id} empleadosActivos={empleados} />
-            <NuevoAusentismoModal proyectoId={proyecto.id} empleadosActivos={empleados} />
-          </div>
+        <div className="flex w-full md:w-auto mt-4 md:mt-0">
+          <Link
+            href={`/proyectos/${proyecto.id}/parte/${hoy}`}
+            className="flex flex-1 md:flex-none items-center justify-center gap-2 rounded-lg bg-[#F25C05] px-6 py-3 text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
+          >
+            <ClipboardList className="h-4 w-4" />
+            Parte de hoy
+          </Link>
         </div>
       </div>
 
@@ -140,28 +130,53 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
         <div className="lg:col-span-4">
           <SSTCard
             stats={sstStats}
+            proyectoId={proyecto.id}
+            fecha={hoy}
+            parteExiste={Boolean(parteHoy?.parte)}
+            presentesHoy={parteHoy?.presentes ?? sstStats.enOperacion}
+            incidentesHoyCount={incidentesHoy}
+            accidentesHoyCount={accidentesHoy}
             proyectoNombre={proyecto.nombre}
             empleados={empleados}
+            empleadosEnOperacion={empleadosEnOperacion}
             ausentismos={ausentismos}
             incidentes={incidentes}
             accidentes={accidentes}
           />
         </div>
         <div className="lg:col-span-8">
-          <ProjectProgressChart data={chartData} />
+          {chartData.length > 0 ? (
+            <ProjectProgressChart data={chartData} />
+          ) : (
+            <EmptyPanel
+              titulo="Avance total del proyecto"
+              mensaje="Aún no hay avance registrado. Usa “Nuevo Registro” para empezar."
+            />
+          )}
         </div>
       </div>
 
       {/* Avance diario + Semana */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5">
-          <DailyProgressChart
-            real={avanceDiario.real}
-            proyectado={avanceDiario.proyectado}
-          />
+          {avanceHoy ? (
+            <DailyProgressChart real={avanceHoy.real} proyectado={avanceHoy.proyectado} />
+          ) : (
+            <EmptyPanel
+              titulo="Avance diario"
+              mensaje="Aún no se registra el avance de hoy."
+            />
+          )}
         </div>
         <div className="lg:col-span-7">
-          <WeeklyComplianceChart data={weeklyData} />
+          {avancesSemana.length > 0 ? (
+            <WeeklyComplianceChart data={avancesSemana} />
+          ) : (
+            <EmptyPanel
+              titulo="Desempeño semanal"
+              mensaje="Aún no hay avance registrado esta semana."
+            />
+          )}
         </div>
       </div>
 
@@ -182,6 +197,19 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
           proyectoId={proyecto.id}
         />
       </div>
+
+      {/* Configuración del proyecto — acción poco frecuente, al fondo */}
+      {puedeEditar && (
+        <div className="flex justify-center border-t border-white/5 pt-6">
+          <Link
+            href={`/proyectos/${proyecto.id}/editar`}
+            className="flex items-center gap-2 rounded-lg px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white/30 transition-colors hover:text-white/70"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            Editar datos del proyecto
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient, Tables, AusentismoTipo, IncidenteTipo, IncidenteSeveridad } from "@/types/database.types";
+import { rangoDiaLocal } from "@/lib/fecha";
 
 type Client = TypedSupabaseClient;
 
@@ -68,6 +69,34 @@ export type ParteResumen = {
   accidentes: number;
 };
 
+export type FotoDia = {
+  id: string;
+  descripcion: string | null;
+  signedUrl: string | null;
+  uploaded_at: string;
+};
+
+export type ObservacionDia = {
+  id: string;
+  contenido: string;
+  importante: boolean;
+  created_at: string;
+  autor: string | null;
+};
+
+export type AvanceDia = {
+  real: number;
+  proyectado: number;
+  notas: string | null;
+} | null;
+
+/** Parte del día + todo el contexto de esa fecha (fotos, observaciones, avance). */
+export type ParteCockpit = ParteDelDia & {
+  fotos: FotoDia[];
+  observaciones: ObservacionDia[];
+  avance: AvanceDia;
+};
+
 // ─── Roster (personal asignado a la obra) ────────────────────────────────────
 
 export async function getRosterProyecto(
@@ -129,8 +158,8 @@ export async function getParteDelDia(
       .from("incidentes")
       .select(`id, empleado_id, tipo, severidad, descripcion, acciones_tomadas, empleados:empleado_id ( nombre, cargo )`)
       .eq("proyecto_id", proyectoId)
-      .gte("fecha", `${fecha}T00:00:00`)
-      .lte("fecha", `${fecha}T23:59:59`),
+      .gte("fecha", rangoDiaLocal(fecha).start)
+      .lte("fecha", rangoDiaLocal(fecha).end),
   ]);
 
   const parte = (parteRes.data ?? null) as ParteDiario | null;
@@ -172,6 +201,75 @@ export async function getParteDelDia(
     presentes,
     programado,
   };
+}
+
+// ─── Parte del día + contexto completo (cockpit del proyecto) ─────────────────
+
+export async function getParteCockpitDelDia(
+  supabase: Client,
+  proyectoId: string,
+  fecha: string,
+): Promise<ParteCockpit | null> {
+  const base = await getParteDelDia(supabase, proyectoId, fecha);
+  if (!base) return null;
+
+  const { start, end } = rangoDiaLocal(fecha);
+
+  const [fotosRes, obsRes, avanceRes] = await Promise.all([
+    supabase
+      .from("fotos")
+      .select("id, descripcion, storage_path, uploaded_at")
+      .eq("proyecto_id", proyectoId)
+      .gte("uploaded_at", start)
+      .lte("uploaded_at", end)
+      .order("uploaded_at", { ascending: false }),
+    supabase
+      .from("observaciones")
+      .select("id, contenido, importante, created_at, usuarios:autor_id ( nombre )")
+      .eq("proyecto_id", proyectoId)
+      .gte("created_at", start)
+      .lte("created_at", end)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("proyecto_avances")
+      .select("avance_real, avance_proyectado, notas")
+      .eq("proyecto_id", proyectoId)
+      .eq("fecha", fecha)
+      .maybeSingle(),
+  ]);
+
+  const fotos: FotoDia[] = await Promise.all(
+    ((fotosRes.data ?? []) as any[]).map(async (f) => {
+      let signedUrl: string | null = null;
+      try {
+        const { data } = await supabase.storage
+          .from("fotos-proyectos")
+          .createSignedUrl(f.storage_path, 3600);
+        signedUrl = data?.signedUrl ?? null;
+      } catch {
+        signedUrl = null;
+      }
+      return { id: f.id, descripcion: f.descripcion, signedUrl, uploaded_at: f.uploaded_at };
+    }),
+  );
+
+  const observaciones: ObservacionDia[] = ((obsRes.data ?? []) as any[]).map((o) => ({
+    id: o.id,
+    contenido: o.contenido,
+    importante: o.importante,
+    created_at: o.created_at,
+    autor: o.usuarios?.nombre ?? null,
+  }));
+
+  const avance: AvanceDia = avanceRes.data
+    ? {
+        real: Number((avanceRes.data as any).avance_real),
+        proyectado: Number((avanceRes.data as any).avance_proyectado),
+        notas: (avanceRes.data as any).notas ?? null,
+      }
+    : null;
+
+  return { ...base, fotos, observaciones, avance };
 }
 
 // ─── Historial de partes (bitácora) ──────────────────────────────────────────

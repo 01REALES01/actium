@@ -1,22 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, X } from "lucide-react";
 import { registrarIncidenteAction } from "@/lib/actions/sst-actions";
+import { ahoraLocalInput } from "@/lib/fecha";
 import { Tables } from "@/types/database.types";
 
-export function NuevoIncidenteModal({ 
-  proyectoId, 
-  empleadosActivos 
-}: { 
+export function NuevoIncidenteModal({
+  proyectoId,
+  empleadosActivos
+}: {
   proyectoId: string,
   empleadosActivos: Tables<"empleados">[]
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 16));
+  const [fecha, setFecha] = useState(ahoraLocalInput());
   const [tipo, setTipo] = useState<"incidente" | "accidente" | "casi_accidente">("incidente");
   const [severidad, setSeveridad] = useState<"leve" | "moderado" | "grave" | "critico">("leve");
   const [empleadoId, setEmpleadoId] = useState("");
@@ -49,6 +52,7 @@ export function NuevoIncidenteModal({
       setEmpleadoId("");
       setTipo("incidente");
       setSeveridad("leve");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible registrar el incidente.");
     } finally {

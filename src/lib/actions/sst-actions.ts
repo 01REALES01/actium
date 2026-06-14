@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import type { FormularioTipo, FormularioEstado, DocumentoEmpleadoTipo } from "@/types/database.types";
 
 export async function addEmployeeDocumentAction(
@@ -47,17 +49,18 @@ export async function registrarIncidenteAction(data: {
   accionesTomadas?: string;
 }) {
   const supabase = createClient();
-  const { data: userData, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !userData?.user) {
-    throw new Error("No autenticado");
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para registrar incidentes.");
   }
 
   if (!data.empleadoId) {
     throw new Error("Debe seleccionar un empleado involucrado para registrar el incidente.");
   }
 
-  const { error } = await supabase.from("incidentes").insert({
+  const db = createAdminClient();
+  const { error } = await (db.from("incidentes") as any).insert({
     proyecto_id: data.proyectoId,
     empleado_id: data.empleadoId,
     tipo: data.tipo,
@@ -65,12 +68,12 @@ export async function registrarIncidenteAction(data: {
     fecha: data.fecha,
     descripcion: data.descripcion,
     acciones_tomadas: data.accionesTomadas || null,
-    registrado_por: userData.user.id,
-  } as any);
+    registrado_por: perfil.id,
+  });
 
   if (error) {
     console.error("Error registrando incidente:", error);
-    throw new Error("Error al registrar el incidente");
+    throw new Error(`Error al registrar el incidente: ${error.message}`);
   }
 
   revalidatePath(`/proyectos/${data.proyectoId}`);
@@ -86,25 +89,26 @@ export async function registrarAusentismoAction(data: {
   razon: string;
 }) {
   const supabase = createClient();
-  const { data: userData, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !userData?.user) {
-    throw new Error("No autenticado");
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para registrar ausentismos.");
   }
 
-  const { error } = await supabase.from("ausentismos").insert({
+  const db = createAdminClient();
+  const { error } = await (db.from("ausentismos") as any).insert({
     proyecto_id: data.proyectoId,
     empleado_id: data.empleadoId,
     tipo: data.tipo,
     fecha_inicio: data.fechaInicio,
     fecha_fin: data.fechaFin,
     razon: data.razon,
-    registrado_por: userData.user.id,
-  } as any);
+    registrado_por: perfil.id,
+  });
 
   if (error) {
     console.error("Error registrando ausentismo:", error);
-    throw new Error("Error al registrar el ausentismo");
+    throw new Error(`Error al registrar el ausentismo: ${error.message}`);
   }
 
   revalidatePath(`/proyectos/${data.proyectoId}`);

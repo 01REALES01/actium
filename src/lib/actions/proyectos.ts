@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 
 const RegistrarAvanceSchema = z.object({
   proyectoId: z.string(),
@@ -21,24 +23,26 @@ export async function registrarAvanceAction(
   }
 
   const supabase = createClient();
-  const { data: userData, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !userData?.user) {
-    throw new Error("No autenticado");
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para registrar avances de obra.");
   }
 
-  const { data, error } = await supabase.from("proyecto_avances").upsert({
+  // Escritura con admin client (rol ya validado): evita el bloqueo de RLS.
+  const db = createAdminClient();
+  const { data, error } = await (db.from("proyecto_avances") as any).upsert({
     proyecto_id: parsed.data.proyectoId,
     fecha: parsed.data.fecha,
     avance_real: parsed.data.avanceReal,
     avance_proyectado: parsed.data.avanceProyectado,
-    registrado_por: userData.user.id,
-  } as any, { onConflict: 'proyecto_id, fecha' }).select('id').single();
+    registrado_por: perfil.id,
+  }, { onConflict: 'proyecto_id, fecha' }).select('id').single();
 
   if (error) throw new Error(error.message);
 
   revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
-  return { id: data as string };
+  return { id: (data as { id: string }).id };
 }
 
 // ─── Crear / editar proyecto ──────────────────────────────────────────────────
@@ -172,14 +176,16 @@ export async function addObservacionAction(
   }
 
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
 
-  const { error } = await supabase.from("observaciones").insert({
+  const db = createAdminClient();
+  const { error } = await (db.from("observaciones") as any).insert({
     proyecto_id: parsed.data.proyectoId,
     contenido: parsed.data.contenido,
     importante: parsed.data.importante ?? false,
-    autor_id: user?.id ?? null,
-  } as any);
+    autor_id: perfil.id,
+  });
 
   if (error) throw new Error(error.message);
   revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
@@ -195,26 +201,30 @@ export async function uploadFotoAction(formData: FormData): Promise<void> {
   if (!proyectoId || !empresaId || !subempresaId) throw new Error("Faltan datos del proyecto.");
 
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
 
   const ext = file.name.split(".").pop() ?? "jpg";
   const storagePath = `${empresaId}/${subempresaId}/${proyectoId}/${crypto.randomUUID()}.${ext}`;
 
   const bytes = await file.arrayBuffer();
 
-  const { error: uploadError } = await supabase.storage
+  // Subida + registro con admin client (rol ya autenticado): evita el bloqueo
+  // de RLS en storage y en la tabla fotos.
+  const db = createAdminClient();
+  const { error: uploadError } = await db.storage
     .from("fotos-proyectos")
     .upload(storagePath, bytes, { contentType: file.type });
 
   if (uploadError) throw new Error(uploadError.message);
 
-  const { error: insertError } = await supabase.from("fotos").insert({
+  const { error: insertError } = await (db.from("fotos") as any).insert({
     proyecto_id: proyectoId,
     storage_path: storagePath,
     nombre: file.name,
     tamano_bytes: file.size,
-    autor_id: user?.id ?? null,
-  } as any);
+    autor_id: perfil.id,
+  });
 
   if (insertError) throw new Error(insertError.message);
   revalidatePath(`/proyectos/${proyectoId}`);

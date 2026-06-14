@@ -1,4 +1,5 @@
 import type { TypedSupabaseClient, Tables, FormularioTipo, FormularioEstado, AusentismoTipo, DocumentoEmpleadoTipo } from "@/types/database.types";
+import { hoyLocal, rangoDiaLocal } from "@/lib/fecha";
 
 type Client = TypedSupabaseClient;
 
@@ -55,7 +56,8 @@ export async function getSSTStats(
   supabase: Client,
   proyectoId: string,
 ): Promise<SSTStats> {
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const today = hoyLocal(); // YYYY-MM-DD en hora de Colombia
+  const { start: diaStart, end: diaEnd } = rangoDiaLocal(today);
 
   // 1. Personal asignado (asignaciones activas al proyecto)
   const { count: personalAsignado } = await supabase
@@ -83,8 +85,8 @@ export async function getSSTStats(
     .from("incidentes")
     .select("*", { count: "exact", head: true })
     .eq("proyecto_id", proyectoId)
-    .gte("fecha", `${today}T00:00:00Z`)
-    .lte("fecha", `${today}T23:59:59Z`);
+    .gte("fecha", diaStart)
+    .lte("fecha", diaEnd);
 
   // 5. Accidentes graves (tipo accidente + severidad grave/critico)
   const { count: accidentesGraves } = await supabase
@@ -101,8 +103,8 @@ export async function getSSTStats(
     .eq("proyecto_id", proyectoId)
     .eq("tipo", "accidente")
     .in("severidad", ["grave", "critico"])
-    .gte("fecha", `${today}T00:00:00Z`)
-    .lte("fecha", `${today}T23:59:59Z`);
+    .gte("fecha", diaStart)
+    .lte("fecha", diaEnd);
 
   const asignados = personalAsignado ?? 0;
   const ausentes = ausentismosHoy ?? 0;
@@ -304,15 +306,16 @@ export async function getAvancesSemanaActual(
   supabase: Client,
   proyectoId: string,
 ): Promise<AvanceDiario[]> {
-  // Calcular lunes de la semana actual
-  const hoy = new Date();
-  const diaSemana = hoy.getDay(); // 0=Dom, 1=Lun...6=Sab
+  // Semana actual en hora de Colombia, de LUNES a DOMINGO (incluye fines de
+  // semana porque en obra se trabaja sábado/domingo). Operamos sobre mediodía
+  // UTC para evitar corrimientos de huso.
+  const base = new Date(`${hoyLocal()}T12:00:00Z`);
+  const diaSemana = base.getUTCDay(); // 0=Dom, 1=Lun...6=Sab
   const diffAlLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
-  const lunes = new Date(hoy);
-  lunes.setDate(hoy.getDate() + diffAlLunes);
-
-  const viernes = new Date(lunes);
-  viernes.setDate(lunes.getDate() + 4);
+  const lunes = new Date(base);
+  lunes.setUTCDate(base.getUTCDate() + diffAlLunes);
+  const domingo = new Date(lunes);
+  domingo.setUTCDate(lunes.getUTCDate() + 6);
 
   const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
@@ -321,16 +324,16 @@ export async function getAvancesSemanaActual(
     .select("fecha, avance_real, avance_proyectado")
     .eq("proyecto_id", proyectoId)
     .gte("fecha", formatDate(lunes))
-    .lte("fecha", formatDate(viernes))
+    .lte("fecha", formatDate(domingo))
     .order("fecha", { ascending: true });
 
   if (error) throw error;
 
-  // Mapear a formato de gráfica
-  const diasNombre = ["LUN", "MAR", "MIE", "JUE", "VIE"];
+  // Mapear a formato de gráfica (Lun=0 … Dom=6)
+  const diasNombre = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
   return (data ?? []).map((row) => {
-    const fecha = new Date(row.fecha + "T12:00:00"); // evitar timezone shift
-    const idx = fecha.getDay() - 1; // Lun=0, Mar=1...
+    const fecha = new Date(`${row.fecha}T12:00:00Z`);
+    const idx = (fecha.getUTCDay() + 6) % 7;
     return {
       dia: diasNombre[idx] ?? row.fecha,
       proyectado: Number(row.avance_proyectado),
@@ -345,7 +348,7 @@ export async function getAvanceHoy(
   supabase: Client,
   proyectoId: string,
 ): Promise<{ real: number; proyectado: number } | null> {
-  const today = new Date().toISOString().split("T")[0];
+  const today = hoyLocal();
 
   const { data, error } = await supabase
     .from("proyecto_avances")

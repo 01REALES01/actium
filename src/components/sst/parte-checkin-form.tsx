@@ -33,11 +33,22 @@ export function ParteCheckinForm({
   empleados,
   fechaInicial,
   proyectoInicial,
+  proyectoFijo = false,
+  estadoInicial,
+  observacionInicial = "",
+  destino = "bitacora",
 }: {
   proyectos: ProyectoOpt[];
   empleados: EmpleadoOpt[];
   fechaInicial: string;
   proyectoInicial?: string;
+  /** Bloquea el selector de proyecto (contexto de una obra concreta). */
+  proyectoFijo?: boolean;
+  /** Estado inicial de asistencia por empleado (para editar un parte existente). */
+  estadoInicial?: Record<string, Estado>;
+  observacionInicial?: string;
+  /** A dónde redirigir tras guardar. */
+  destino?: "bitacora" | "proyecto";
 }) {
   const router = useRouter();
   const [proyectoId, setProyectoId] = useState<string>(
@@ -46,8 +57,8 @@ export function ParteCheckinForm({
       : proyectos[0]?.id ?? "",
   );
   const [fecha, setFecha] = useState<string>(fechaInicial);
-  const [observaciones, setObservaciones] = useState("");
-  const [estados, setEstados] = useState<Record<string, Estado>>({});
+  const [observaciones, setObservaciones] = useState(observacionInicial);
+  const [estados, setEstados] = useState<Record<string, Estado>>(estadoInicial ?? {});
   const [error, setError] = useState<string | null>(null);
   const [guardando, startGuardar] = useTransition();
 
@@ -92,7 +103,11 @@ export function ParteCheckinForm({
           observaciones,
           asistencias,
         });
-        router.push(`/sst/bitacora/${res.proyectoId}/${res.fecha}`);
+        router.push(
+          destino === "proyecto"
+            ? `/proyectos/${res.proyectoId}/parte/${res.fecha}`
+            : `/sst/bitacora/${res.proyectoId}/${res.fecha}`,
+        );
       } catch (e) {
         setError(e instanceof Error ? e.message : "No fue posible guardar el parte.");
       }
@@ -107,18 +122,24 @@ export function ParteCheckinForm({
           <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
             Obra / Proyecto
           </label>
-          <select
-            value={proyectoId}
-            onChange={(e) => setProyectoId(e.target.value)}
-            className="h-12 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white focus:border-[#F25C05] focus:outline-none"
-          >
-            {proyectos.length === 0 && <option value="">Sin proyectos</option>}
-            {proyectos.map((p) => (
-              <option key={p.id} value={p.id} className="bg-[#1A1A1A]">
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+          {proyectoFijo ? (
+            <div className="flex h-12 items-center rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white">
+              {proyectos.find((p) => p.id === proyectoId)?.nombre ?? "Proyecto"}
+            </div>
+          ) : (
+            <select
+              value={proyectoId}
+              onChange={(e) => setProyectoId(e.target.value)}
+              className="h-12 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white focus:border-[#F25C05] focus:outline-none"
+            >
+              {proyectos.length === 0 && <option value="">Sin proyectos</option>}
+              {proyectos.map((p) => (
+                <option key={p.id} value={p.id} className="bg-[#1A1A1A]">
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">

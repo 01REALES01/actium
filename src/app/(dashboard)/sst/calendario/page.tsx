@@ -1,11 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { SSTCalendar, SSTEvent } from "@/components/sst/sst-calendar";
 import { listPartes } from "@/lib/data/partes-sst";
 import { CalendarDays, List, ClipboardList } from "lucide-react";
 import Link from "next/link";
 
 export default async function SSTCalendarioPage() {
-  const supabase = createClient();
+  // Lecturas por admin: tablas SST con RLS activo y auth_rol() rota.
+  const supabase = createAdminClient();
 
   // Recuperar todos los formularios (ATS), incidentes, ausentismos y partes diarios.
   // En un sistema en producción se filtraría por empresa y por rango de fechas (mes actual).
@@ -33,7 +34,7 @@ export default async function SSTCalendarioPage() {
       tipo: "parte",
       titulo: `${p.proyecto_nombre}`,
       subtitulo: `${p.presentes}/${p.total_programado} presentes · ${p.ausentes} ausentes`,
-      href: `/sst/bitacora/${p.proyecto_id}/${p.fecha}`,
+      href: `/proyectos/${p.proyecto_id}/parte/${p.fecha}`,
     });
   });
 

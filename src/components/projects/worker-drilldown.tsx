@@ -90,6 +90,8 @@ interface WorkerDrillDownProps {
   type: "asignado" | "operacion" | "ausentismo" | "incidente" | "accidente";
   proyectoNombre: string;
   empleados: EmpleadoConDocumentos[];
+  /** Subconjunto presente hoy (asignados menos ausentes). Para la vista "operacion". */
+  empleadosEnOperacion?: EmpleadoConDocumentos[];
   ausentismos: AusentismoConEmpleado[];
   incidentes: IncidenteConEmpleado[];
   accidentes: IncidenteConEmpleado[];
@@ -103,12 +105,15 @@ export function WorkerDrillDown({
   type,
   proyectoNombre,
   empleados,
+  empleadosEnOperacion,
   ausentismos,
   incidentes,
   accidentes,
 }: WorkerDrillDownProps) {
   const isEvent = type === "incidente" || type === "accidente";
   const eventData = type === "accidente" ? accidentes : incidentes;
+  // Para "operacion" mostramos solo los presentes; para "asignado", todos.
+  const listaEmpleados = type === "operacion" ? (empleadosEnOperacion ?? empleados) : empleados;
 
   const getTitle = () => {
     switch (type) {
@@ -135,7 +140,9 @@ export function WorkerDrillDown({
       return `${eventData.length} ${type === "incidente" ? "Incidentes registrados" : "Accidentes graves"}`;
     if (type === "ausentismo")
       return `${ausentismos.length} Ausentes (historial)`;
-    return `${empleados.length} Trabajadores en sitio`;
+    if (type === "operacion")
+      return `${listaEmpleados.length} En operación hoy`;
+    return `${empleados.length} Trabajadores asignados`;
   };
 
   const actionLabel = () => {
@@ -282,14 +289,16 @@ export function WorkerDrillDown({
 
                 {/* ── Empleados (asignado / operacion) ── */}
                 {(type === "asignado" || type === "operacion") &&
-                  (empleados.length === 0 ? (
+                  (listaEmpleados.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="pl-8 py-12 text-sm text-white/20 italic">
-                        No hay personal asignado a este proyecto.
+                        {type === "operacion"
+                          ? "Nadie marcado en operación hoy."
+                          : "No hay personal asignado a este proyecto."}
                       </td>
                     </tr>
                   ) : (
-                    empleados.map((emp) => (
+                    listaEmpleados.map((emp) => (
                       <tr key={emp.id} className="hover:bg-white/[0.02] transition-colors">
                         <td className="pl-8 pr-4 py-5">
                           <div className="flex items-center gap-4">

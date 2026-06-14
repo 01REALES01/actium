@@ -13,8 +13,9 @@ import {
   Lock,
   ClipboardList,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { listFormularios } from "@/lib/data/sst";
+import { hoyLocal } from "@/lib/fecha";
 import { listProyectos } from "@/lib/data/proyectos";
 import { Badge } from "@/components/ui/badge";
 import { SSTFilters } from "@/components/sst/sst-filters";
@@ -24,7 +25,8 @@ export default async function SstDashboardPage({
 }: {
   searchParams?: { tipo?: string; estado?: string };
 }) {
-  const supabase = createClient();
+  // Lecturas por admin: tablas SST con RLS activo y auth_rol() rota.
+  const supabase = createAdminClient();
 
   // Filtros desde query params
   const filtros: { tipo?: any; estado?: any } = {};
@@ -51,8 +53,8 @@ export default async function SstDashboardPage({
     supabase
       .from("ausentismos")
       .select("*", { count: "exact", head: true })
-      .lte("fecha_inicio", new Date().toISOString().split("T")[0])
-      .gte("fecha_fin", new Date().toISOString().split("T")[0]),
+      .lte("fecha_inicio", hoyLocal())
+      .gte("fecha_fin", hoyLocal()),
   ]);
 
   // Mapa de proyectos para nombres rápidos

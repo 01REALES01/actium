@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardList, Plus, CalendarDays, List, UserCheck, UserMinus, AlertTriangle, ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { listPartes } from "@/lib/data/partes-sst";
 import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 
@@ -9,7 +10,8 @@ export default async function BitacoraPage() {
   const perfil = await getPerfilActual(supabase);
   const puedeRegistrar = puedeCrearFormularioSST(perfil?.rol);
 
-  const partes = await listPartes(supabase);
+  // Lectura por admin: tablas SST con RLS activo y auth_rol() rota.
+  const partes = await listPartes(createAdminClient());
 
   const fmtFecha = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
@@ -78,14 +80,14 @@ export default async function BitacoraPage() {
                 {partes.map((p) => (
                   <tr key={`${p.proyecto_id}-${p.fecha}`} className="group transition-colors hover:bg-white/[0.03]">
                     <td className="py-4">
-                      <Link href={`/sst/bitacora/${p.proyecto_id}/${p.fecha}`} className="block">
+                      <Link href={`/proyectos/${p.proyecto_id}/parte/${p.fecha}`} className="block">
                         <p className="text-xs font-bold text-white transition-colors group-hover:text-[#F25C05]">
                           {fmtFecha(p.fecha)}
                         </p>
                       </Link>
                     </td>
                     <td className="py-4">
-                      <Link href={`/sst/bitacora/${p.proyecto_id}/${p.fecha}`} className="block">
+                      <Link href={`/proyectos/${p.proyecto_id}/parte/${p.fecha}`} className="block">
                         <p className="max-w-[220px] truncate text-sm text-white/80">{p.proyecto_nombre}</p>
                       </Link>
                     </td>

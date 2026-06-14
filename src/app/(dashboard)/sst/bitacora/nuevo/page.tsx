@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listProyectos } from "@/lib/data/proyectos";
 import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { hoyLocal } from "@/lib/fecha";
 import { ParteCheckinForm } from "@/components/sst/parte-checkin-form";
 
 export default async function NuevoPartePage({
@@ -37,7 +38,7 @@ export default async function NuevoPartePage({
     }));
 
   const proyectosOpt = proyectos.map((p) => ({ id: p.id, nombre: p.nombre }));
-  const hoy = new Date().toISOString().split("T")[0];
+  const hoy = hoyLocal();
   const fechaInicial = /^\d{4}-\d{2}-\d{2}$/.test(searchParams?.fecha ?? "")
     ? (searchParams!.fecha as string)
     : hoy;
@@ -66,6 +67,7 @@ export default async function NuevoPartePage({
         empleados={empleados}
         fechaInicial={fechaInicial}
         proyectoInicial={searchParams?.proyecto}
+        destino="proyecto"
       />
     </div>
   );

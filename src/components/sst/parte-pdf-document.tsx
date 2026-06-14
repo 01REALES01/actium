@@ -5,6 +5,7 @@ import {
   Page,
   View,
   Text,
+  Image,
   StyleSheet,
   Svg,
   Rect,
@@ -28,6 +29,17 @@ export type ParteEvento = {
   involucrado: string;
 };
 
+export type ParteNotaCampo = {
+  contenido: string;
+  autor: string | null;
+  importante: boolean;
+};
+
+export type ParteFoto = {
+  url: string;
+  descripcion: string | null;
+};
+
 export type PartePDFData = {
   proyectoNombre: string;
   fecha: string;
@@ -38,6 +50,9 @@ export type PartePDFData = {
   incidentes: ParteEvento[];
   accidentes: ParteEvento[];
   observaciones: string | null;
+  avance?: { real: number; proyectado: number } | null;
+  notasCampo?: ParteNotaCampo[];
+  fotos?: ParteFoto[];
 };
 
 const ORANGE = "#F25C05";
@@ -98,6 +113,12 @@ const s = StyleSheet.create({
   legendItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   legendDot: { width: 7, height: 7, borderRadius: 2 },
   legendText: { fontSize: 7, color: "#3A3A3A" },
+  notaItem: { borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 6, padding: 8, marginBottom: 5 },
+  notaMeta: { fontSize: 6.5, color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 3 },
+  fotoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  fotoCell: { width: 162, borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 6, overflow: "hidden" },
+  fotoImg: { width: 162, height: 108, objectFit: "cover" },
+  fotoCap: { fontSize: 6.5, color: GRAY, padding: 4 },
 });
 
 // ─── Barra de asistencia (SVG nativo) ─────────────────────────────────────────
@@ -185,6 +206,32 @@ function ParteDocument({ data }: { data: PartePDFData }) {
         <Text style={s.sectionTitle}>Asistencia a operación</Text>
         <BarraAsistencia presentes={data.presentes} ausentes={data.ausentes} />
 
+        {/* Avance del día */}
+        {data.avance ? (
+          <>
+            <Text style={s.sectionTitle}>Avance del día</Text>
+            <View style={s.kpiRow}>
+              <View style={s.kpiCard}>
+                <Text style={s.kpiLabel}>Proyectado</Text>
+                <Text style={[s.kpiValue, { color: "#282828" }]}>{data.avance.proyectado} MT</Text>
+              </View>
+              <View style={s.kpiCard}>
+                <Text style={s.kpiLabel}>Real</Text>
+                <Text style={[s.kpiValue, { color: ORANGE }]}>{data.avance.real} MT</Text>
+              </View>
+              <View style={s.kpiCard}>
+                <Text style={s.kpiLabel}>Cumplimiento</Text>
+                <Text style={[s.kpiValue, { color: GREEN }]}>
+                  {data.avance.proyectado > 0
+                    ? Math.round((data.avance.real / data.avance.proyectado) * 100)
+                    : 0}
+                  %
+                </Text>
+              </View>
+            </View>
+          </>
+        ) : null}
+
         {/* Inasistencias */}
         <Text style={s.sectionTitle}>Inasistencias del día</Text>
         <View style={s.table}>
@@ -234,9 +281,43 @@ function ParteDocument({ data }: { data: PartePDFData }) {
         {/* Observaciones */}
         {data.observaciones ? (
           <>
-            <Text style={s.sectionTitle}>Observaciones</Text>
+            <Text style={s.sectionTitle}>Observaciones del parte</Text>
             <View style={s.obsBox}>
               <Text>{data.observaciones}</Text>
+            </View>
+          </>
+        ) : null}
+
+        {/* Notas de campo del día */}
+        {data.notasCampo && data.notasCampo.length > 0 ? (
+          <>
+            <Text style={s.sectionTitle}>Observaciones de campo</Text>
+            {data.notasCampo.map((n, i) => (
+              <View key={i} style={s.notaItem}>
+                <Text>
+                  {n.importante ? "[IMPORTANTE] " : ""}
+                  {n.contenido}
+                </Text>
+                {n.autor ? <Text style={s.notaMeta}>— {n.autor}</Text> : null}
+              </View>
+            ))}
+          </>
+        ) : null}
+
+        {/* Registro fotográfico del día */}
+        {data.fotos && data.fotos.length > 0 ? (
+          <>
+            <Text style={s.sectionTitle} break={data.fotos.length > 4}>
+              Registro fotográfico
+            </Text>
+            <View style={s.fotoGrid}>
+              {data.fotos.map((f, i) => (
+                <View key={i} style={s.fotoCell}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image src={f.url} style={s.fotoImg} />
+                  {f.descripcion ? <Text style={s.fotoCap}>{f.descripcion}</Text> : null}
+                </View>
+              ))}
             </View>
           </>
         ) : null}

@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { registrarAvanceAction } from "@/lib/actions/proyectos";
+import { hoyLocal } from "@/lib/fecha";
 
 export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+  const [fecha, setFecha] = useState(hoyLocal());
   const [avanceReal, setAvanceReal] = useState("");
   const [avanceProyectado, setAvanceProyectado] = useState("");
   const [notas, setNotas] = useState("");
@@ -34,6 +37,7 @@ export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
       setAvanceReal("");
       setAvanceProyectado("");
       setNotas("");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible guardar los cambios. Intenta de nuevo.");
     } finally {

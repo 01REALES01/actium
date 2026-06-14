@@ -1,23 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { UserMinus, X } from "lucide-react";
 import { registrarAusentismoAction } from "@/lib/actions/sst-actions";
+import { hoyLocal } from "@/lib/fecha";
 import { Tables } from "@/types/database.types";
 
-export function NuevoAusentismoModal({ 
-  proyectoId, 
-  empleadosActivos 
-}: { 
+export function NuevoAusentismoModal({
+  proyectoId,
+  empleadosActivos
+}: {
   proyectoId: string,
   empleadosActivos: Tables<"empleados">[]
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().split("T")[0]);
-  const [fechaFin, setFechaFin] = useState(new Date().toISOString().split("T")[0]);
+  const [fechaInicio, setFechaInicio] = useState(hoyLocal());
+  const [fechaFin, setFechaFin] = useState(hoyLocal());
   const [tipo, setTipo] = useState<"medico" | "personal" | "vacaciones" | "incapacidad" | "otro">("medico");
   const [empleadoId, setEmpleadoId] = useState("");
   const [razon, setRazon] = useState("");
@@ -50,6 +53,7 @@ export function NuevoAusentismoModal({
       setRazon("");
       setEmpleadoId("");
       setTipo("medico");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible registrar el ausentismo.");
     } finally {
