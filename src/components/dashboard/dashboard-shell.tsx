@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SidebarContent, SidebarFooter, SidebarHeader, SidebarNav } from "@/components/ui/sidebar";
+import { SidebarCalendar } from "@/components/dashboard/sidebar-calendar";
 import { ROLE_LABELS, type NavItemDef } from "@/lib/auth/roles";
 import type { UserRole } from "@/types/database.types";
 
@@ -64,14 +65,16 @@ type DashboardShellProps = {
 function NavigationLinks({
   navItems,
   onNavigate,
+  rol,
 }: {
   navItems: NavItemDef[];
   onNavigate?: () => void;
+  rol?: UserRole | null;
 }) {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <SidebarNav className="gap-2">
         {navItems.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -96,7 +99,11 @@ function NavigationLinks({
         })}
       </SidebarNav>
 
-      <div className="mt-auto pt-8 border-t border-white/5">
+      {/* Calendario incrustado: visible junto a cualquier módulo */}
+      <SidebarCalendar />
+
+      {rol === "super_admin" && (
+      <div className="pt-6 border-t border-white/5">
         <SidebarNav className="gap-2">
           {secondaryNavigation.map((item) => {
             const active = pathname === item.href;
@@ -121,6 +128,7 @@ function NavigationLinks({
           })}
         </SidebarNav>
       </div>
+      )}
     </div>
   );
 }
@@ -142,17 +150,19 @@ function Brand() {
 function SidebarBody({
   navItems,
   onNavigate,
+  rol,
 }: {
   navItems: NavItemDef[];
   onNavigate?: () => void;
+  rol?: UserRole | null;
 }) {
   return (
     <div className="flex h-full flex-col p-6">
       <SidebarHeader className="mb-10 p-0">
         <Brand />
       </SidebarHeader>
-      <SidebarContent className="p-0">
-        <NavigationLinks navItems={navItems} onNavigate={onNavigate} />
+      <SidebarContent className="min-h-0 flex-1 overflow-y-auto p-0 pr-1">
+        <NavigationLinks navItems={navItems} onNavigate={onNavigate} rol={rol} />
       </SidebarContent>
       <SidebarFooter className="mt-auto p-0 pt-8 border-t border-white/5">
         <p className="text-xs font-medium leading-relaxed text-white/20">
@@ -189,7 +199,7 @@ export function DashboardShell({ children, userEmail, nombre, rol, cargo, navIte
       {/* Mobile Sidebar (Sheet) */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 border-r border-white/5 bg-[#1A1A1A] p-0 text-white">
-          <SidebarBody navItems={navItems} onNavigate={() => setOpen(false)} />
+          <SidebarBody navItems={navItems} onNavigate={() => setOpen(false)} rol={rol} />
         </SheetContent>
       </Sheet>
 
@@ -200,7 +210,7 @@ export function DashboardShell({ children, userEmail, nombre, rol, cargo, navIte
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block border-r border-white/5 bg-[#1A1A1A]"
       >
-        <SidebarBody navItems={navItems} />
+        <SidebarBody navItems={navItems} rol={rol} />
       </motion.div>
 
       <div className="lg:pl-72">

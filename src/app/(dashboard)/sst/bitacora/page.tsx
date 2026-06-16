@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, Plus, CalendarDays, List, UserCheck, UserMinus, AlertTriangle, ShieldAlert } from "lucide-react";
+import { ClipboardList, Plus, List, UserCheck, UserMinus, AlertTriangle, ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listPartes } from "@/lib/data/partes-sst";
@@ -47,9 +47,6 @@ export default async function BitacoraPage() {
         <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
           <ClipboardList className="h-4 w-4 text-orange-500" /> <span className="hidden sm:inline">Bitácora</span>
         </div>
-        <Link href="/sst/calendario" className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 transition-all hover:text-white">
-          <CalendarDays className="h-4 w-4" /> <span className="hidden sm:inline">Calendario</span>
-        </Link>
       </div>
 
       {/* Lista de partes */}

@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   FileSignature,
   List,
-  CalendarDays,
   UserMinus,
   Flame,
   Lock,
@@ -98,13 +97,6 @@ export default async function SstDashboardPage({
               <ClipboardList className="h-4 w-4" />
               <span className="hidden sm:inline">Bitácora</span>
             </Link>
-            <Link
-              href="/sst/calendario"
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
-            >
-              <CalendarDays className="h-4 w-4" />
-              <span className="hidden sm:inline">Calendario</span>
-            </Link>
           </div>
 
           <Link 
@@ -137,13 +129,6 @@ export default async function SstDashboardPage({
         >
           <ClipboardList className="h-4 w-4" />
           <span className="hidden sm:inline">Bitácora</span>
-        </Link>
-        <Link
-          href="/sst/calendario"
-          className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
-        >
-          <CalendarDays className="h-4 w-4" />
-          <span className="hidden sm:inline">Calendario</span>
         </Link>
       </div>
 

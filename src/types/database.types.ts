@@ -1464,6 +1464,77 @@ export type Database = {
           },
         ]
       }
+      partes_diarios_sst: {
+        Row: {
+          id: string
+          empresa_id: string
+          subempresa_id: string | null
+          proyecto_id: string
+          fecha: string
+          total_programado: number
+          presentes: number
+          observaciones: string | null
+          registrado_por: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          empresa_id: string
+          subempresa_id?: string | null
+          proyecto_id: string
+          fecha: string
+          total_programado?: number
+          presentes?: number
+          observaciones?: string | null
+          registrado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          empresa_id?: string
+          subempresa_id?: string | null
+          proyecto_id?: string
+          fecha?: string
+          total_programado?: number
+          presentes?: number
+          observaciones?: string | null
+          registrado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partes_diarios_sst_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partes_diarios_sst_subempresa_id_fkey"
+            columns: ["subempresa_id"]
+            isOneToOne: false
+            referencedRelation: "subempresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partes_diarios_sst_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partes_diarios_sst_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proyecto_avances: {
         Row: {
           avance_proyectado: number

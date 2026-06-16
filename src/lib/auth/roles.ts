@@ -57,6 +57,17 @@ export function puedeCrearFormularioSST(rol: UserRole | null | undefined): boole
   );
 }
 
+/**
+ * Puede ver el módulo Personal (registro de empleados y sus documentos).
+ * Determina, entre otras cosas, si en el calendario general se muestran los
+ * vencimientos de documentos de personal. Los roles cliente quedan excluidos.
+ */
+export function puedeVerPersonal(rol: UserRole | null | undefined): boolean {
+  return (
+    rol === "super_admin" || rol === "admin" || rol === "sst" || rol === "operativo"
+  );
+}
+
 // ─── Navegación reactiva al rol ───────────────────────────────────────────────
 
 export type NavKey =
@@ -84,8 +95,8 @@ const ALL_NAV: NavItemDef[] = [
 // Qué claves de navegación ve cada rol
 const NAV_BY_ROLE: Record<UserRole, NavKey[]> = {
   super_admin: ["dashboard", "personal", "sst", "presupuesto", "admin"],
-  admin: ["dashboard", "personal", "sst", "presupuesto"],
-  financiero: ["dashboard", "presupuesto"],
+  admin: ["dashboard", "personal", "sst"],
+  financiero: ["dashboard"],
   sst: ["dashboard", "personal", "sst"],
   operativo: ["dashboard", "personal"],
   cliente_principal: ["dashboard"],

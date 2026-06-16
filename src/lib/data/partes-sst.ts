@@ -5,7 +5,7 @@ type Client = TypedSupabaseClient;
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-/** Fila de la cabecera del parte (tabla aún no tipada en database.types). */
+/** Fila de la cabecera del parte. */
 export type ParteDiario = {
   id: string;
   empresa_id: string;
@@ -142,7 +142,7 @@ export async function getParteDelDia(
 
   const [parteRes, rosterRes, ausRes, incRes] = await Promise.all([
     supabase
-      .from("partes_diarios_sst" as any)
+      .from("partes_diarios_sst")
       .select("*")
       .eq("proyecto_id", proyectoId)
       .eq("fecha", fecha)
@@ -279,7 +279,7 @@ export async function listPartes(
   filtros?: { proyectoId?: string; desde?: string; hasta?: string },
 ): Promise<ParteResumen[]> {
   let query = supabase
-    .from("partes_diarios_sst" as any)
+    .from("partes_diarios_sst")
     .select(`id, proyecto_id, fecha, total_programado, presentes, proyectos:proyecto_id ( nombre )`)
     .order("fecha", { ascending: false });
 

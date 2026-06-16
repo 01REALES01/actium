@@ -83,6 +83,67 @@ export async function toggleEmpresaActivaAction(
   revalidatePath("/admin/empresas");
 }
 
+// ─── Subempresas ───────────────────────────────────────────────────────────────
+
+const CrearSubempresaSchema = z.object({
+  empresaId: z.string().min(1),
+  nombre: z.string().min(2).max(160),
+  nit: z.string().max(40).optional(),
+  descripcion: z.string().max(400).optional(),
+});
+
+export async function crearSubempresaAction(
+  input: z.infer<typeof CrearSubempresaSchema>,
+): Promise<{ id: string }> {
+  const parsed = CrearSubempresaSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(`Datos inválidos: ${parsed.error.issues[0]?.message ?? parsed.error.message}`);
+  }
+
+  const supabase = await assertSuperAdmin();
+  const { data, error } = await supabase
+    .from("subempresas")
+    .insert({
+      empresa_id: parsed.data.empresaId,
+      nombre: parsed.data.nombre,
+      nit: parsed.data.nit || null,
+      descripcion: parsed.data.descripcion || null,
+    } as any)
+    .select("id")
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Ya existe una subempresa con ese nombre en esta empresa.");
+    }
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/subempresas");
+  revalidatePath("/admin");
+  return { id: (data as { id: string }).id };
+}
+
+const ToggleSubempresaSchema = z.object({
+  subempresaId: z.string().min(1),
+  activa: z.boolean(),
+});
+
+export async function toggleSubempresaActivaAction(
+  input: z.infer<typeof ToggleSubempresaSchema>,
+): Promise<void> {
+  const parsed = ToggleSubempresaSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  const supabase = await assertSuperAdmin();
+  const { error } = await (supabase.from("subempresas") as any)
+    .update({ activa: parsed.data.activa })
+    .eq("id", parsed.data.subempresaId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/subempresas");
+}
+
 // ─── Usuarios ──────────────────────────────────────────────────────────────────
 
 const ROL_VALUES = [

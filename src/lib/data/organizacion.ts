@@ -35,6 +35,23 @@ export async function listSubempresas(
   return data ?? [];
 }
 
+export type SubempresaConEmpresa = Tables<"subempresas"> & {
+  empresas: Pick<Tables<"empresas">, "nombre"> | null;
+};
+
+export async function listSubempresasConEmpresa(
+  supabase: Client,
+): Promise<SubempresaConEmpresa[]> {
+  const { data, error } = await supabase
+    .from("subempresas")
+    .select("*, empresas:empresa_id (nombre)")
+    .is("deleted_at", null)
+    .order("nombre", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as SubempresaConEmpresa[];
+}
+
 export async function getEmpresa(
   supabase: Client,
   id: string,

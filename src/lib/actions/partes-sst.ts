@@ -76,10 +76,10 @@ export async function guardarParteDiarioAction(
   const db = createAdminClient();
 
   // 1. Upsert de la cabecera del parte (un parte por proyecto+fecha).
-  const { error: errParte } = await (db.from("partes_diarios_sst" as any) as any).upsert(
+  const { error: errParte } = await db.from("partes_diarios_sst").upsert(
     {
       empresa_id: tenant.empresa_id,
-      subempresa_id: tenant.subempresa_id,
+      subempresa_id: tenant.subempresa_id ?? null,
       proyecto_id: data.proyectoId,
       fecha: data.fecha,
       total_programado: programado,
@@ -119,7 +119,7 @@ export async function guardarParteDiarioAction(
       razon: a.razon.trim(),
       registrado_por: perfil.id,
     }));
-    const { error: errIns } = await (db.from("ausentismos") as any).insert(rows);
+    const { error: errIns } = await db.from("ausentismos").insert(rows);
     if (errIns) {
       console.error("[parte] insert ausentismos:", errIns);
       throw new Error(`No fue posible registrar las inasistencias: ${errIns.message}`);
@@ -128,6 +128,5 @@ export async function guardarParteDiarioAction(
 
   revalidatePath("/sst/bitacora");
   revalidatePath(`/sst/bitacora/${data.proyectoId}/${data.fecha}`);
-  revalidatePath("/sst/calendario");
   return { proyectoId: data.proyectoId, fecha: data.fecha };
 }

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Building2, Users } from "lucide-react";
+import { LayoutGrid, Building2, Building, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/admin", label: "Resumen", icon: LayoutGrid, exact: true },
   { href: "/admin/empresas", label: "Empresas", icon: Building2, exact: false },
+  { href: "/admin/subempresas", label: "Subempresas", icon: Building, exact: false },
   { href: "/admin/usuarios", label: "Usuarios", icon: Users, exact: false },
 ];
 
