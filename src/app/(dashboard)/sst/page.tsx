@@ -9,7 +9,7 @@ import {
   List,
   UserMinus,
   Flame,
-  Lock,
+  ArrowUpFromLine,
   ClipboardList,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -106,15 +106,20 @@ export default async function SstDashboardPage({
             <ShieldAlert className="h-4 w-4" />
             Crear Análisis (ATS)
           </Link>
-          <div className="relative group">
-            <button className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 text-xs font-bold text-white/30 transition-all cursor-not-allowed">
-              <Lock className="h-3.5 w-3.5" />
-              Permiso en Alturas
-            </button>
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-[#1A1A1A] border border-white/10 rounded-lg text-[10px] text-white/60 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
-              Próximamente disponible
-            </div>
-          </div>
+          <Link
+            href="/sst/permiso-altura"
+            className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 text-xs font-bold text-white transition-all hover:bg-white/10"
+          >
+            <ArrowUpFromLine className="h-4 w-4" />
+            Permiso en Alturas
+          </Link>
+          <Link
+            href="/sst/permiso-caliente"
+            className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 text-xs font-bold text-white transition-all hover:bg-white/10"
+          >
+            <Flame className="h-4 w-4" />
+            Permiso en Caliente
+          </Link>
         </div>
       </div>
 
