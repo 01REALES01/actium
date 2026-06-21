@@ -23,9 +23,10 @@ function formatRelativeTime(dateStr: string): string {
 type Props = {
   observaciones: ObservacionConAutor[];
   proyectoId: string;
+  puedeAgregar: boolean;
 };
 
-export function ObservationsSection({ observaciones: initialObs, proyectoId }: Props) {
+export function ObservationsSection({ observaciones: initialObs, proyectoId, puedeAgregar }: Props) {
   const [observaciones, setObservaciones] = useState(initialObs);
   const [contenido, setContenido] = useState("");
   const [importante, setImportante] = useState(false);
@@ -64,7 +65,7 @@ export function ObservationsSection({ observaciones: initialObs, proyectoId }: P
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className={`grid grid-cols-1 gap-6 ${puedeAgregar ? "lg:grid-cols-2" : ""}`}>
       {/* Lista de observaciones */}
       <div className="flex flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
         <div className="flex items-center gap-2 mb-2">
@@ -116,50 +117,52 @@ export function ObservationsSection({ observaciones: initialObs, proyectoId }: P
       </div>
 
       {/* Formulario de nueva observación */}
-      <div className="flex flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
-        <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-2">
-          Agregar Nota Manual
-        </h3>
+      {puedeAgregar && (
+        <div className="flex flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
+          <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-2">
+            Agregar Nota Manual
+          </h3>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 flex-1">
-          <div className="relative flex-1">
-            <textarea
-              value={contenido}
-              onChange={(e) => setContenido(e.target.value)}
-              placeholder="Escribe una nueva observación sobre el estado de la obra..."
-              className="h-full w-full min-h-[140px] rounded-lg border border-white/10 bg-white/5 p-4 pb-12 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-[#FF916E]/50 focus:border-[#FF916E]/30 transition-all resize-none"
-            />
-            <div className="absolute bottom-3 left-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={importante}
-                  onChange={(e) => setImportante(e.target.checked)}
-                  className="h-3.5 w-3.5 accent-[#FF916E]"
-                />
-                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                  Importante
-                </span>
-              </label>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3 flex-1">
+            <div className="relative flex-1">
+              <textarea
+                value={contenido}
+                onChange={(e) => setContenido(e.target.value)}
+                placeholder="Escribe una nueva observación sobre el estado de la obra..."
+                className="h-full w-full min-h-[140px] rounded-lg border border-white/10 bg-white/5 p-4 pb-12 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-[#FF916E]/50 focus:border-[#FF916E]/30 transition-all resize-none"
+              />
+              <div className="absolute bottom-3 left-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={importante}
+                    onChange={(e) => setImportante(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-[#FF916E]"
+                  />
+                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+                    Importante
+                  </span>
+                </label>
+              </div>
             </div>
-          </div>
 
-          {error && (
-            <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
-              {error}
-            </p>
-          )}
+            {error && (
+              <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+                {error}
+              </p>
+            )}
 
-          <button
-            type="submit"
-            disabled={isPending || !contenido.trim()}
-            className="flex items-center justify-center gap-2 rounded-lg bg-[#FF916E] px-4 py-2.5 text-xs font-bold text-[#1A1A1A] hover:bg-[#FF916E]/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Send className="h-3.5 w-3.5" />
-            {isPending ? "Publicando..." : "Publicar Observación"}
-          </button>
-        </form>
-      </div>
+            <button
+              type="submit"
+              disabled={isPending || !contenido.trim()}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#FF916E] px-4 py-2.5 text-xs font-bold text-[#1A1A1A] hover:bg-[#FF916E]/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {isPending ? "Publicando..." : "Publicar Observación"}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

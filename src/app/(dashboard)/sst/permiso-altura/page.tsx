@@ -1,4 +1,5 @@
 import { ChevronLeft } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -23,7 +24,15 @@ export default async function PermisoAlturaPage() {
           <ChevronLeft className="h-4 w-4" /> Volver a SST
         </Link>
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white uppercase">
+          <Image
+            src="/logo-actium.png"
+            alt="Actium"
+            width={140}
+            height={38}
+            priority
+            className="h-9 w-auto brightness-0 invert mb-4"
+          />
+          <h1 className="text-3xl md:text-4xl font-display tracking-tight text-white uppercase">
             Permiso de Trabajo en Altura
           </h1>
           <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest">

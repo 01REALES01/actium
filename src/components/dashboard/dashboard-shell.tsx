@@ -2,6 +2,7 @@
 import * as React from "react";
 
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,7 +11,6 @@ import {
   HelpCircle,
   LogOut,
   Menu,
-  Wrench,
   Search,
   Bell,
   MessageSquare,
@@ -19,6 +19,8 @@ import {
   ShieldAlert,
   ShieldCheck,
   Calculator,
+  ChevronLeft,
+  ChevronRight,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -36,6 +38,7 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SidebarContent, SidebarFooter, SidebarHeader, SidebarNav } from "@/components/ui/sidebar";
 import { SidebarCalendar } from "@/components/dashboard/sidebar-calendar";
+
 import { ROLE_LABELS, type NavItemDef } from "@/lib/auth/roles";
 import type { UserRole } from "@/types/database.types";
 
@@ -66,10 +69,12 @@ function NavigationLinks({
   navItems,
   onNavigate,
   rol,
+  isCollapsed,
 }: {
   navItems: NavItemDef[];
   onNavigate?: () => void;
   rol?: UserRole | null;
+  isCollapsed?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -86,21 +91,21 @@ function NavigationLinks({
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex h-12 items-center gap-4 rounded-xl px-4 text-sm font-medium transition-all duration-200",
+                "flex h-12 items-center rounded-xl font-medium transition-all duration-200",
+                isCollapsed ? "justify-center w-12 mx-auto px-0" : "gap-4 px-4 text-sm",
                 active
                   ? "bg-white/10 text-white shadow-lg"
                   : "text-white/40 hover:bg-white/5 hover:text-white"
               )}
             >
-              <Icon className={cn("h-5 w-5", active ? "text-orange-500" : "")} strokeWidth={2} />
-              {item.label}
+              <Icon className={cn("h-5 w-5 shrink-0", active ? "text-orange-500" : "")} strokeWidth={2} />
+              {!isCollapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </SidebarNav>
 
-      {/* Calendario incrustado: visible junto a cualquier módulo */}
-      <SidebarCalendar />
+      {!isCollapsed && <SidebarCalendar />}
 
       {rol === "super_admin" && (
       <div className="pt-6 border-t border-white/5">
@@ -115,14 +120,15 @@ function NavigationLinks({
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex h-12 items-center gap-4 rounded-xl px-4 text-sm font-medium transition-all duration-200",
+                  "flex h-12 items-center rounded-xl font-medium transition-all duration-200",
+                  isCollapsed ? "justify-center w-12 mx-auto px-0" : "gap-4 px-4 text-sm",
                   active
                     ? "bg-white/10 text-white shadow-lg"
                     : "text-white/40 hover:bg-white/5 hover:text-white"
                 )}
               >
-                <Icon className={cn("h-5 w-5", active ? "text-orange-500" : "")} strokeWidth={2} />
-                {item.label}
+                <Icon className={cn("h-5 w-5 shrink-0", active ? "text-orange-500" : "")} strokeWidth={2} />
+                {!isCollapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
@@ -133,16 +139,23 @@ function NavigationLinks({
   );
 }
 
-function Brand() {
+function Brand({ isCollapsed }: { isCollapsed?: boolean }) {
   return (
-    <div className="flex items-center gap-4 py-4">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 shadow-lg shadow-orange-500/20">
-        <Wrench className="h-6 w-6 text-orange-500" strokeWidth={2} />
-      </div>
-      <div>
-        <p className="text-2xl font-bold tracking-tight text-white">ACTIUM</p>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">Infraestructura Metálica</p>
-      </div>
+    <div className={cn("flex items-center gap-4 py-4", isCollapsed && "justify-center gap-0")}>
+      <Image
+        src="/logo-actium-mark.png"
+        alt="Actium"
+        width={48}
+        height={48}
+        priority
+        className={cn("object-contain transition-all duration-300", isCollapsed ? "h-10 w-10" : "h-12 w-12")}
+      />
+      {!isCollapsed && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="overflow-hidden">
+          <p className="text-2xl font-bold tracking-tight text-white whitespace-nowrap">ACTIUM</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 whitespace-nowrap">Infraestructura Metálica</p>
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -151,23 +164,39 @@ function SidebarBody({
   navItems,
   onNavigate,
   rol,
+  isCollapsed,
+  onToggleCollapse,
 }: {
   navItems: NavItemDef[];
   onNavigate?: () => void;
   rol?: UserRole | null;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col p-6">
-      <SidebarHeader className="mb-10 p-0">
-        <Brand />
+    <div className="flex h-full flex-col p-6 relative">
+      <SidebarHeader className="mb-10 p-0 relative">
+        <Brand isCollapsed={isCollapsed} />
       </SidebarHeader>
-      <SidebarContent className="min-h-0 flex-1 overflow-y-auto p-0 pr-1">
-        <NavigationLinks navItems={navItems} onNavigate={onNavigate} rol={rol} />
+      
+      {onToggleCollapse && (
+        <button
+          onClick={onToggleCollapse}
+          className="absolute -right-3 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full bg-[#1A1A1A] border border-white/10 text-white hover:bg-white/10 transition-all z-50 hidden lg:flex shadow-md"
+        >
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </button>
+      )}
+
+      <SidebarContent className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-0 pr-1">
+        <NavigationLinks navItems={navItems} onNavigate={onNavigate} rol={rol} isCollapsed={isCollapsed} />
       </SidebarContent>
-      <SidebarFooter className="mt-auto p-0 pt-8 border-t border-white/5">
-        <p className="text-xs font-medium leading-relaxed text-white/20">
-          Operación, SST y presupuesto en un solo panel.
-        </p>
+      <SidebarFooter className="mt-auto p-0 pt-8 border-t border-white/5 overflow-hidden whitespace-nowrap text-ellipsis">
+        {!isCollapsed && (
+          <p className="text-xs font-medium leading-relaxed text-white/20">
+            Operación, SST y presupuesto en un solo panel.
+          </p>
+        )}
       </SidebarFooter>
     </div>
   );
@@ -193,27 +222,27 @@ export function DashboardShell({ children, userEmail, nombre, rol, cargo, navIte
   }
 
   const [open, setOpen] = React.useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   return (
     <div className="min-h-screen bg-[#121212] text-white">
       {/* Mobile Sidebar (Sheet) */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 border-r border-white/5 bg-[#1A1A1A] p-0 text-white">
-          <SidebarBody navItems={navItems} onNavigate={() => setOpen(false)} rol={rol} />
+          <SidebarBody navItems={navItems} onNavigate={() => setOpen(false)} rol={rol} isCollapsed={false} />
         </SheetContent>
       </Sheet>
 
       {/* Desktop Sidebar */}
       <motion.div
-        initial={{ x: -24, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="fixed inset-y-0 left-0 z-30 hidden w-72 lg:block border-r border-white/5 bg-[#1A1A1A]"
+        initial={false}
+        animate={{ width: isCollapsed ? 96 : 288 }}
+        className="fixed inset-y-0 left-0 z-30 hidden lg:block border-r border-white/5 bg-[#1A1A1A] overflow-visible"
       >
-        <SidebarBody navItems={navItems} rol={rol} />
+        <SidebarBody navItems={navItems} rol={rol} isCollapsed={isCollapsed} onToggleCollapse={() => setIsCollapsed(!isCollapsed)} />
       </motion.div>
 
-      <div className="lg:pl-72">
+      <div className={cn("transition-all duration-300", isCollapsed ? "lg:pl-24" : "lg:pl-72")}>
         <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-white/5 bg-[#121212]/80 px-4 md:px-8 backdrop-blur-xl">
           <div className="flex flex-1 items-center gap-4 md:gap-8">
             {/* Mobile Menu Trigger */}

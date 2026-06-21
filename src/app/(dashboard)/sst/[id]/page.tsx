@@ -127,14 +127,7 @@ export default async function FormularioDetallePage({ params }: Props) {
             >
               {form.estado}
             </Badge>
-            {puedeEditar && (
-              <Link
-                href={`/sst/${form.id}/editar`}
-                className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-white/10"
-              >
-                <Pencil className="h-3.5 w-3.5" /> Editar
-              </Link>
-            )}
+            {/* Editar removido temporalmente hasta integrar AtsFormatoForm */}
           </div>
         </div>
 

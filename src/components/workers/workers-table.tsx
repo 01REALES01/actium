@@ -30,12 +30,13 @@ function getDocStatus(emp: EmpleadoConDocumentos) {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    "AL DÍA":    "text-emerald-500 bg-emerald-500/10",
-    "POR VENCER": "text-amber-500 bg-amber-500/10",
-    "VENCIDO":   "text-red-500 bg-red-500/10",
+    "AL DÍA":    "text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]",
+    "POR VENCER": "text-amber-400 border-amber-500/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]",
+    "VENCIDO":   "text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]",
   };
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-widest ${styles[status] ?? "text-white/40 bg-white/5"}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[9px] font-bold tracking-widest bg-white/[0.02] backdrop-blur-sm transition-all ${styles[status] ?? "text-white/40 border-white/5 shadow-none"}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${status === 'AL DÍA' ? 'bg-emerald-500' : status === 'POR VENCER' ? 'bg-amber-500' : 'bg-white/20'}`} />
       {status}
     </span>
   );
@@ -43,18 +44,29 @@ function StatusBadge({ status }: { status: string }) {
 
 function DocChip({ tipo, vigencia_hasta }: { tipo: string; vigencia_hasta: string | null }) {
   const hoy = new Date();
-  let color = "border-white/10 bg-white/5 text-white/40";
+  let color = "border-white/10 text-white/40 shadow-none";
+  let dotColor = "bg-white/20";
   if (vigencia_hasta) {
     const diff = (new Date(vigencia_hasta).getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24);
-    if (diff < 0) color = "border-red-500/30 bg-red-500/10 text-red-400";
-    else if (diff < 30) color = "border-amber-500/30 bg-amber-500/10 text-amber-400";
-    else color = "border-emerald-500/20 bg-emerald-500/5 text-emerald-500";
+    if (diff < 0) {
+      color = "border-red-500/30 text-red-400 shadow-[0_0_8px_rgba(239,68,68,0.15)]";
+      dotColor = "bg-red-500";
+    }
+    else if (diff < 30) {
+      color = "border-amber-500/30 text-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.15)]";
+      dotColor = "bg-amber-500";
+    }
+    else {
+      color = "border-emerald-500/20 text-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.1)]";
+      dotColor = "bg-emerald-500";
+    }
   }
   const label = tipo.replace("_", " ").toUpperCase().slice(0, 12);
   return (
-    <Badge variant="outline" className={`border px-2 py-0.5 text-[9px] font-bold uppercase tracking-tighter ${color}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-md border bg-white/[0.01] px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest backdrop-blur-sm transition-all hover:bg-white/[0.03] ${color}`}>
+      <span className={`h-1 w-1 rounded-full ${dotColor}`} />
       {label}
-    </Badge>
+    </span>
   );
 }
 
@@ -83,10 +95,11 @@ export function WorkersTable({ empleados }: WorkersTableProps) {
   }
 
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-white/5 bg-[#1A1A1A]">
-      <table className="w-full min-w-[800px] border-collapse text-left">
+    <div className="w-full overflow-x-auto rounded-3xl border-0 bg-white/[0.02] backdrop-blur-xl shadow-2xl relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 pointer-events-none" />
+      <table className="w-full min-w-[800px] border-collapse text-left relative z-10">
         <thead>
-          <tr className="border-b border-white/5 bg-white/[0.02]">
+          <tr className="border-b border-white/5 bg-white/[0.01]">
             <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-white/40">Trabajador</th>
             <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-white/40">Cargo</th>
             <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-white/40">Proyecto</th>
@@ -102,7 +115,7 @@ export function WorkersTable({ empleados }: WorkersTableProps) {
             return (
               <tr
                 key={emp.id}
-                className="transition-colors hover:bg-white/[0.04] group cursor-pointer"
+                className="transition-all duration-300 hover:bg-white/[0.04] hover:-translate-y-[1px] group cursor-pointer relative"
                 onClick={() => router.push(`/field-workers/${emp.id}`)}
               >
                 {/* Identidad */}
@@ -132,7 +145,7 @@ export function WorkersTable({ empleados }: WorkersTableProps) {
                 {/* Proyecto */}
                 <td className="px-6 py-5">
                   <div className="flex items-center gap-2 text-white/60">
-                    <MapPin className="h-4 w-4 text-orange-500/50 shrink-0" />
+                    <MapPin className="h-4 w-4 text-[#ff4500]/50 shrink-0" />
                     <span className="text-sm truncate max-w-[180px]">{emp.proyecto_nombre}</span>
                   </div>
                 </td>

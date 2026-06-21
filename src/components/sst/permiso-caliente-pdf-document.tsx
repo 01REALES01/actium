@@ -18,6 +18,10 @@ import {
   type RespuestaChequeo,
   type RespuestaSiNo,
 } from "@/constants/permiso-caliente";
+import { getLogoSrc } from "@/lib/pdf-logo";
+import { ACTIUM_PDF, registerActiumFonts } from "@/lib/pdf-fonts";
+
+registerActiumFonts();
 
 // ─── Tipo de datos del permiso (serializable) ────────────────────────────────
 
@@ -37,6 +41,7 @@ export type PermisoCalientePDFData = {
   hastaHora: string;
   // 2. Permisos adicionales
   permisosAdicionales: Record<string, RespuestaSiNo>; // id -> si/no
+  instruccionesSO: Record<string, string>; // id -> instrucciones
   // 3. Lista de chequeo por secciones
   chequeo: Record<string, RespuestaChequeo>; // itemId -> respuesta
   // 4. Bloqueo de energías
@@ -54,36 +59,40 @@ export type PermisoCalientePDFData = {
   coordinadorFirma: string;
 };
 
-const ORANGE = "#F25C05";
-const ESPRESSO = "#592C12";
-const GREEN = "#16A34A";
-const RED = "#DC2626";
-const GRAY = "#6B6B6B";
+const ORANGE = ACTIUM_PDF.orange;
+const ESPRESSO = ACTIUM_PDF.espresso;
+const SADDLE = ACTIUM_PDF.saddle;
+const SEASHELL = ACTIUM_PDF.seashell;
+const BEIGE_BORDER = ACTIUM_PDF.beigeBorder;
+const GREEN = ACTIUM_PDF.green;
+const RED = ACTIUM_PDF.red;
+const GRAY = ACTIUM_PDF.gray;
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Helvetica" },
+  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ORANGE, paddingBottom: 10, marginBottom: 14 },
-  brand: { fontSize: 20, fontFamily: "Helvetica-Bold", color: ESPRESSO, letterSpacing: 1 },
+  brand: { fontSize: 20, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, letterSpacing: 1 },
+  brandLogo: { width: 118, height: 32, objectFit: "contain" },
   brandSub: { fontSize: 7, color: GRAY, letterSpacing: 2, marginTop: 2, textTransform: "uppercase" },
-  docTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#282828", textAlign: "right" },
+  docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  sectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
-  subTitle: { fontSize: 8, fontFamily: "Helvetica-Bold", color: ORANGE, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8, marginBottom: 4 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  subTitle: { fontSize: 8, fontFamily: "Manrope", fontWeight: 700, color: ORANGE, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "50%", marginBottom: 6, paddingRight: 8 },
   fieldFull: { width: "100%", marginBottom: 6 },
-  fieldLabel: { fontSize: 6.5, color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  fieldLabel: { fontSize: 6.5, color: SADDLE, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Manrope", fontWeight: 700, marginBottom: 2 },
   fieldValue: { fontSize: 9, color: "#282828" },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 4 },
-  chip: { borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 4, paddingVertical: 3, paddingHorizontal: 6, fontSize: 7.5, color: "#3A3A3A" },
+  chip: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, paddingVertical: 3, paddingHorizontal: 6, fontSize: 7.5, color: "#3A3A3A" },
   chipOn: { borderColor: ORANGE, backgroundColor: "#FDEDE4", color: ESPRESSO },
-  obsBox: { borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
-  table: { borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 4, overflow: "hidden", marginBottom: 4 },
+  obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 4 },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
-  thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
-  tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#F0EBE5" },
+  thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
+  tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER },
   td: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, color: "#3A3A3A" },
-  resp: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, textAlign: "center", fontFamily: "Helvetica-Bold" },
+  resp: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, textAlign: "center", fontFamily: "Manrope", fontWeight: 700 },
   empty: { fontSize: 8, color: GRAY, fontStyle: "italic", paddingVertical: 8, paddingHorizontal: 6 },
   firmaRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
   firmaCol: { width: "48%" },
@@ -92,6 +101,14 @@ const s = StyleSheet.create({
   disclaimer: { fontSize: 6.5, color: GRAY, fontStyle: "italic", marginTop: 8, lineHeight: 1.3 },
   footer: { position: "absolute", bottom: 22, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#E5E0DA", paddingTop: 6 },
   footerText: { fontSize: 7, color: GRAY },
+  // signatures table
+  legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginBottom: 10, textAlign: "justify" },
+  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 10 },
+  sigThText: { color: ESPRESSO, fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, textAlign: "center" },
+  sigTr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 40 },
+  sigTdName: { fontSize: 7.5, padding: 5, color: "#3A3A3A", justifyContent: "center" },
+  sigTdSign: { padding: 2, justifyContent: "flex-end", alignItems: "center" },
+  sigImg: { width: 80, height: 35, objectFit: "contain" },
 });
 
 function respColor(r: RespuestaChequeo): string {
@@ -132,7 +149,8 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
       <Page size="A4" style={s.page}>
         <View style={s.header} fixed>
           <View>
-            <Text style={s.brand}>ACTIUM</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={getLogoSrc()} style={s.brandLogo} />
             <Text style={s.brandSub}>Infraestructura y Activos</Text>
           </View>
           <View>
@@ -164,6 +182,14 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
             );
           })}
         </View>
+        {PERMISOS_ADICIONALES.map((p) => {
+          const r = data.permisosAdicionales[p.id];
+          const instr = data.instruccionesSO?.[p.id];
+          if (r === "si" && instr) {
+            return <Text key={`instr-${p.id}`} style={s.obsBox}>Instrucciones SO ({p.label}): {instr}</Text>;
+          }
+          return null;
+        })}
 
         {/* 3. Lista de verificación */}
         <Text style={s.sectionTitle}>3. Lista de verificación</Text>
@@ -221,34 +247,83 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
           })}
         </View>
 
-        {/* 6. Trabajadores */}
-        <Text style={s.sectionTitle}>6. Trabajadores autorizados</Text>
-        <View style={s.table}>
-          <View style={s.trHead}>
-            <Text style={[s.thText, { width: "65%" }]}>Nombre</Text>
-            <Text style={[s.thText, { width: "35%" }]}>Cédula</Text>
+        {/* Firmas y Compromiso */}
+        <Text style={s.sectionTitle} break>Firmas y Compromiso</Text>
+        <Text style={s.legalText}>
+          Personalmente hemos verificado los puntos anteriores y consideramos seguro realizar el proceso.{"\n"}
+          Como trabajador me comprometo a: dar por terminado el trabajo si durante la ejecución del mismo existen cambios en alguna de las condiciones: personales, locativas, de seguridad, climáticas o si escucho la señal de alarma, al igual me comprometo a avisar a la persona que me otorgo el permiso de trabajo cuando se termine la labor.
+        </Text>
+
+        <View style={s.sigTable}>
+          {/* Main header */}
+          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
+            <Text style={[s.sigThText, { width: "50%", borderRightWidth: 1, borderRightColor: "#D1CFC9" }]}>INICIO DEL PERMISO</Text>
+            <Text style={[s.sigThText, { width: "50%" }]}>FIN DEL PERMISO</Text>
           </View>
+          
           {data.trabajadores.length === 0 ? (
             <Text style={s.empty}>Sin trabajadores registrados.</Text>
           ) : (
             data.trabajadores.map((t, i) => (
-              <View key={i} style={s.tr}>
-                <Text style={[s.td, { width: "65%" }]}>{t.nombre || "—"}</Text>
-                <Text style={[s.td, { width: "35%" }]}>{t.cedula || "—"}</Text>
+              <View key={`t-${i}`} style={s.sigTr}>
+                <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                  <Text>{t.nombre || "—"}</Text>
+                  <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {t.cedula || "—"}</Text>
+                </View>
+                <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                  <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>
+                </View>
+                <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                  <Text>{t.nombre || "—"}</Text>
+                  <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {t.cedula || "—"}</Text>
+                </View>
+                <View style={[s.sigTdSign, { width: "25%" }]}>
+                  <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>
+                </View>
               </View>
             ))
           )}
+
+          {/* Emisor */}
+          <View style={s.sigTr}>
+            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              <Text>{data.emisorNombre || "—"}</Text>
+              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Emisor del Permiso</Text>
+            </View>
+            <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              {data.emisorFirma ? <Image src={data.emisorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
+            </View>
+            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              <Text>{data.emisorNombre || "—"}</Text>
+              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Emisor del Permiso</Text>
+            </View>
+            <View style={[s.sigTdSign, { width: "25%" }]}>
+              <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>
+            </View>
+          </View>
+
+          {/* SISO */}
+          <View style={[s.sigTr, { borderBottomWidth: 0 }]}>
+            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              <Text>{data.coordinadorNombre || "—"}</Text>
+              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Coordinador SISO</Text>
+            </View>
+            <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              {data.coordinadorFirma ? <Image src={data.coordinadorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
+            </View>
+            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              <Text>{data.coordinadorNombre || "—"}</Text>
+              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Coordinador SISO</Text>
+            </View>
+            <View style={[s.sigTdSign, { width: "25%" }]}>
+              <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Firmas */}
-        <Text style={s.sectionTitle}>Firmas</Text>
-        <View style={s.firmaRow}>
-          <FirmaCol nombre={data.emisorNombre} firma={data.emisorFirma} rol="Emisor del permiso" />
-          <FirmaCol nombre={data.coordinadorNombre} firma={data.coordinadorFirma} rol="Coordinador SISO" />
-        </View>
         <Text style={s.disclaimer}>
-          Estas firmas tienen carácter informativo y NO constituyen firma electrónica certificada
-          según la Ley 527 de 1999.
+          La firma impresa del Emisor y Coordinador SISO tiene carácter informativo y autoriza el inicio de labores.
+          El cierre del permiso y la conformidad de los trabajadores deben validarse en campo.
         </Text>
 
         <View style={s.footer} fixed>

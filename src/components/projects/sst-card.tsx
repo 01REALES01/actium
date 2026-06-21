@@ -21,6 +21,7 @@ interface SSTCardProps {
   presentesHoy: number;
   incidentesHoyCount: number;
   accidentesHoyCount: number;
+  puedeEditarParte: boolean;
 }
 
 type DrilldownType = "asignado" | "operacion" | "ausentismo" | "incidente" | "accidente";
@@ -39,6 +40,7 @@ export function SSTCard({
   presentesHoy,
   incidentesHoyCount,
   accidentesHoyCount,
+  puedeEditarParte,
 }: SSTCardProps) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<DrilldownType>("asignado");
@@ -59,7 +61,7 @@ export function SSTCard({
       {/* Cabecera: operación de hoy */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ff4500]/10 text-[#ff4500]">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div>
@@ -85,7 +87,7 @@ export function SSTCard({
         >
           <div className="mb-1 flex w-full items-center justify-between">
             <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Personal Asignado</p>
-            <Users className="h-3 w-3 text-white/10 transition-colors group-hover:text-orange-500" />
+            <Users className="h-3 w-3 text-white/10 transition-colors group-hover:text-[#ff4500]" />
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-3xl font-bold text-white">{stats.personalAsignado}</span>
@@ -142,7 +144,7 @@ export function SSTCard({
           className="group flex w-full items-center justify-between rounded-lg border border-white/5 bg-white/5 p-4 transition-all hover:border-white/10 hover:bg-white/10"
         >
           <div className="text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 transition-colors group-hover:text-orange-500">Inasistencias hoy</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 transition-colors group-hover:text-[#ff4500]">Inasistencias hoy</p>
             <p className="text-2xl font-bold text-white">{stats.ausentismos.toString().padStart(2, "0")}</p>
           </div>
           <div className="text-right">
@@ -152,18 +154,26 @@ export function SSTCard({
         </button>
       </div>
 
-      {/* CTA principal: si no hay parte, va directo a registrar; si existe, al detalle */}
+      {/* CTA principal */}
       <Link
         href={
           parteExiste
             ? `/proyectos/${proyectoId}/parte/${fecha}`
-            : `/proyectos/${proyectoId}/parte/${fecha}/editar`
+            : (puedeEditarParte ? `/proyectos/${proyectoId}/parte/${fecha}/editar` : `/proyectos/${proyectoId}/parte/${fecha}`)
         }
-        className="mt-auto flex items-center justify-center gap-2 rounded-xl bg-[#F25C05] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-[#F25C05]/90"
+        className="mt-auto flex items-center justify-center gap-2 rounded-xl bg-[#ff4500] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-[#ff4500]/90"
       >
-        <Pencil className="h-3.5 w-3.5" />
-        {parteExiste ? "Ver parte de hoy" : "Registrar parte de hoy"}
-        <ArrowRight className="h-3.5 w-3.5" />
+        {parteExiste || !puedeEditarParte ? (
+          <>
+            Ver parte de hoy
+            <ArrowRight className="h-3.5 w-3.5" />
+          </>
+        ) : (
+          <>
+            <Pencil className="h-3.5 w-3.5" />
+            Registrar parte de hoy
+          </>
+        )}
       </Link>
 
       <WorkerDrillDown

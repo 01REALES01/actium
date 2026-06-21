@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Wrench } from "lucide-react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./login-form";
 
@@ -52,6 +52,20 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           <div className="absolute right-0 top-0 h-[120%] w-px rotate-[20deg] bg-gradient-to-b from-transparent via-actium-orange/10 to-transparent" />
         </div>
 
+        {/* Marca — símbolo blanco + logotipo en Ancorli */}
+        <div className="relative flex items-center gap-2.5 p-12 pb-0">
+          <Image
+            src="/logo-actium-mark.png"
+            alt="Actium"
+            width={28}
+            height={28}
+            className="h-7 w-7 object-contain"
+          />
+          <span className="font-display text-lg tracking-widest text-actium-seashell">
+            Actium
+          </span>
+        </div>
+
         <div className="relative mt-auto p-12 pb-14">
           <h2 className="font-display mb-3 text-4xl leading-tight text-actium-seashell">
             Infraestructura forjada con
@@ -83,7 +97,13 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           {/* Logo */}
           <div className="mb-8 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-actium-orange shadow-actium">
-              <Wrench className="h-5 w-5 text-white" strokeWidth={1.5} />
+              <Image
+                src="/logo-actium-mark.png"
+                alt="Actium"
+                width={24}
+                height={24}
+                className="h-6 w-6 object-contain"
+              />
             </div>
             <span className="font-display text-xl tracking-widest text-actium-seashell">
               ACTIUM

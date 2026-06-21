@@ -114,3 +114,64 @@ export async function registrarAusentismoAction(data: {
   revalidatePath(`/proyectos/${data.proyectoId}`);
   return { success: true };
 }
+
+export async function registrarTrabajadorAction(data: {
+  cedula: string;
+  nombre: string;
+  cargo?: string;
+  profesion?: string;
+  eps?: string;
+  arl?: string;
+  fondoPension?: string;
+  proyectoId?: string;
+}) {
+  const supabase = createClient();
+  const perfil = await getPerfilActual(supabase);
+  
+  if (!perfil) throw new Error("No autenticado");
+  if (!perfil.empresa_id || !perfil.subempresa_id) {
+    throw new Error("Su perfil no tiene una empresa configurada, no puede registrar trabajadores.");
+  }
+
+  const db = createAdminClient();
+
+  // 1. Insertar empleado
+  const { data: empData, error: empError } = await (db.from("empleados") as any).insert({
+    cedula: data.cedula,
+    nombre: data.nombre,
+    cargo: data.cargo || null,
+    profesion: data.profesion || null,
+    eps: data.eps || null,
+    arl: data.arl || null,
+    fondo_pension: data.fondoPension || null,
+    empresa_id: perfil.empresa_id,
+    subempresa_id: perfil.subempresa_id,
+    activo: true,
+  }).select("id").single();
+
+  if (empError) {
+    console.error("Error registrando trabajador:", empError);
+    if (empError.code === "23505") { // Unique violation
+      throw new Error("Ya existe un trabajador con esta cédula.");
+    }
+    throw new Error(`Error al registrar trabajador: ${empError.message}`);
+  }
+
+  const empleadoId = empData.id;
+
+  // 2. Si hay proyecto, asignarlo inmediatamente
+  if (data.proyectoId) {
+    const { error: asigError } = await (db.from("empleado_proyectos") as any).insert({
+      empleado_id: empleadoId,
+      proyecto_id: data.proyectoId,
+      asignado_por: perfil.id,
+    });
+    if (asigError) {
+      console.error("Error asignando trabajador a proyecto:", asigError);
+      // No lanzamos error fatal porque el empleado ya se creó, pero la asignación falló
+    }
+  }
+
+  revalidatePath("/field-workers");
+  return { success: true, empleadoId };
+}

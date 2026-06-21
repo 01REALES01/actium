@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getProyecto } from "@/lib/data/proyectos";
 import { getParteDelDia } from "@/lib/data/partes-sst";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 import { ParteCheckinForm } from "@/components/sst/parte-checkin-form";
 
 type Estado = { presente: boolean; tipo: "medico" | "personal" | "vacaciones" | "incapacidad" | "otro"; razon: string };
@@ -19,7 +19,7 @@ export default async function EditarParteDiaPage({
 
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
-  if (!puedeCrearFormularioSST(perfil?.rol)) {
+  if (!puedeEditarParteDiario(perfil?.rol)) {
     redirect(`/proyectos/${params.id}/parte/${params.fecha}`);
   }
 

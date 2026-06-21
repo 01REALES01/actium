@@ -58,6 +58,14 @@ export function puedeCrearFormularioSST(rol: UserRole | null | undefined): boole
 }
 
 /**
+ * Puede editar los Partes Diarios (Bitácora).
+ * Por petición, solo el super_admin puede editarlos.
+ */
+export function puedeEditarParteDiario(rol: UserRole | null | undefined): boolean {
+  return rol === "super_admin";
+}
+
+/**
  * Puede ver el módulo Personal (registro de empleados y sus documentos).
  * Determina, entre otras cosas, si en el calendario general se muestran los
  * vencimientos de documentos de personal. Los roles cliente quedan excluidos.
@@ -87,7 +95,7 @@ export type NavItemDef = {
 const ALL_NAV: NavItemDef[] = [
   { key: "dashboard", label: "Proyectos", href: "/proyectos", icon: "FolderKanban" },
   { key: "personal", label: "Personal", href: "/field-workers", icon: "HardHat" },
-  { key: "sst", label: "SST", href: "/sst", icon: "ShieldAlert" },
+  { key: "sst", label: "Permisos", href: "/sst", icon: "ShieldAlert" },
   { key: "presupuesto", label: "Presupuesto", href: "/presupuesto", icon: "Calculator" },
   { key: "admin", label: "Administración", href: "/admin", icon: "ShieldCheck" },
 ];

@@ -11,12 +11,13 @@ interface DailyProgressChartProps {
 export function DailyProgressChart({ real, proyectado, title = "AVANCE DIARIO (MT)" }: DailyProgressChartProps) {
   const data = [
     { name: "PROYECTADO", valor: proyectado, color: "rgba(255, 255, 255, 0.1)" },
-    { name: "REAL", valor: real, color: "#FF916E" },
+    { name: "REAL", valor: real, color: "#ff4500" },
   ];
 
   return (
-    <div className="flex h-full flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
-      <div className="flex items-center justify-between">
+    <div className="flex h-full flex-col gap-6 rounded-3xl border-0 bg-white/[0.02] p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl group">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#ff4500]/5 to-transparent opacity-50 pointer-events-none" />
+      <div className="relative z-10 flex items-center justify-between">
         <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
           {title}
         </h3>
@@ -60,7 +61,7 @@ export function DailyProgressChart({ real, proyectado, title = "AVANCE DIARIO (M
                   fill={entry.color}
                   className="transition-all duration-500"
                   style={{
-                    filter: entry.name === "REAL" ? "drop-shadow(0 0 8px rgba(255, 145, 110, 0.3))" : "none"
+                    filter: entry.name === "REAL" ? "drop-shadow(0 0 8px rgba(255, 69, 0, 0.3))" : "none"
                   }}
                 />
               ))}
@@ -69,7 +70,7 @@ export function DailyProgressChart({ real, proyectado, title = "AVANCE DIARIO (M
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-4">
+      <div className="relative z-10 mt-auto flex items-center justify-between border-t border-white/5 pt-6">
         <div className="flex flex-col">
           <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Cumplimiento</p>
           <p className="text-lg font-bold text-white">{((real / proyectado) * 100).toFixed(1)}%</p>

@@ -17,6 +17,10 @@ import {
   RESPUESTA_LABEL,
   type RespuestaChequeo,
 } from "@/constants/permiso-altura";
+import { getLogoSrc } from "@/lib/pdf-logo";
+import { ACTIUM_PDF, registerActiumFonts } from "@/lib/pdf-fonts";
+
+registerActiumFonts();
 
 // ─── Tipo de datos del permiso (serializable) ────────────────────────────────
 
@@ -45,6 +49,7 @@ export type PermisoAlturaPDFData = {
   alturaAprox: string;
   // 3. Medidas de prevención
   sistemasAcceso: string[]; // ids
+  sistemasAccesoOtros?: string;
   otrasTar: Record<string, boolean>; // id -> involucra
   otrasTarCuales: string;
   procedimiento: string;
@@ -59,43 +64,48 @@ export type PermisoAlturaPDFData = {
   firmaDataUrl: string; // data:image/png;base64,...
 };
 
-const ORANGE = "#F25C05";
-const ESPRESSO = "#592C12";
-const GREEN = "#16A34A";
-const RED = "#DC2626";
-const GRAY = "#6B6B6B";
+const ORANGE = ACTIUM_PDF.orange;
+const ESPRESSO = ACTIUM_PDF.espresso;
+const SADDLE = ACTIUM_PDF.saddle;
+const SEASHELL = ACTIUM_PDF.seashell;
+const BEIGE_BORDER = ACTIUM_PDF.beigeBorder;
+const GREEN = ACTIUM_PDF.green;
+const RED = ACTIUM_PDF.red;
+const GRAY = ACTIUM_PDF.gray;
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Helvetica" },
+  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ORANGE, paddingBottom: 10, marginBottom: 14 },
-  brand: { fontSize: 20, fontFamily: "Helvetica-Bold", color: ESPRESSO, letterSpacing: 1 },
+  brand: { fontSize: 20, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, letterSpacing: 1 },
+  brandLogo: { width: 118, height: 32, objectFit: "contain" },
   brandSub: { fontSize: 7, color: GRAY, letterSpacing: 2, marginTop: 2, textTransform: "uppercase" },
-  docTitle: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#282828", textAlign: "right" },
+  docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  sectionTitle: { fontSize: 9, fontFamily: "Helvetica-Bold", color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
   // datos en grilla 2 columnas
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "50%", marginBottom: 6, paddingRight: 8 },
   fieldFull: { width: "100%", marginBottom: 6 },
-  fieldLabel: { fontSize: 6.5, color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  fieldLabel: { fontSize: 6.5, color: SADDLE, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Manrope", fontWeight: 700, marginBottom: 2 },
   fieldValue: { fontSize: 9, color: "#282828" },
   // chips
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 4 },
-  chip: { borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 4, paddingVertical: 3, paddingHorizontal: 6, fontSize: 7.5, color: "#3A3A3A" },
+  chip: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, paddingVertical: 3, paddingHorizontal: 6, fontSize: 7.5, color: "#3A3A3A" },
   chipOn: { borderColor: ORANGE, backgroundColor: "#FDEDE4", color: ESPRESSO },
-  obsBox: { borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
+  obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
   // tablas
-  table: { borderWidth: 1, borderColor: "#E5E0DA", borderRadius: 4, overflow: "hidden" },
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden" },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
-  thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Helvetica-Bold", textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
-  tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#F0EBE5" },
+  thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
+  tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER },
   td: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, color: "#3A3A3A" },
-  resp: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, textAlign: "center", fontFamily: "Helvetica-Bold" },
+  resp: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, textAlign: "center", fontFamily: "Manrope", fontWeight: 700 },
   empty: { fontSize: 8, color: GRAY, fontStyle: "italic", paddingVertical: 8, paddingHorizontal: 6 },
   // firma
-  firmaBox: { marginTop: 8, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
+  firmaBox: { marginTop: 14, flexDirection: "row", justifyContent: "space-between" },
   firmaCol: { width: "48%" },
-  firmaImg: { width: 150, height: 70, objectFit: "contain" },
+  firmaSlot: { height: 70, justifyContent: "flex-end", alignItems: "center" },
+  firmaImg: { width: 150, height: 64, objectFit: "contain" },
   firmaLinea: { borderTopWidth: 1, borderTopColor: "#282828", marginTop: 4, paddingTop: 3 },
   disclaimer: { fontSize: 6.5, color: GRAY, fontStyle: "italic", marginTop: 8, lineHeight: 1.3 },
   footer: { position: "absolute", bottom: 22, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#E5E0DA", paddingTop: 6 },
@@ -123,7 +133,8 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
       <Page size="A4" style={s.page}>
         <View style={s.header} fixed>
           <View>
-            <Text style={s.brand}>ACTIUM</Text>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={getLogoSrc()} style={s.brandLogo} />
             <Text style={s.brandSub}>Infraestructura y Activos</Text>
           </View>
           <View>
@@ -132,6 +143,10 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
             <Text style={s.docMeta}>{data.fecha || "—"}</Text>
           </View>
         </View>
+
+        <Text style={{ fontSize: 6.5, color: GRAY, marginBottom: 14, textAlign: "justify", lineHeight: 1.3 }}>
+          Resolución 1409 de 2012, Artículo 17. El permiso de trabajo en alturas es un mecanismo que mediante la verificación y control previo de todos los aspectos relacionados en la presente resolución, tiene como objeto prevenir la ocurrencia de accidentes durante la realización de trabajos en alturas. Este permiso de trabajo debe ser emitido para trabajos ocasionales definidos por el coordinador de trabajo en alturas para los efectos de la aplicación de la presente resolución y puede ser diligenciado por el trabajador o por el empleador y debe ser revisado y verificado en el sitio de trabajo por el coordinador de trabajo en alturas.
+        </Text>
 
         {/* 1. Datos básicos */}
         <Text style={s.sectionTitle}>1. Datos básicos del permiso</Text>
@@ -152,10 +167,11 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
         <View style={s.table}>
           <View style={s.trHead}>
             <Text style={[s.thText, { width: "16%" }]}>Cédula</Text>
-            <Text style={[s.thText, { width: "30%" }]}>Nombres y apellidos</Text>
-            <Text style={[s.thText, { width: "22%" }]}>Capacitación / Cert.</Text>
-            <Text style={[s.thText, { width: "18%" }]}>Profesión</Text>
-            <Text style={[s.thText, { width: "14%" }]}>Seg. Social</Text>
+            <Text style={[s.thText, { width: "24%" }]}>Nombres y apellidos</Text>
+            <Text style={[s.thText, { width: "20%" }]}>Capacitación / Cert.</Text>
+            <Text style={[s.thText, { width: "16%" }]}>Profesión</Text>
+            <Text style={[s.thText, { width: "12%" }]}>Seg. Social</Text>
+            <Text style={[s.thText, { width: "12%", textAlign: "center" }]}>Firma</Text>
           </View>
           {data.ejecutores.length === 0 ? (
             <Text style={s.empty}>Sin personal ejecutor registrado.</Text>
@@ -163,10 +179,11 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
             data.ejecutores.map((e, i) => (
               <View key={i} style={s.tr}>
                 <Text style={[s.td, { width: "16%" }]}>{e.cedula || "—"}</Text>
-                <Text style={[s.td, { width: "30%" }]}>{e.nombre || "—"}</Text>
-                <Text style={[s.td, { width: "22%" }]}>{e.capacitacion || "—"}</Text>
-                <Text style={[s.td, { width: "18%" }]}>{e.profesion || "—"}</Text>
-                <Text style={[s.td, { width: "14%" }]}>{e.seguridadSocial || "—"}</Text>
+                <Text style={[s.td, { width: "24%" }]}>{e.nombre || "—"}</Text>
+                <Text style={[s.td, { width: "20%" }]}>{e.capacitacion || "—"}</Text>
+                <Text style={[s.td, { width: "16%" }]}>{e.profesion || "—"}</Text>
+                <Text style={[s.td, { width: "12%" }]}>{e.seguridadSocial || "—"}</Text>
+                <View style={{ width: "12%", borderLeftWidth: 1, borderLeftColor: "#F0EBE5" }}></View>
               </View>
             ))
           )}
@@ -193,6 +210,7 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
             );
           })}
         </View>
+        {data.sistemasAccesoOtros ? <Text style={s.obsBox}>Otros (¿cuáles?): {data.sistemasAccesoOtros}</Text> : null}
 
         <Text style={s.fieldLabel}>Otras tareas de alto riesgo involucradas</Text>
         <View style={s.chipsRow}>
@@ -245,21 +263,21 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
 
         {/* Autorización y firma */}
         <Text style={s.sectionTitle}>Autorización (Emisor)</Text>
-        <View style={s.firmaBox}>
+        <View style={s.firmaBox} wrap={false}>
           <View style={s.firmaCol}>
-            {data.firmaDataUrl ? (
-              // eslint-disable-next-line jsx-a11y/alt-text
-              <Image src={data.firmaDataUrl} style={s.firmaImg} />
-            ) : (
-              <View style={{ height: 70 }} />
-            )}
+            <View style={s.firmaSlot}>
+              {data.firmaDataUrl ? (
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <Image src={data.firmaDataUrl} style={s.firmaImg} />
+              ) : null}
+            </View>
             <View style={s.firmaLinea}>
               <Text style={s.fieldValue}>{data.emisorNombre || "—"}</Text>
               <Text style={s.fieldLabel}>Nombre de quien autoriza</Text>
             </View>
           </View>
           <View style={s.firmaCol}>
-            <View style={{ height: 70 }} />
+            <View style={s.firmaSlot} />
             <View style={s.firmaLinea}>
               <Text style={s.fieldValue}>C.C. {data.emisorCedula || "—"}</Text>
               <Text style={s.fieldLabel}>Cédula</Text>
@@ -269,6 +287,9 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
         <Text style={s.disclaimer}>
           Esta firma tiene carácter informativo y NO constituye firma electrónica certificada
           según la Ley 527 de 1999.
+        </Text>
+        <Text style={[s.disclaimer, { marginTop: 4 }]}>
+          El permiso de trabajo en alturas debe tener en cuenta las medidas para garantizar que se mantenga una distancia segura entre el trabajo y lineas o equipos eléctricos energizados y que se cuente con los elementos de protección necesarios, acordes con el nivel de riesgo (escaleras dieléctricas, parrilas, EPP dieléctrico, arco eléctrico, entre otros.)
         </Text>
 
         <View style={s.footer} fixed>

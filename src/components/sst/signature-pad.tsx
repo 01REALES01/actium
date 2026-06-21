@@ -45,7 +45,7 @@ export function SignaturePad({ onSave, className, label = "Firma del Supervisor 
     if (sigCanvas.current?.isEmpty()) {
       return;
     }
-    const dataUrl = sigCanvas.current?.getTrimmedCanvas().toDataURL("image/png");
+    const dataUrl = sigCanvas.current?.getCanvas().toDataURL("image/png");
     if (dataUrl) {
       setSaved(true);
       onSave(dataUrl);
@@ -70,6 +70,7 @@ export function SignaturePad({ onSave, className, label = "Firma del Supervisor 
 
       <div 
         ref={containerRef}
+        onMouseLeave={save}
         className={cn(
           "relative rounded-xl border overflow-hidden bg-white/5 transition-all duration-300",
           saved ? "border-emerald-500/30 ring-1 ring-emerald-500/10" : "border-white/10 hover:border-white/20"
@@ -102,6 +103,16 @@ export function SignaturePad({ onSave, className, label = "Firma del Supervisor 
 
         {/* Controles superpuestos */}
         <div className="absolute top-3 right-3 flex gap-2">
+          {!saved && !isEmpty && (
+            <button
+              type="button"
+              onClick={save}
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white backdrop-blur-md transition-all border border-emerald-500/50"
+              title="Confirmar Firma"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={clear}

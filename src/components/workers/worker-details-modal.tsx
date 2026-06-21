@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Dropzone } from "@/components/ui/dropzone";
 import { createClient } from "@/lib/supabase/client";
 import { addEmployeeDocumentAction } from "@/lib/actions/sst-actions";
-import { CalendarDays, ShieldCheck, User as UserIcon, Loader2 } from "lucide-react";
+import { CalendarDays, ShieldCheck, User as UserIcon, Loader2, Eye } from "lucide-react";
 import type { EmpleadoConDocumentos } from "@/lib/data/sst";
 import type { DocumentoEmpleadoTipo } from "@/types/database.types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,6 +28,8 @@ export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId }: 
   const [isUploading, setIsUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const supabase = createClient();
+
   if (!empleado) return null;
 
   const handleUpload = async () => {
@@ -38,7 +40,6 @@ export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId }: 
 
     setIsUploading(true);
     setErrorMsg("");
-    const supabase = createClient();
 
     try {
       // 1. Upload to Supabase Storage
@@ -65,6 +66,32 @@ export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId }: 
       setErrorMsg(err.message || "Error al procesar el documento.");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const openDocument = async (path: string) => {
+    try {
+      // 1. Try to get a signed URL (for private buckets)
+      const { data, error } = await supabase.storage
+        .from('documentos-empleados')
+        .createSignedUrl(path, 3600);
+      
+      if (error || !data?.signedUrl) {
+        // 2. Fallback to public URL if signed URL fails
+        const { data: pubData } = supabase.storage
+          .from('documentos-empleados')
+          .getPublicUrl(path);
+        window.open(pubData.publicUrl, "_blank", "noopener,noreferrer");
+      } else {
+        window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      console.error("Error abriendo documento:", err);
+      // Fallback
+      const { data: pubData } = supabase.storage
+        .from('documentos-empleados')
+        .getPublicUrl(path);
+      window.open(pubData.publicUrl, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -124,16 +151,23 @@ export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId }: 
                   else color = "border-emerald-500/20 bg-emerald-500/10 text-emerald-500";
 
                   return (
-                    <div key={doc.id} className="flex flex-col gap-2 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs font-bold uppercase tracking-widest text-white/80">
+                    <div
+                      key={doc.id}
+                      onClick={() => openDocument(doc.storage_path)}
+                      className="group flex flex-col gap-2 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.06] hover:border-white/10 transition-all cursor-pointer relative overflow-hidden"
+                    >
+                      <div className="absolute right-[-20px] top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 group-hover:right-4 transition-all">
+                        <Eye className="h-5 w-5 text-white/50" />
+                      </div>
+                      <div className="flex justify-between items-center pr-8">
+                        <p className="text-xs font-bold uppercase tracking-widest text-white/80 group-hover:text-white transition-colors">
                           {doc.tipo.replace("_", " ")}
                         </p>
                         <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold tracking-widest ${color}`}>
                           {isExpired ? "VENCIDO" : isWarning ? "POR VENCER" : "AL DÍA"}
                         </span>
                       </div>
-                      <div className="flex justify-between text-[10px] text-white/40 uppercase tracking-widest mt-1">
+                      <div className="flex justify-between text-[10px] text-white/40 uppercase tracking-widest mt-1 pr-8">
                         <span>Desde: {doc.vigencia_desde ? new Date(doc.vigencia_desde).toLocaleDateString() : "N/A"}</span>
                         <span>Hasta: {doc.vigencia_hasta ? new Date(doc.vigencia_hasta).toLocaleDateString() : "N/A"}</span>
                       </div>

@@ -60,6 +60,7 @@ export function PermisoAlturaForm({ empresaInicial = "" }: { empresaInicial?: st
 
   // 3. Medidas de prevención
   const [sistemasAcceso, setSistemasAcceso] = useState<string[]>([]);
+  const [sistemasAccesoOtros, setSistemasAccesoOtros] = useState("");
   const [otrasTar, setOtrasTar] = useState<Record<string, boolean>>({});
   const [otrasTarCuales, setOtrasTarCuales] = useState("");
   const [procedimiento, setProcedimiento] = useState("");
@@ -120,6 +121,7 @@ export function PermisoAlturaForm({ empresaInicial = "" }: { empresaInicial?: st
         herramientas: herramientas.trim(),
         alturaAprox: alturaAprox.trim(),
         sistemasAcceso,
+        sistemasAccesoOtros: sistemasAccesoOtros.trim(),
         otrasTar,
         otrasTarCuales: otrasTarCuales.trim(),
         procedimiento: procedimiento.trim(),
@@ -262,6 +264,11 @@ export function PermisoAlturaForm({ empresaInicial = "" }: { empresaInicial?: st
           seleccionados={sistemasAcceso}
           onToggle={(id) => toggleArr(setSistemasAcceso, id)}
         />
+        <div className="mt-3">
+          <Campo label="Otros sistemas de acceso (¿cuáles?)" full>
+            <Input value={sistemasAccesoOtros} onChange={(e) => setSistemasAccesoOtros(e.target.value)} className={FIELD} />
+          </Campo>
+        </div>
 
         <div className="mt-6">
           <p className={LABEL + " mb-3"}>Otras tareas de alto riesgo (TAR) involucradas</p>

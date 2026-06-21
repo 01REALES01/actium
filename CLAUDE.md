@@ -19,19 +19,19 @@ Este archivo es la **fuente de verdad** para cualquier agente AI (Claude Code, C
 
 Usar SIEMPRE los tokens (`bg-actium-*`, `text-actium-*`, variables CSS). Nunca `bg-blue-*`, `bg-zinc-*`, `bg-orange-500` ni grises inventados.
 
-| Token | Hex | Uso |
+| Token | Hex | Uso / Nombre Original |
 |---|---|---|
-| `actium-orange` | `#F25C05` | Primario — CTAs, acentos, indicadores activos |
+| `actium-orange` | `#F25C05` | Primario — CTAs, acentos (Dark Orange) |
+| `actium-orange-red` | `#ff4500` | Alertas, acentos intensos (Orange Red) |
+| `actium-amber` | `#F27405` | Secundario cálido (Orange) |
+| `actium-sandy` | `#F28729` | Highlights suaves (Sandy Brown) |
+| `actium-saddle` | `#8C470B` | Profundidad — bordes, focus rings (Saddle Brown) |
+| `actium-espresso` | `#592C12` | Texto premium, headers tabla (Espresso) |
+| `actium-graphite` | `#282828` | Fondo dark mode (Graphite) |
+| `actium-dim` | `#424242` | Superficie elevada (Dim Gray) |
+| `actium-gray` | `#6B6B6B` | Texto secundario, placeholders (Gray) |
+| `actium-seashell` | `#FFF5EE` | Fondo light mode (Seashell) |
 | `actium-orange-hover` | `#D94F04` | Hover de botones primarios |
-| `actium-amber` | `#F27405` | Secundario cálido — badges, tags |
-| `actium-sandy` | `#F28729` | Terciario — highlights suaves |
-| `actium-saddle` | `#8C470B` | Profundidad — bordes activos, focus rings, headers de tabla |
-| `actium-espresso` | `#592C12` | Texto premium sobre fondos claros, headers de tabla |
-| `actium-graphite` | `#282828` | Fondo dark mode — superficie principal (NO negro puro) |
-| `actium-dim` | `#424242` | Superficie elevada (cards, modals) |
-| `actium-gray` | `#6B6B6B` | Texto secundario, placeholders |
-| `actium-seashell` | `#FFF5EE` | Fondo light mode (NO blanco puro) |
-| `actium-white` | `#FFFFFF` | Cards en light mode |
 | `success` | `#22C55E` | Estado completado/aprobado |
 | `warning` | `#F59E0B` | Atención, umbral cercano |
 | `danger` | `#EF4444` | Error, rechazado, sobre presupuesto |
@@ -43,16 +43,16 @@ Usar SIEMPRE los tokens (`bg-actium-*`, `text-actium-*`, variables CSS). Nunca `
 
 ## 3. Tipografía
 
-Dos familias, usos bien delimitados:
+Tres familias tipográficas con usos bien delimitados:
 
-| Familia | Clase Tailwind | Archivo | Uso |
-|---|---|---|---|
-| **Ancorli** | `font-display` | `public/fonts/Ancorli.woff2` | H1, H2, logotipo, datos KPI grandes |
-| **Plus Jakarta Sans** | `font-sans` / `font-body` | Google Fonts `--font-jakarta` | H3, body, labels, captions, badges |
+| Familia | Clase Tailwind | Uso |
+|---|---|---|
+| **Ancorli** | `font-display` | Títulos principales (H1, H2), logotipo, datos KPI grandes |
+| **Avenir Next** | `font-subtitle` | Subtítulos (H3, H4) |
+| **Axiforma** | `font-sans` / `font-body` | Textos generales, body, labels, captions, badges |
 
-- Ancorli es una sola familia sin pesos variables — **nunca agregar `font-bold` a `font-display`**.
-- Jakarta Sans: pesos disponibles 300, 400, 500, 600, 700, 800.
-- Máximo **2 pesos Jakarta por pantalla**.
+- **Ancorli** es una sola familia sin pesos variables — **nunca agregar `font-bold` a `font-display`**.
+- **Avenir Next** y **Axiforma**: Utiliza sus variantes de peso según la jerarquía, pero **máximo 2 pesos por pantalla** para mantener el diseño limpio.
 
 | Uso | Familia | Peso | Tamaño |
 |---|---|---|---|
@@ -60,11 +60,11 @@ Dos familias, usos bien delimitados:
 | H2 | Ancorli (`font-display`) | — | 22–24px |
 | Logotipo / marca | Ancorli (`font-display`) | — | libre |
 | Dato KPI | Ancorli (`font-display`) | — | 24–48px |
-| H3 sección | Jakarta (`font-sans`) | 600 | 18–20px |
-| Body | Jakarta (`font-sans`) | 400 | 14–16px |
-| Label form | Jakarta (`font-sans`) | 500 | 13–14px |
-| Caption | Jakarta (`font-sans`) | 400 | 12px |
-| Badge | Jakarta (`font-sans`) | 600 | 11–12px |
+| Subtítulos (H3) | Avenir Next (`font-subtitle`) | 600 | 18–20px |
+| Body | Axiforma (`font-sans`) | 400 | 14–16px |
+| Label form | Axiforma (`font-sans`) | 500 | 13–14px |
+| Caption | Axiforma (`font-sans`) | 400 | 12px |
+| Badge | Axiforma (`font-sans`) | 600 | 11–12px |
 
 ---
 
@@ -151,8 +151,29 @@ NUNCA azul/verde/morado como color principal de gráfica. Semánticos solo para 
 
 ---
 
-## 8. UX Writing
+## 8. Voz, Tono y UX Writing
 
+### Voz
+Experta, técnica y experimentada.
+
+### Tono
+Serio e inteligente, pero a la vez amable. No debe sonar relajada, sino que debe transmitir en todo momento que es una entidad en la que se puede confiar para proyectos de gran envergadura.
+
+### Características de la Comunicación
+- **Segura pero cercana**: Transmite autoridad sin ser distante.
+- **Precisa pero humana**: Comunica con claridad sin perder empatía.
+- **Profesional pero accesible**: Se entiende fácil, sin dejar de ser experta.
+- **Confiable y transparente**: Genera seguridad desde la honestidad.
+- **Técnica pero clara**: Explica lo complejo de forma simple.
+- **Firme pero empática**: Sostiene su criterio entendiendo al usuario.
+
+### Tipología de Mensajes
+- Educativos
+- Modernos
+- Pertenencia
+- Desarrollo
+
+### Reglas de UX Writing
 - Tono de usted, español formal, sin emojis, sin signos de exclamación dobles, sin diminutivos.
 - Estado vacío: "Aún no hay proyectos registrados. Crea el primero."
 - Error: "No fue posible guardar los cambios. Intenta de nuevo."
@@ -214,7 +235,7 @@ src/
 - [ ] **Targets táctiles ≥ 44×44px**, sin depender solo de hover
 - [ ] Tablas colapsan a tarjetas o scroll contenido en móvil
 - [ ] Solo colores de la paleta Actium (sin grises/azules inventados)
-- [ ] Plus Jakarta Sans en todos los textos
+- [ ] Tipografías aplicadas correctamente: Ancorli (Títulos), Avenir Next (Subtítulos), Axiforma (Textos)
 - [ ] CTA primario es `bg-actium-orange`
 - [ ] Cards con `rounded-actium` (12px) y borde sutil
 - [ ] Dark mode con fondo `#282828` (no negro puro)

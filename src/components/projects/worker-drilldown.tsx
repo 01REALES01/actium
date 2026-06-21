@@ -127,7 +127,7 @@ export function WorkerDrillDown({
 
   const getAccent = () => {
     switch (type) {
-      case "asignado":  return "bg-orange-500";
+      case "asignado":  return "bg-[#ff4500]";
       case "operacion": return "bg-emerald-500";
       case "ausentismo": return "bg-amber-500";
       case "incidente": return "bg-blue-500";
@@ -153,24 +153,24 @@ export function WorkerDrillDown({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl bg-[#1A1A1A] border-white/5 p-0 text-white overflow-hidden shadow-2xl rounded-2xl">
-        <div className="flex flex-col">
+      <DialogContent className="w-[95vw] md:w-full max-w-6xl bg-[#1A1A1A] border-white/5 p-0 text-white overflow-hidden shadow-2xl rounded-2xl">
+        <div className="flex flex-col min-w-0 w-full overflow-hidden">
           {/* Header */}
-          <DialogHeader className="p-8 border-b border-white/5 bg-white/[0.01]">
+          <DialogHeader className="p-5 md:p-8 border-b border-white/5 bg-white/[0.01]">
             <div className="flex items-center gap-2 mb-2">
               <div className={`h-1.5 w-4 rounded-full ${getAccent()}`} />
               <DialogTitle className="text-xs font-bold tracking-widest text-white/50 uppercase">
                 {getTitle()}
               </DialogTitle>
             </div>
-            <DialogDescription className="text-3xl font-bold text-white mt-1">
+            <DialogDescription className="text-2xl md:text-3xl font-bold text-white mt-1">
               {proyectoNombre}
             </DialogDescription>
           </DialogHeader>
 
           {/* Table */}
-          <div className="flex-1 overflow-y-auto max-h-[60vh]">
-            <table className="w-full text-left border-collapse">
+          <div className="flex-1 overflow-y-auto overflow-x-auto max-h-[60vh] w-full">
+            <table className="w-full min-w-[700px] md:min-w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 bg-white/[0.02]">
                   {isEvent ? (
@@ -263,7 +263,7 @@ export function WorkerDrillDown({
                             <div>
                               <Link
                                 href={`/field-workers/${aus.empleado_id}`}
-                                className="text-sm font-bold text-white hover:text-[#FF916E] transition-colors"
+                                className="text-sm font-bold text-white hover:text-[#ff4500] transition-colors"
                               >
                                 {aus.empleados?.nombre ?? "—"}
                               </Link>
@@ -314,7 +314,7 @@ export function WorkerDrillDown({
                             <div className="min-w-0">
                               <Link
                                 href={`/field-workers/${emp.id}`}
-                                className="block text-base font-bold text-white truncate hover:text-[#FF916E] transition-colors"
+                                className="block text-base font-bold text-white truncate hover:text-[#ff4500] transition-colors"
                               >
                                 {emp.nombre}
                               </Link>
@@ -356,21 +356,21 @@ export function WorkerDrillDown({
           </div>
 
           {/* Footer */}
-          <div className="p-8 border-t border-white/5 bg-white/[0.02] flex justify-between items-center">
+          <div className="p-5 md:p-8 border-t border-white/5 bg-white/[0.02] flex flex-col sm:flex-row gap-4 justify-between items-center w-full">
             <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">
               Total: {totalLabel()}
             </p>
             {isEvent || type === "ausentismo" ? (
               <a
                 href="/sst"
-                className="rounded-xl bg-orange-500 px-8 py-4 text-xs font-bold text-[#1A1A1A] uppercase tracking-widest hover:bg-orange-400 transition-all shadow-[0_0_20px_rgba(255,145,110,0.2)] inline-block"
+                className="w-full sm:w-auto text-center rounded-xl bg-[#ff4500] px-8 py-4 text-xs font-bold text-white uppercase tracking-widest hover:bg-[#ff4500]/90 transition-all shadow-[0_0_20px_rgba(255,69,0,0.2)] inline-block"
               >
                 Ver Módulo SST Completo
               </a>
             ) : (
               <a
                 href="/field-workers"
-                className="rounded-xl bg-orange-500 px-8 py-4 text-xs font-bold text-[#1A1A1A] uppercase tracking-widest hover:bg-orange-400 transition-all shadow-[0_0_20px_rgba(255,145,110,0.2)] inline-block"
+                className="w-full sm:w-auto text-center rounded-xl bg-[#ff4500] px-8 py-4 text-xs font-bold text-white uppercase tracking-widest hover:bg-[#ff4500]/90 transition-all shadow-[0_0_20px_rgba(255,69,0,0.2)] inline-block"
               >
                 Ver Gestión de Personal
               </a>

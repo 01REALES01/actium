@@ -1,22 +1,35 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Manrope, Nunito_Sans } from "next/font/google";
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
+// Axiforma (body, labels, captions) → Manrope: geométrica, muy cercana.
+const axiforma = Manrope({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-axiforma",
+  display: "swap",
+});
+
+// Avenir Next (subtítulos) → Nunito Sans: humanista, cercana a Avenir.
+const avenir = Nunito_Sans({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-avenir",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "ACTIUM",
   description: "Portal de clientes ACTIUM para proyectos, SST y presupuesto.",
+  icons: {
+    icon: "/logo-actium-mark.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className="dark">
-      <body className={`${jakarta.variable} font-sans`}>{children}</body>
+      <body className={`${axiforma.variable} ${avenir.variable} font-sans`}>{children}</body>
     </html>
   );
 }

@@ -81,10 +81,11 @@ export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subem
   const empty = displayFotos.length === 0;
 
   return (
-    <div className="flex flex-col gap-6 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-8 rounded-3xl border-0 bg-white/[0.02] p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
+      <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Camera className="h-4 w-4 text-orange-500" />
+          <Camera className="h-4 w-4 text-[#ff4500]" />
           <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
             Registro Fotográfico de Obra
           </h3>
@@ -137,11 +138,11 @@ export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subem
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-6">
           {displayFotos.map((foto) => (
             <div
               key={foto.id}
-              className="group relative aspect-video overflow-hidden rounded-lg bg-white/5"
+              className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-white/5 shadow-xl transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#ff4500]/10"
             >
               {foto.signedUrl ? (
                 <Image

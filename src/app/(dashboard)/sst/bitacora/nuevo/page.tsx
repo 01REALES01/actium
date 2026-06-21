@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listProyectos } from "@/lib/data/proyectos";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 import { hoyLocal } from "@/lib/fecha";
 import { ParteCheckinForm } from "@/components/sst/parte-checkin-form";
 
@@ -15,7 +15,7 @@ export default async function NuevoPartePage({
   const supabase = createClient();
 
   const perfil = await getPerfilActual(supabase);
-  if (!puedeCrearFormularioSST(perfil?.rol)) {
+  if (!puedeEditarParteDiario(perfil?.rol)) {
     redirect("/sst");
   }
 

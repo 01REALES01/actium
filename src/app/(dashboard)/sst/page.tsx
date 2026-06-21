@@ -74,66 +74,75 @@ export default async function SstDashboardPage({
   return (
     <div className="flex flex-col gap-8 pb-12">
       {/* Header Section */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="text-center lg:text-left">
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white uppercase">
-            Gestión SST
+          <h1 className="text-3xl md:text-5xl font-display font-bold tracking-tight text-white uppercase">
+            Gestión de Permisos
           </h1>
-          <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest max-w-2xl mx-auto lg:mx-0">
+          <p className="mt-3 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest max-w-2xl mx-auto lg:mx-0">
             Control de permisos de trabajo, análisis de seguridad y registros digitales en campo.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 mt-4 lg:mt-0">
-          <div className="flex rounded-xl border border-white/10 bg-white/5 p-1 w-fit hidden lg:flex mr-4">
+        <div className="flex items-center justify-center gap-4 mt-4 lg:mt-0">
+          <div className="flex rounded-xl border border-white/10 bg-white/5 p-1 w-fit">
             <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
               <List className="h-4 w-4 text-orange-500" />
               <span className="hidden sm:inline">Permisos</span>
             </div>
             <Link
               href="/sst/bitacora"
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all hover:bg-white/5"
             >
               <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">Bitácora</span>
+              <span className="hidden sm:inline">Bitácora Diaria</span>
             </Link>
           </div>
-
-          <Link 
-            href="/sst/nuevo-ats"
-            className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#F25C05] px-6 text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
-          >
-            <ShieldAlert className="h-4 w-4" />
-            Crear Análisis (ATS)
-          </Link>
-          <Link
-            href="/sst/permiso-altura"
-            className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 text-xs font-bold text-white transition-all hover:bg-white/10"
-          >
-            <ArrowUpFromLine className="h-4 w-4" />
-            Permiso en Alturas
-          </Link>
-          <Link
-            href="/sst/permiso-caliente"
-            className="flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 text-xs font-bold text-white transition-all hover:bg-white/10"
-          >
-            <Flame className="h-4 w-4" />
-            Permiso en Caliente
-          </Link>
         </div>
       </div>
 
-      <div className="flex rounded-xl border border-white/10 bg-white/5 p-1 w-fit lg:hidden mb-2">
-        <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
-          <List className="h-4 w-4 text-orange-500" />
-          <span className="hidden sm:inline">Permisos</span>
-        </div>
+      {/* Action Cards Grid - Redesigned */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-2">
         <Link
-          href="/sst/bitacora"
-          className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all"
+          href="/sst/nuevo-ats"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-[#F25C05]/50 hover:shadow-2xl hover:shadow-[#F25C05]/20"
         >
-          <ClipboardList className="h-4 w-4" />
-          <span className="hidden sm:inline">Bitácora</span>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#F25C05]/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-[#F25C05]/10 border border-[#F25C05]/20 text-[#F25C05] transition-transform group-hover:scale-110">
+            <ShieldAlert className="h-6 w-6" strokeWidth={2} />
+          </div>
+          <div className="relative z-10 mt-6 lg:mt-12">
+            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Análisis de Trabajo Seguro</h3>
+            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-[#F25C05]">Crear ATS Oficial</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/sst/permiso-altura"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 transition-transform group-hover:scale-110">
+            <ArrowUpFromLine className="h-6 w-6" strokeWidth={2} />
+          </div>
+          <div className="relative z-10 mt-6 lg:mt-12">
+            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Permiso en Alturas</h3>
+            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-amber-500">Nuevo Permiso</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/sst/permiso-caliente"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-red-500/50 hover:shadow-2xl hover:shadow-red-500/10"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 transition-transform group-hover:scale-110">
+            <Flame className="h-6 w-6" strokeWidth={2} />
+          </div>
+          <div className="relative z-10 mt-6 lg:mt-12">
+            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Permiso en Caliente</h3>
+            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-red-500">Nuevo Permiso</p>
+          </div>
         </Link>
       </div>
 

@@ -17,9 +17,10 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getParteCockpitDelDia } from "@/lib/data/partes-sst";
-import { getEmpleadosAsignados } from "@/lib/data/sst";
+import { getEmpleadosAsignados, getAvancesSemanaActual } from "@/lib/data/sst";
+import { getProyectoAvances } from "@/lib/data/proyectos";
 import { hoyLocal } from "@/lib/fecha";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 import { GraficaAsistencia, GraficaEventos } from "@/components/sst/parte-graficas";
 import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { ParteDescargarPDF, type PartePDFData } from "@/components/sst/parte-pdf";
@@ -56,13 +57,15 @@ export default async function ParteDiaProyectoPage({
 
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
-  const puedeEditar = puedeCrearFormularioSST(perfil?.rol);
+  const puedeEditar = puedeEditarParteDiario(perfil?.rol);
 
   // Lecturas por admin: las tablas SST tienen RLS activo y auth_rol() está rota.
   const db = createAdminClient();
-  const [d, empleadosActivos] = await Promise.all([
+  const [d, empleadosActivos, avancesSemana, avancesProyecto] = await Promise.all([
     getParteCockpitDelDia(db, params.id, params.fecha),
     getEmpleadosAsignados(db, params.id),
+    getAvancesSemanaActual(db, params.id),
+    getProyectoAvances(db, params.id),
   ]);
   if (!d) notFound();
 
@@ -107,6 +110,19 @@ export default async function ParteDiaProyectoPage({
     })),
     observaciones: d.parte?.observaciones ?? null,
     avance: d.avance ? { real: d.avance.real, proyectado: d.avance.proyectado } : null,
+    avanceSemana: avancesSemana.map((a) => ({
+      etiqueta: a.dia,
+      real: a.real,
+      proyectado: a.proyectado,
+    })),
+    avanceProyecto: avancesProyecto.map((a) => ({
+      etiqueta: new Date(`${a.fecha}T12:00:00`).toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "short",
+      }),
+      real: Number(a.avance_real),
+      proyectado: Number(a.avance_proyectado),
+    })),
     notasCampo: d.observaciones.map((o) => ({
       contenido: o.contenido,
       autor: o.autor,

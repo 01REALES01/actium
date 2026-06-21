@@ -44,6 +44,7 @@ export function PermisoCalienteForm() {
 
   // 2. Permisos adicionales
   const [permisosAdicionales, setPermisosAdicionales] = useState<Record<string, RespuestaSiNo>>({});
+  const [instruccionesSO, setInstruccionesSO] = useState<Record<string, string>>({});
 
   // 3. Lista de chequeo
   const [chequeo, setChequeo] = useState<Record<string, RespuestaChequeo>>({});
@@ -100,6 +101,7 @@ export function PermisoCalienteForm() {
         hasta,
         hastaHora,
         permisosAdicionales,
+        instruccionesSO,
         chequeo,
         energias,
         equiposBloquear: equiposBloquear.trim(),
@@ -172,27 +174,44 @@ export function PermisoCalienteForm() {
           <span className={NUM}>2</span> Permisos adicionales requeridos
         </h2>
         <div className="space-y-3">
-          {PERMISOS_ADICIONALES.map((p) => (
-            <div key={p.id} className="flex flex-col gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-white/80">{p.label}</p>
-              <div className="flex gap-2 shrink-0">
-                {RESPUESTA_SINO.map((r) => {
-                  const active = permisosAdicionales[p.id] === r;
-                  return (
-                    <button key={r} type="button"
-                      onClick={() => setPermisosAdicionales((prev) => ({ ...prev, [p.id]: r }))}
-                      className={`min-w-[56px] min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all ${
-                        active
-                          ? r === "si" ? "border-emerald-500 bg-emerald-500/15 text-emerald-400" : "border-red-500 bg-red-500/15 text-red-400"
-                          : "border-white/10 bg-white/[0.02] text-white/40 hover:bg-white/5"
-                      }`}>
-                      {r === "si" ? "Sí" : "No"}
-                    </button>
-                  );
-                })}
+          {PERMISOS_ADICIONALES.map((p) => {
+            const isSi = permisosAdicionales[p.id] === "si";
+            return (
+              <div key={p.id} className="flex flex-col gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-xs text-white/80">{p.label}</p>
+                  <div className="flex gap-2 shrink-0">
+                    {RESPUESTA_SINO.map((r) => {
+                      const active = permisosAdicionales[p.id] === r;
+                      return (
+                        <button key={r} type="button"
+                          onClick={() => setPermisosAdicionales((prev) => ({ ...prev, [p.id]: r }))}
+                          className={`min-w-[56px] min-h-[40px] px-3 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all ${
+                            active
+                              ? r === "si" ? "border-emerald-500 bg-emerald-500/15 text-emerald-400" : "border-red-500 bg-red-500/15 text-red-400"
+                              : "border-white/10 bg-white/[0.02] text-white/40 hover:bg-white/5"
+                          }`}>
+                          {r === "si" ? "Sí" : "No"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {isSi && (
+                  <div className="mt-2 border-t border-white/5 pt-3">
+                    <Campo label="Instrucciones SO" small>
+                      <Input 
+                        value={instruccionesSO[p.id] || ""} 
+                        onChange={(e) => setInstruccionesSO(prev => ({ ...prev, [p.id]: e.target.value }))} 
+                        className="h-10 bg-white/5 border-white/10 text-white rounded-lg text-xs placeholder:text-white/20" 
+                        placeholder="Especifique las instrucciones de seguridad operativa..."
+                      />
+                    </Campo>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

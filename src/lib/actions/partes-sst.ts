@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 
 // =============================================================================
 // Parte diario SST (bitácora de operación por obra)
@@ -45,7 +45,7 @@ export async function guardarParteDiarioAction(
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
   if (!perfil) throw new Error("No autenticado");
-  if (!puedeCrearFormularioSST(perfil.rol)) {
+  if (!puedeEditarParteDiario(perfil.rol)) {
     throw new Error("No tiene permisos para registrar partes SST.");
   }
 

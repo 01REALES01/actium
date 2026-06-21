@@ -49,6 +49,7 @@ const config: Config = {
         actium: {
           orange: "#F25C05",
           "orange-hover": "#D94F04",
+          "orange-red": "#ff4500",
           amber: "#F27405",
           sandy: "#F28729",
           saddle: "#8C470B",
@@ -77,9 +78,10 @@ const config: Config = {
         info: "#3B82F6",
       },
       fontFamily: {
-        display: ["Ancorli", "var(--font-jakarta)", "system-ui", "sans-serif"],
-        body: ["var(--font-jakarta)", "system-ui", "sans-serif"],
-        sans: ["var(--font-jakarta)", "system-ui", "sans-serif"],
+        display: ["Ancorli", "var(--font-avenir)", "system-ui", "sans-serif"],
+        subtitle: ["var(--font-avenir)", "system-ui", "sans-serif"],
+        body: ["var(--font-axiforma)", "system-ui", "sans-serif"],
+        sans: ["var(--font-axiforma)", "system-ui", "sans-serif"],
       },
       borderRadius: {
         actium: "12px",

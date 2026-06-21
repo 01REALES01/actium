@@ -1,12 +1,12 @@
 import { ChevronLeft } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { listProyectos } from "@/lib/data/proyectos";
 import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
-import { AtsForm } from "@/components/sst/ats-form";
+import { AtsFormatoForm } from "@/components/sst/ats-formato-form";
 
-export default async function NuevoATSPage() {
+export default async function AtsFormatoPage() {
   const supabase = createClient();
 
   const perfil = await getPerfilActual(supabase);
@@ -14,56 +14,34 @@ export default async function NuevoATSPage() {
     redirect("/sst");
   }
 
-  const proyectos = await listProyectos(supabase);
-
-  // Empleados con su proyecto asignado (vía empleado_proyectos)
-  const { data: asignacionesData } = await supabase
-    .from("empleado_proyectos")
-    .select(`proyecto_id, empleados:empleado_id (id, nombre, cedula, cargo)`)
-    .is("retirado_at", null);
-
-  const empleados = (asignacionesData || [])
-    .filter((a: any) => a.empleados)
-    .map((a: any) => ({
-      id: a.empleados.id,
-      nombre: a.empleados.nombre,
-      cedula: a.empleados.cedula,
-      cargo: a.empleados.cargo,
-      proyecto_id: a.proyecto_id,
-    }));
-
-  const proyectosOpt = proyectos.map((p) => ({
-    id: p.id,
-    nombre: p.nombre,
-    empresa_id: p.empresa_id,
-    subempresa_id: p.subempresa_id,
-  }));
-
   return (
     <div className="flex flex-col gap-8 pb-12">
       <div className="flex flex-col gap-6">
         <Link
           href="/sst"
-          className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors w-fit"
+          className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-white/40 hover:text-white transition-colors w-fit"
         >
           <ChevronLeft className="h-4 w-4" /> Volver a SST
         </Link>
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white uppercase">
-            Nuevo ATS
+          <Image
+            src="/logo-actium.png"
+            alt="Actium"
+            width={140}
+            height={38}
+            priority
+            className="h-9 w-auto brightness-0 invert mb-4"
+          />
+          <h1 className="text-3xl md:text-4xl font-display tracking-tight text-white uppercase">
+            Análisis de Trabajo Seguro
           </h1>
           <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest">
-            Análisis de Trabajo Seguro — Identificación de Peligros y Controles
+            Formato ATS — Diligencie el análisis y descárguelo en PDF
           </p>
         </div>
       </div>
 
-      <AtsForm
-        modo="crear"
-        proyectos={proyectosOpt}
-        empleados={empleados}
-        responsableNombre={perfil?.nombre ?? "Responsable"}
-      />
+      <AtsFormatoForm />
     </div>
   );
 }

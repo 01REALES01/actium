@@ -89,6 +89,6 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
     @apply antialiased;
-    font-family: var(--font-jakarta), system-ui, sans-serif;
+    font-family: var(--font-axiforma), system-ui, sans-serif;
   }
 }
