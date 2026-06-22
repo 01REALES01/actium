@@ -273,7 +273,6 @@ function ParteDocument({ data }: { data: PartePDFData }) {
           <View>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={getLogoSrc()} style={s.brandLogo} />
-            <Text style={s.brandSub}>Infraestructura y Activos</Text>
           </View>
           <View>
             <Text style={s.docTitle}>Parte Diario SST</Text>

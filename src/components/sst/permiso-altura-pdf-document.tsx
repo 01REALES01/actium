@@ -75,7 +75,7 @@ const GRAY = ACTIUM_PDF.gray;
 
 const s = StyleSheet.create({
   page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ORANGE, paddingBottom: 10, marginBottom: 14 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ESPRESSO, paddingBottom: 10, marginBottom: 14 },
   brand: { fontSize: 20, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, letterSpacing: 1 },
   brandLogo: { width: 118, height: 32, objectFit: "contain" },
   brandSub: { fontSize: 7, color: GRAY, letterSpacing: 2, marginTop: 2, textTransform: "uppercase" },
@@ -135,7 +135,6 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
           <View>
             {/* eslint-disable-next-line jsx-a11y/alt-text */}
             <Image src={getLogoSrc()} style={s.brandLogo} />
-            <Text style={s.brandSub}>Infraestructura y Activos</Text>
           </View>
           <View>
             <Text style={s.docTitle}>Permiso de Trabajo en Altura</Text>

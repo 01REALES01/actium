@@ -3,7 +3,7 @@
 // resolvemos contra el origen actual; con fallback a ruta relativa en SSR.
 export function getLogoSrc(): string {
   if (typeof window !== "undefined") {
-    return `${window.location.origin}/logo-actium.png`;
+    return `${window.location.origin}/logo-actium-coffee.png`;
   }
-  return "/logo-actium.png";
+  return "/logo-actium-coffee.png";
 }

@@ -67,25 +67,18 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         <div className="relative mt-auto p-12 pb-14">
-          <h2 className="font-display mb-3 text-4xl leading-tight text-actium-seashell">
-            Infraestructura forjada con
-            <br />
-            inteligencia
+          <h2 className="font-display mb-3 text-5xl xl:text-6xl leading-tight text-actium-seashell">
+            Damos vida al acero
           </h2>
           <p className="mb-10 max-w-sm text-sm leading-relaxed text-[--text-secondary]">
-            Soluciones avanzadas de gestión para el sector de la construcción metálica y el desarrollo de
-            infraestructuras críticas.
+            Somos expertos en procesos soldables de alta complejidad.
           </p>
 
-          <div className="flex items-center gap-10">
-            <div>
-              <p className="font-display text-3xl text-actium-orange">12k+</p>
-              <p className="text-xs text-[--text-muted]">Proyectos activos</p>
-            </div>
-            <div className="h-10 w-px bg-[--border-default]" />
-            <div>
-              <p className="font-display text-3xl text-actium-orange">98.4%</p>
-              <p className="text-xs text-[--text-muted]">Precisión estructural</p>
+          <div className="flex items-center gap-4">
+            <p className="font-display text-5xl text-actium-orange">+16</p>
+            <div className="border-l border-white/10 pl-4 py-1">
+              <p className="font-subtitle text-xs uppercase tracking-wider text-actium-orange font-semibold">Años</p>
+              <p className="font-sans text-[10px] xl:text-[11px] uppercase tracking-wider text-actium-seashell/40 mt-0.5">De experiencia</p>
             </div>
           </div>
         </div>
