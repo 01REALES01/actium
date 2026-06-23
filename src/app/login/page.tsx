@@ -52,18 +52,15 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           <div className="absolute right-0 top-0 h-[120%] w-px rotate-[20deg] bg-gradient-to-b from-transparent via-actium-orange/10 to-transparent" />
         </div>
 
-        {/* Marca — símbolo blanco + logotipo en Ancorli */}
-        <div className="relative flex items-center gap-2.5 p-12 pb-0">
+        {/* Marca — logotipo oficial 07 integrado */}
+        <div className="relative p-12 pb-0">
           <Image
-            src="/logo-actium-mark.png"
+            src="/logo-actium-07-orange-white.png"
             alt="Actium"
-            width={28}
-            height={28}
-            className="h-7 w-7 object-contain"
+            width={126}
+            height={32}
+            className="h-8 w-auto object-contain"
           />
-          <span className="font-display text-lg tracking-widest text-actium-seashell">
-            Actium
-          </span>
         </div>
 
         <div className="relative mt-auto p-12 pb-14">
@@ -87,20 +84,15 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
       {/* Panel derecho — formulario */}
       <div className="flex flex-1 flex-col items-center justify-center bg-actium-graphite px-8 py-12">
         <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="mb-8 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-actium-orange shadow-actium">
-              <Image
-                src="/logo-actium-mark.png"
-                alt="Actium"
-                width={24}
-                height={24}
-                className="h-6 w-6 object-contain"
-              />
-            </div>
-            <span className="font-display text-xl tracking-widest text-actium-seashell">
-              ACTIUM
-            </span>
+          {/* Logo oficial 07 integrado */}
+          <div className="mb-8">
+            <Image
+              src="/logo-actium-07-orange-white.png"
+              alt="Actium"
+              width={173}
+              height={44}
+              className="h-11 w-auto object-contain"
+            />
           </div>
 
           {/* Heading */}

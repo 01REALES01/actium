@@ -141,19 +141,25 @@ function NavigationLinks({
 
 function Brand({ isCollapsed }: { isCollapsed?: boolean }) {
   return (
-    <div className={cn("flex items-center gap-4 py-4", isCollapsed && "justify-center gap-0")}>
-      <Image
-        src="/logo-actium-mark.png"
-        alt="Actium"
-        width={48}
-        height={48}
-        priority
-        className={cn("object-contain transition-all duration-300", isCollapsed ? "h-10 w-10" : "h-12 w-12")}
-      />
-      {!isCollapsed && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="overflow-hidden">
-          <p className="font-display font-bold text-2xl tracking-tight text-white uppercase whitespace-nowrap">ACTIUM</p>
-        </motion.div>
+    <div className={cn("flex items-center py-4", isCollapsed ? "justify-center" : "justify-start")}>
+      {isCollapsed ? (
+        <Image
+          src="/logo-actium-mark-orange.png"
+          alt="Actium"
+          width={35}
+          height={40}
+          priority
+          className="object-contain transition-all duration-300 h-10 w-auto"
+        />
+      ) : (
+        <Image
+          src="/logo-actium-07-orange-white.png"
+          alt="Actium"
+          width={157}
+          height={40}
+          priority
+          className="object-contain h-10 w-auto transition-all duration-300"
+        />
       )}
     </div>
   );
