@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import { PermisoAlturaForm } from "@/components/sst/permiso-altura-form";
+import { listProyectos } from "@/lib/data/proyectos";
 
 export default async function PermisoAlturaPage() {
   const supabase = createClient();
@@ -13,6 +14,9 @@ export default async function PermisoAlturaPage() {
   if (!puedeCrearFormularioSST(perfil?.rol)) {
     redirect("/sst");
   }
+
+  const proyectosRaw = await listProyectos(supabase);
+  const proyectos = proyectosRaw.map((p) => ({ id: p.id, nombre: p.nombre }));
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -41,7 +45,7 @@ export default async function PermisoAlturaPage() {
         </div>
       </div>
 
-      <PermisoAlturaForm />
+      <PermisoAlturaForm proyectos={proyectos} />
     </div>
   );
 }

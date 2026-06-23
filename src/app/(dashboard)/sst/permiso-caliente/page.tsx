@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import { PermisoCalienteForm } from "@/components/sst/permiso-caliente-form";
+import { listProyectos } from "@/lib/data/proyectos";
 
 export default async function PermisoCalientePage() {
   const supabase = createClient();
@@ -13,6 +14,9 @@ export default async function PermisoCalientePage() {
   if (!puedeCrearFormularioSST(perfil?.rol)) {
     redirect("/sst");
   }
+
+  const proyectosRaw = await listProyectos(supabase);
+  const proyectos = proyectosRaw.map((p) => ({ id: p.id, nombre: p.nombre }));
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -41,7 +45,7 @@ export default async function PermisoCalientePage() {
         </div>
       </div>
 
-      <PermisoCalienteForm />
+      <PermisoCalienteForm proyectos={proyectos} />
     </div>
   );
 }

@@ -58,11 +58,12 @@ export type AtsFormatoPDFData = {
   firmaDataUrl: string;
 };
 
-// Paleta del formato: rejilla en marrón café, bandas beige, texto grafito.
+// Paleta del formato: rejilla en marrón café, cabeceras en marrón café, texto de cabeceras en beige, texto general grafito.
 const BORDER_COLOR = ACTIUM_PDF.espresso;
-const BG_HEADER = ACTIUM_PDF.seashell;
+const BG_HEADER = ACTIUM_PDF.espresso;
 const TEXT_DARK = ACTIUM_PDF.graphite;
 const ESPRESSO = ACTIUM_PDF.espresso;
+const TEXT_LIGHT = ACTIUM_PDF.seashell;
 
 const s = StyleSheet.create({
   page: { 
@@ -134,6 +135,17 @@ const s = StyleSheet.create({
     fontSize: 8,
     fontFamily: "Manrope",
   },
+  headerText: {
+    fontSize: 8,
+    fontFamily: "Manrope",
+    color: TEXT_LIGHT,
+  },
+  headerTextBold: {
+    fontSize: 8,
+    fontFamily: "Manrope",
+    fontWeight: 700,
+    color: TEXT_LIGHT,
+  },
   sectionHeaderBox: {
     backgroundColor: BG_HEADER,
     borderBottomWidth: 1,
@@ -144,7 +156,7 @@ const s = StyleSheet.create({
   sectionHeaderText: {
     fontFamily: "Manrope", fontWeight: 700,
     fontSize: 8,
-    color: ESPRESSO,
+    color: TEXT_LIGHT,
     textTransform: "uppercase"
   },
   
@@ -344,8 +356,8 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
 
           {/* Ejecutores Tabla 1 */}
           <View style={s.ejecutorHeader}>
-            <View style={s.ejecutorCol1}><Text style={s.value}>Cedula, Nombres y Apellidos de los trabajadores (Ejecutor)</Text></View>
-            <View style={s.ejecutorCol2}><Text style={s.value}>Firma</Text></View>
+            <View style={s.ejecutorCol1}><Text style={s.headerText}>Cedula, Nombres y Apellidos de los trabajadores (Ejecutor)</Text></View>
+            <View style={s.ejecutorCol2}><Text style={s.headerText}>Firma</Text></View>
           </View>
           {ejecutoresFilas.map((e, idx) => (
             <View key={`ej1-${idx}`} style={s.ejecutorRow}>
@@ -361,8 +373,8 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
             <Text style={s.sectionHeaderText}>EQUIPOS Y HERRAMIENTAS A UTILIZAR</Text>
           </View>
           <View style={s.ejecutorHeader}>
-            <View style={[s.equipoCol1, { alignItems: "center", borderRightWidth: 0 }]}><Text style={s.value}>EQUIPOS Y</Text><Text style={s.value}>HERRAMIENTAS</Text></View>
-            <View style={[s.equipoCol3, { width: "80%", alignItems: "center", justifyContent: "center" }]}><Text style={[s.value, {fontStyle: "italic", fontFamily: "Manrope", fontWeight: 700}]}>Indique cada una de las herramientas a utilizar.</Text></View>
+            <View style={[s.equipoCol1, { alignItems: "center", borderRightWidth: 0 }]}><Text style={s.headerText}>EQUIPOS Y</Text><Text style={s.headerText}>HERRAMIENTAS</Text></View>
+            <View style={[s.equipoCol3, { width: "80%", alignItems: "center", justifyContent: "center" }]}><Text style={[s.headerText, {fontStyle: "italic", fontWeight: 700}]}>Indique cada una de las herramientas a utilizar.</Text></View>
           </View>
           
           {CATEGORIAS_HERRAMIENTAS.map((c, i, arr) => (
@@ -393,10 +405,10 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
 
           {/* Pasos */}
           <View style={s.pasosHeader}>
-            <View style={s.pasosH1}><Text style={s.value}>Pasos detallados de la tarea</Text></View>
-            <View style={s.pasosH2}><Text style={s.value}>Peligros existentes y potenciales</Text></View>
-            <View style={s.pasosH3}><Text style={s.value}>Consecuencias</Text></View>
-            <View style={s.pasosH4}><Text style={s.value}>Controles Requeridos</Text></View>
+            <View style={s.pasosH1}><Text style={s.headerText}>Pasos detallados de la tarea</Text></View>
+            <View style={s.pasosH2}><Text style={s.headerText}>Peligros existentes y potenciales</Text></View>
+            <View style={s.pasosH3}><Text style={s.headerText}>Consecuencias</Text></View>
+            <View style={s.pasosH4}><Text style={s.headerText}>Controles Requeridos</Text></View>
           </View>
           
           {pasosFilas.map((p, idx) => (
@@ -439,8 +451,8 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
 
           {/* Ejecutores Tabla 2 */}
           <View style={s.ejecutorHeader}>
-            <View style={s.ejecutorCol1}><Text style={[s.value, {fontFamily: "Manrope", fontWeight: 700}]}>Nombre y Cedula de los trabajadores (Ejecutor)</Text></View>
-            <View style={s.ejecutorCol2}><Text style={[s.value, {fontFamily: "Manrope", fontWeight: 700}]}>Firma</Text></View>
+            <View style={s.ejecutorCol1}><Text style={s.headerTextBold}>Nombre y Cedula de los trabajadores (Ejecutor)</Text></View>
+            <View style={s.ejecutorCol2}><Text style={s.headerTextBold}>Firma</Text></View>
           </View>
           {ejecutoresFilas.map((e, idx) => (
             <View key={`ej2-${idx}`} style={s.ejecutorRow}>
@@ -453,8 +465,8 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
 
           {/* Emisor */}
           <View style={s.ejecutorHeader}>
-            <View style={s.ejecutorCol1}><Text style={[s.value, {fontFamily: "Manrope", fontWeight: 700}]}>Nombre y Cedula de la persona (Emisor)</Text></View>
-            <View style={s.ejecutorCol2}><Text style={[s.value, {fontFamily: "Manrope", fontWeight: 700}]}>Firma</Text></View>
+            <View style={s.ejecutorCol1}><Text style={s.headerTextBold}>Nombre y Cedula de la persona (Emisor)</Text></View>
+            <View style={s.ejecutorCol2}><Text style={s.headerTextBold}>Firma</Text></View>
           </View>
           <View style={[s.ejecutorRow, s.emisorSignatureRow, { borderBottomWidth: 0 }]}>
             <View style={s.ejecutorVal1}>

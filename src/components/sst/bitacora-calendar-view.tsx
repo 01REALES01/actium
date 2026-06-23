@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, UserCheck, UserMinus, AlertTriangle, ShieldAlert } from "lucide-react";
+import { ChevronLeft, ChevronRight, UserCheck, UserMinus, AlertTriangle, ShieldAlert, FileText, Download } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 type ParteRow = {
   proyecto_id: string;
@@ -15,8 +16,29 @@ type ParteRow = {
   accidentes: number;
 };
 
-export function BitacoraCalendarView({ partes = [] }: { partes?: ParteRow[] }) {
+export type FormularioSSTRow = {
+  id: string;
+  tipo: string;
+  fecha: string;
+  pdf_generado_path: string;
+  proyecto_id: string;
+  proyecto_nombre: string;
+};
+
+export function BitacoraCalendarView({ partes = [], formularios = [] }: { partes?: ParteRow[], formularios?: FormularioSSTRow[] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const supabase = createClient();
+
+  const handleDownloadFormulario = async (path: string, tipo: string, fecha: string) => {
+    try {
+      const { data, error } = await supabase.storage.from("pdfs-formularios").createSignedUrl(path, 60);
+      if (error || !data) throw new Error("No se pudo obtener el PDF");
+      window.open(data.signedUrl, "_blank");
+    } catch (err) {
+      console.error(err);
+      alert("Error al descargar el PDF");
+    }
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -43,6 +65,12 @@ export function BitacoraCalendarView({ partes = [] }: { partes?: ParteRow[] }) {
     return acc;
   }, {} as Record<string, ParteRow[]>);
 
+  const formsByDate = formularios.reduce((acc, f) => {
+    if (!acc[f.fecha]) acc[f.fecha] = [];
+    acc[f.fecha].push(f);
+    return acc;
+  }, {} as Record<string, FormularioSSTRow[]>);
+
   const days = [];
   for (let i = 0; i < firstDayIndex; i++) {
     days.push(<div key={`empty-${i}`} className="min-h-[120px] rounded-xl border border-transparent bg-transparent p-2"></div>);
@@ -51,6 +79,7 @@ export function BitacoraCalendarView({ partes = [] }: { partes?: ParteRow[] }) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
     const dayPartes = partesByDate[dateStr] || [];
+    const dayForms = formsByDate[dateStr] || [];
     
     const isToday = dateStr === new Date().toISOString().split("T")[0];
 
@@ -67,9 +96,10 @@ export function BitacoraCalendarView({ partes = [] }: { partes?: ParteRow[] }) {
           <span className={`text-sm font-bold ${isToday ? "text-[#F25C05]" : "text-white/60"}`}>
             {d}
           </span>
-          {dayPartes.length > 0 && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[9px] font-bold text-white">
-              {dayPartes.length}
+          {(dayPartes.length > 0 || dayForms.length > 0) && (
+            <span className="flex h-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[9px] font-bold text-white gap-1">
+              {dayPartes.length > 0 && <span title="Partes">{dayPartes.length}P</span>}
+              {dayForms.length > 0 && <span title="Permisos" className="text-[#F25C05]">{dayForms.length}F</span>}
             </span>
           )}
         </div>
@@ -103,6 +133,24 @@ export function BitacoraCalendarView({ partes = [] }: { partes?: ParteRow[] }) {
               </Link>
             )
           })}
+          
+          {dayForms.map(f => (
+            <button
+              key={f.id}
+              onClick={(e) => { e.preventDefault(); handleDownloadFormulario(f.pdf_generado_path, f.tipo, f.fecha); }}
+              className="flex items-center gap-1.5 rounded-lg border border-[#F25C05]/20 bg-[#F25C05]/10 p-2 hover:bg-[#F25C05]/20 transition-colors text-left"
+              title={`Descargar ${f.tipo} - ${f.proyecto_nombre}`}
+            >
+              <FileText className="h-3 w-3 text-[#F25C05] shrink-0" />
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#F25C05] truncate">
+                  {f.tipo === 'ats' ? 'ATS' : f.tipo === 'permiso_altura' ? 'ALTURA' : 'CALIENTE'}
+                </span>
+                <span className="text-[8px] text-white/60 truncate">{f.proyecto_nombre}</span>
+              </div>
+              <Download className="h-3 w-3 ml-auto text-[#F25C05]/50 shrink-0" />
+            </button>
+          ))}
         </div>
       </div>
     );

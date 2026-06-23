@@ -25,6 +25,14 @@ export default async function FormularioDetallePage({ params }: Props) {
   if (error || !formData) notFound();
   const form = formData as Tables<"formularios">;
 
+  let pdfSignedUrl: string | null = null;
+  if (form.pdf_generado_path) {
+    const { data: signedData } = await supabase.storage
+      .from("pdfs-formularios")
+      .createSignedUrl(form.pdf_generado_path, 3600);
+    pdfSignedUrl = signedData?.signedUrl ?? null;
+  }
+
   const perfil = await getPerfilActual(supabase);
   const puedeGestionar = puedeCrearFormularioSST(perfil?.rol);
   const formAbierto = form.estado !== "firmado" && form.estado !== "archivado";
@@ -127,6 +135,17 @@ export default async function FormularioDetallePage({ params }: Props) {
             >
               {form.estado}
             </Badge>
+            {pdfSignedUrl && (
+              <a
+                href={pdfSignedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 items-center gap-2 rounded-lg bg-[#F25C05] px-4 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-[#F25C05]/90"
+              >
+                <FileText className="h-4 w-4" />
+                Descargar PDF
+              </a>
+            )}
             {/* Editar removido temporalmente hasta integrar AtsFormatoForm */}
           </div>
         </div>
@@ -254,6 +273,20 @@ export default async function FormularioDetallePage({ params }: Props) {
             subempresaId={form.subempresa_id}
             editable={puedeEditar}
           />
+        </div>
+      )}
+
+      {/* Vista Previa del PDF */}
+      {pdfSignedUrl && (
+        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
+          <h2 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-4">Vista Previa del Permiso</h2>
+          <div className="relative w-full aspect-[1/1.4] max-h-[850px] rounded-lg overflow-hidden border border-white/10 bg-black">
+            <iframe
+              src={`${pdfSignedUrl}#toolbar=0`}
+              className="w-full h-full border-none min-h-[500px]"
+              title="Vista previa del permiso"
+            />
+          </div>
         </div>
       )}
 

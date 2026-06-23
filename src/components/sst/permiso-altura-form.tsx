@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2, Loader2, Download, Check } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
 import { Input } from "@/components/ui/input";
@@ -38,8 +39,10 @@ const nuevoEjecutor = (): EjecutorState => ({
   seguridadSocial: "",
 });
 
-export function PermisoAlturaForm({ empresaInicial = "" }: { empresaInicial?: string }) {
+export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { empresaInicial?: string; proyectos?: { id: string; nombre: string }[] }) {
+  const router = useRouter();
   // 1. Datos básicos
+  const [proyectoId, setProyectoId] = useState("");
   const [empresa, setEmpresa] = useState(empresaInicial);
   const [ciudad, setCiudad] = useState("");
   const [lugarTrabajo, setLugarTrabajo] = useState("");
@@ -136,6 +139,35 @@ export function PermisoAlturaForm({ empresaInicial = "" }: { empresaInicial?: st
 
       const { buildPermisoAlturaPDFBlob } = await import("./permiso-altura-pdf-document");
       const blob = await buildPermisoAlturaPDFBlob(data);
+      
+      // Subir el PDF generado a Supabase Storage
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      const tempId = crypto.randomUUID();
+      const ext = "pdf";
+      const storagePath = `temp-empresa/temp-subempresa/${tempId}/${crypto.randomUUID()}.${ext}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("pdfs-formularios")
+        .upload(storagePath, blob, { contentType: "application/pdf" });
+        
+      if (uploadError) throw new Error("No fue posible subir el archivo a Supabase Storage: " + uploadError.message);
+      
+      // Guardar en la base de datos si hay un proyecto seleccionado
+      if (proyectoId) {
+        const { crearPermisoAlturaAction } = await import("@/lib/actions/permisos-sst");
+        const { id: formId } = await crearPermisoAlturaAction({
+          proyectoId,
+          ubicacion: ubicacion.trim() || "N/A",
+          area: areaProceso.trim(),
+          fechaInicio: fecha,
+          pdfPath: storagePath
+        });
+        
+        router.push(`/sst/${formId}`);
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -159,7 +191,23 @@ export function PermisoAlturaForm({ empresaInicial = "" }: { empresaInicial?: st
           <span className={NUM}>1</span> Datos básicos del permiso
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Campo label="Empresa">
+          {proyectos.length > 0 && (
+            <Campo label="Proyecto Asociado">
+              <select
+                value={proyectoId}
+                onChange={(e) => setProyectoId(e.target.value)}
+                className={FIELD + " px-3"}
+              >
+                <option value="">Seleccione un proyecto...</option>
+                {proyectos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+            </Campo>
+          )}
+          <Campo label="Empresa Contratista">
             <Input value={empresa} onChange={(e) => setEmpresa(e.target.value)} className={FIELD} placeholder="Nombre de la empresa" />
           </Campo>
           <Campo label="Ciudad">

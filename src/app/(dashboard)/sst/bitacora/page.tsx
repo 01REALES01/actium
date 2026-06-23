@@ -5,14 +5,39 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { listPartes } from "@/lib/data/partes-sst";
 import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 import { BitacoraViewToggle } from "@/components/sst/bitacora-view-toggle";
+import { BitacoraActionsDropdown } from "@/components/sst/bitacora-actions-dropdown";
+import { unstable_noStore as noStore } from "next/cache";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function BitacoraPage() {
+  noStore();
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
   const puedeRegistrar = puedeEditarParteDiario(perfil?.rol);
 
   // Lectura por admin: tablas SST con RLS activo y auth_rol() rota.
-  const partes = await listPartes(createAdminClient());
+  const db = createAdminClient();
+  const partes = await listPartes(db);
+  const { data: formulariosRaw, error } = await db
+    .from("formularios")
+    .select("id, tipo, fecha_inicio, pdf_generado_path, proyecto_id, proyectos(nombre)")
+    .in("tipo", ["ats", "permiso_altura", "permiso_caliente"])
+    .not("pdf_generado_path", "is", null);
+
+  if (error) {
+    console.error("Error fetching formularios:", error);
+  }
+
+  const formulariosSST = (formulariosRaw || []).map((f) => ({
+    id: f.id,
+    tipo: f.tipo,
+    fecha: (f.fecha_inicio || "").split("T")[0],
+    pdf_generado_path: f.pdf_generado_path || "",
+    proyecto_id: f.proyecto_id,
+    proyecto_nombre: (f.proyectos as any)?.nombre || "Proyecto Desconocido",
+  }));
 
   const fmtFecha = (iso: string) =>
     new Date(`${iso}T12:00:00`).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
@@ -31,12 +56,7 @@ export default async function BitacoraPage() {
           </p>
         </div>
         {puedeRegistrar && (
-          <Link
-            href="/sst/bitacora/nuevo"
-            className="flex h-12 items-center justify-center gap-2 rounded-xl bg-[#F25C05] px-6 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-[#F25C05]/90"
-          >
-            <Plus className="h-4 w-4" /> Registrar parte de hoy
-          </Link>
+          <BitacoraActionsDropdown />
         )}
       </div>
 
@@ -51,7 +71,7 @@ export default async function BitacoraPage() {
       </div>
 
       {/* Componente Toggle Cliente: Calendario o Lista */}
-      <BitacoraViewToggle partes={partes} />
+      <BitacoraViewToggle partes={partes} formularios={formulariosSST} />
     </div>
   );
 }
