@@ -152,7 +152,7 @@ function Brand({ isCollapsed }: { isCollapsed?: boolean }) {
       />
       {!isCollapsed && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="overflow-hidden">
-          <p className="font-display text-2xl tracking-widest text-white whitespace-nowrap">ACTIUM</p>
+          <p className="font-display font-bold text-2xl tracking-tight text-white uppercase whitespace-nowrap">ACTIUM</p>
         </motion.div>
       )}
     </div>
