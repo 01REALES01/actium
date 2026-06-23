@@ -6,14 +6,13 @@ import { Plus, X } from "lucide-react";
 import { registrarAvanceAction } from "@/lib/actions/proyectos";
 import { hoyLocal } from "@/lib/fecha";
 
-export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
+export function NuevoRegistroModal({ proyectoId, unidad = "MT" }: { proyectoId: string, unidad?: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fecha, setFecha] = useState(hoyLocal());
   const [avanceReal, setAvanceReal] = useState("");
-  const [avanceProyectado, setAvanceProyectado] = useState("");
   const [notas, setNotas] = useState("");
 
   function handleClose() {
@@ -30,12 +29,10 @@ export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
         proyectoId,
         fecha,
         avanceReal: parseFloat(avanceReal),
-        avanceProyectado: parseFloat(avanceProyectado),
         notas: notas.trim() || undefined,
       });
       handleClose();
       setAvanceReal("");
-      setAvanceProyectado("");
       setNotas("");
       router.refresh();
     } catch (err) {
@@ -49,7 +46,7 @@ export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#FF916E] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-[#1A1A1A] transition-all hover:bg-[#FF916E]/90"
+        className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#F25C05] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
       >
         <Plus className="h-4 w-4" />
         <span className="hidden sm:inline">Nuevo Registro</span>
@@ -90,41 +87,24 @@ export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
                   required
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#FF916E]/50 focus:outline-none focus:ring-1 focus:ring-[#FF916E]/30 transition-all [color-scheme:dark]"
+                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all [color-scheme:dark]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                    Avance Real (MT)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={avanceReal}
-                    onChange={(e) => setAvanceReal(e.target.value)}
-                    placeholder="0.00"
-                    required
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#FF916E]/50 focus:outline-none focus:ring-1 focus:ring-[#FF916E]/30 transition-all"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                    Proyectado (MT)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={avanceProyectado}
-                    onChange={(e) => setAvanceProyectado(e.target.value)}
-                    placeholder="0.00"
-                    required
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#FF916E]/50 focus:outline-none focus:ring-1 focus:ring-[#FF916E]/30 transition-all"
-                  />
-                </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                  Avance Real ({unidad})
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={avanceReal}
+                  onChange={(e) => setAvanceReal(e.target.value)}
+                  placeholder="0.00"
+                  required
+                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -136,7 +116,7 @@ export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
                   onChange={(e) => setNotas(e.target.value)}
                   placeholder="Observaciones generales de la jornada..."
                   rows={3}
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#FF916E]/50 focus:outline-none focus:ring-1 focus:ring-[#FF916E]/30 transition-all resize-none"
+                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all resize-none"
                 />
               </div>
 
@@ -157,7 +137,7 @@ export function NuevoRegistroModal({ proyectoId }: { proyectoId: string }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 rounded-lg bg-[#FF916E] px-4 py-2.5 text-xs font-bold text-[#1A1A1A] hover:bg-[#FF916E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-lg bg-[#F25C05] px-4 py-2.5 text-xs font-bold text-white hover:bg-[#F25C05]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Guardando..." : "Guardar Registro"}
                 </button>

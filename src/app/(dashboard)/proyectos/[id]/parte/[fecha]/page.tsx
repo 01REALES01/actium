@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getParteCockpitDelDia } from "@/lib/data/partes-sst";
 import { getEmpleadosAsignados, getAvancesSemanaActual } from "@/lib/data/sst";
-import { getProyectoAvances } from "@/lib/data/proyectos";
+import { getProyectoAvances, getProyecto } from "@/lib/data/proyectos";
 import { hoyLocal } from "@/lib/fecha";
 import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 import { GraficaAsistencia, GraficaEventos } from "@/components/sst/parte-graficas";
@@ -61,13 +61,14 @@ export default async function ParteDiaProyectoPage({
 
   // Lecturas por admin: las tablas SST tienen RLS activo y auth_rol() está rota.
   const db = createAdminClient();
-  const [d, empleadosActivos, avancesSemana, avancesProyecto] = await Promise.all([
+  const [d, empleadosActivos, avancesSemana, avancesProyecto, proyecto] = await Promise.all([
     getParteCockpitDelDia(db, params.id, params.fecha),
     getEmpleadosAsignados(db, params.id),
     getAvancesSemanaActual(db, params.id),
     getProyectoAvances(db, params.id),
+    getProyecto(db, params.id),
   ]);
-  if (!d) notFound();
+  if (!d || !proyecto) notFound();
 
   const accidentes = d.incidentes.filter((e) => e.tipo === "accidente");
   const otrosIncidentes = d.incidentes.filter((e) => e.tipo !== "accidente");
@@ -210,7 +211,7 @@ export default async function ParteDiaProyectoPage({
               Registrar del día
             </span>
             <div className="flex flex-wrap gap-2">
-              <NuevoRegistroModal proyectoId={params.id} />
+              <NuevoRegistroModal proyectoId={params.id} unidad={proyecto.unidad_medida} />
               <NuevoIncidenteModal proyectoId={params.id} empleadosActivos={empleadosActivos} />
               <NuevoAusentismoModal proyectoId={params.id} empleadosActivos={empleadosActivos} />
             </div>
@@ -244,7 +245,7 @@ export default async function ParteDiaProyectoPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <GraficaAsistencia presentes={d.presentes} ausentes={ausentes} />
         {d.avance ? (
-          <DailyProgressChart real={d.avance.real} proyectado={d.avance.proyectado} />
+          <DailyProgressChart real={d.avance.real} proyectado={d.avance.proyectado} unidad={proyecto.unidad_medida} />
         ) : (
           <GraficaEventos incidentes={otrosIncidentes.length} accidentes={accidentes.length} />
         )}

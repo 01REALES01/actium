@@ -321,7 +321,7 @@ export async function getAvancesSemanaActual(
 
   const { data, error } = await supabase
     .from("proyecto_avances")
-    .select("fecha, avance_real, avance_proyectado")
+    .select("fecha, avance_real")
     .eq("proyecto_id", proyectoId)
     .gte("fecha", formatDate(lunes))
     .lte("fecha", formatDate(domingo))
@@ -329,17 +329,35 @@ export async function getAvancesSemanaActual(
 
   if (error) throw error;
 
+  const { data: metas } = await supabase
+    .from("proyecto_metas")
+    .select("fecha, avance_esperado")
+    .eq("proyecto_id", proyectoId)
+    .gte("fecha", formatDate(lunes))
+    .lte("fecha", formatDate(domingo));
+
+  const metasMap = new Map((metas || []).map(m => [m.fecha, Number(m.avance_esperado)]));
+  const avancesMap = new Map((data || []).map(a => [a.fecha, Number(a.avance_real)]));
+
   // Mapear a formato de gráfica (Lun=0 … Dom=6)
   const diasNombre = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
-  return (data ?? []).map((row) => {
-    const fecha = new Date(`${row.fecha}T12:00:00Z`);
-    const idx = (fecha.getUTCDay() + 6) % 7;
-    return {
-      dia: diasNombre[idx] ?? row.fecha,
-      proyectado: Number(row.avance_proyectado),
-      real: Number(row.avance_real),
-    };
-  });
+  const result: AvanceDiario[] = [];
+
+  for (let i = 0; i < 7; i++) {
+    const currentDate = new Date(lunes);
+    currentDate.setUTCDate(lunes.getUTCDate() + i);
+    const dateStr = formatDate(currentDate);
+    
+    // Only include days that have either real progress or a meta, or all days?
+    // Let's just include all 7 days for the weekly chart
+    result.push({
+      dia: diasNombre[i],
+      proyectado: metasMap.get(dateStr) || 0,
+      real: avancesMap.get(dateStr) || 0,
+    });
+  }
+
+  return result;
 }
 
 // ─── Avance del día actual para la barra diaria ──────────────────────────────
@@ -352,7 +370,7 @@ export async function getAvanceHoy(
 
   const { data, error } = await supabase
     .from("proyecto_avances")
-    .select("avance_real, avance_proyectado")
+    .select("avance_real")
     .eq("proyecto_id", proyectoId)
     .eq("fecha", today)
     .maybeSingle();
@@ -360,9 +378,16 @@ export async function getAvanceHoy(
   if (error) throw error;
   if (!data) return null;
 
+  const { data: meta } = await supabase
+    .from("proyecto_metas")
+    .select("avance_esperado")
+    .eq("proyecto_id", proyectoId)
+    .eq("fecha", today)
+    .maybeSingle();
+
   return {
     real: Number(data.avance_real),
-    proyectado: Number(data.avance_proyectado),
+    proyectado: meta ? Number(meta.avance_esperado) : 0,
   };
 }
 

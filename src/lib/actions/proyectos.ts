@@ -9,8 +9,7 @@ import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 const RegistrarAvanceSchema = z.object({
   proyectoId: z.string(),
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  avanceReal: z.number().min(0).max(100),
-  avanceProyectado: z.number().min(0).max(100),
+  avanceReal: z.number().min(0).max(100000000), // Allowing large units like budget, kg, etc.
   notas: z.string().optional(),
 });
 
@@ -35,7 +34,6 @@ export async function registrarAvanceAction(
     proyecto_id: parsed.data.proyectoId,
     fecha: parsed.data.fecha,
     avance_real: parsed.data.avanceReal,
-    avance_proyectado: parsed.data.avanceProyectado,
     registrado_por: perfil.id,
   }, { onConflict: 'proyecto_id, fecha' }).select('id').single();
 
@@ -43,6 +41,50 @@ export async function registrarAvanceAction(
 
   revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
   return { id: (data as { id: string }).id };
+}
+
+// ─── Metas (Curva S) ─────────────────────────────────────────────────────────
+
+const GuardarProyectoMetasSchema = z.object({
+  proyectoId: z.string().min(1),
+  metas: z.array(
+    z.object({
+      fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      avanceEsperado: z.number().min(0),
+    })
+  ),
+});
+
+export async function guardarProyectoMetasAction(
+  input: z.infer<typeof GuardarProyectoMetasSchema>,
+): Promise<void> {
+  const parsed = GuardarProyectoMetasSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(`Datos inválidos: ${parsed.error.issues[0]?.message ?? parsed.error.message}`);
+  }
+
+  const supabase = createClient();
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  // Aquí asumiendo que los que pueden gestionar proyectos pueden planificar las metas:
+  // Se podría hacer check de puedeGestionarProyectos(perfil.rol)
+
+  const db = createAdminClient();
+
+  // Borrar metas actuales
+  await db.from("proyecto_metas").delete().eq("proyecto_id", parsed.data.proyectoId);
+
+  if (parsed.data.metas.length > 0) {
+    const metasInsert = parsed.data.metas.map((m) => ({
+      proyecto_id: parsed.data.proyectoId,
+      fecha: m.fecha,
+      avance_esperado: m.avanceEsperado,
+    }));
+    const { error } = await db.from("proyecto_metas").insert(metasInsert);
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
 }
 
 // ─── Crear / editar proyecto ──────────────────────────────────────────────────
@@ -67,6 +109,9 @@ const CrearProyectoSchema = z.object({
   fechaInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   fechaFinProyectada: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   presupuestoTotal: z.number().min(0).optional(),
+  unidadMedida: z.string().min(1).max(20).optional(),
+  etiquetaEjeY: z.string().max(100).optional(),
+  metaTotalCantidad: z.number().min(0).optional(),
 });
 
 export async function crearProyectoAction(
@@ -97,6 +142,9 @@ export async function crearProyectoAction(
       fecha_inicio: parsed.data.fechaInicio ?? null,
       fecha_fin_proyectada: parsed.data.fechaFinProyectada ?? null,
       presupuesto_total: parsed.data.presupuestoTotal ?? null,
+      unidad_medida: parsed.data.unidadMedida ?? "MT",
+      etiqueta_eje_y: parsed.data.etiquetaEjeY ?? null,
+      meta_total_cantidad: parsed.data.metaTotalCantidad ?? null,
       created_by: user.id,
     } as any)
     .select("id")
@@ -124,6 +172,9 @@ const EditarProyectoSchema = z.object({
   fechaInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   fechaFinProyectada: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   presupuestoTotal: z.number().min(0).optional(),
+  unidadMedida: z.string().min(1).max(20).optional(),
+  etiquetaEjeY: z.string().max(100).optional(),
+  metaTotalCantidad: z.number().min(0).optional(),
 });
 
 export async function editarProyectoAction(
@@ -147,6 +198,9 @@ export async function editarProyectoAction(
       fecha_inicio: parsed.data.fechaInicio ?? null,
       fecha_fin_proyectada: parsed.data.fechaFinProyectada ?? null,
       presupuesto_total: parsed.data.presupuestoTotal ?? null,
+      unidad_medida: parsed.data.unidadMedida ?? "MT",
+      etiqueta_eje_y: parsed.data.etiquetaEjeY ?? null,
+      meta_total_cantidad: parsed.data.metaTotalCantidad ?? null,
     })
     .eq("id", parsed.data.proyectoId);
 

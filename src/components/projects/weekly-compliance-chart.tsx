@@ -10,15 +10,16 @@ type WeeklyProgressData = {
 
 interface WeeklyComplianceChartProps {
   data: WeeklyProgressData[];
+  unidad?: string;
 }
 
-export function WeeklyComplianceChart({ data }: WeeklyComplianceChartProps) {
+export function WeeklyComplianceChart({ data, unidad = "MT" }: WeeklyComplianceChartProps) {
   return (
     <div className="flex h-full flex-col gap-6 rounded-3xl border-0 bg-white/[0.02] p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
-      <div className="absolute inset-0 bg-gradient-to-bl from-[#ff4500]/5 to-transparent opacity-50 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-bl from-[#F25C05]/5 to-transparent opacity-50 pointer-events-none" />
       <div className="relative z-10 flex items-center justify-between mb-2">
         <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
-          DESEMPEÑO SEMANAL (MT)
+          DESEMPEÑO SEMANAL ({unidad})
         </h3>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
@@ -26,7 +27,7 @@ export function WeeklyComplianceChart({ data }: WeeklyComplianceChartProps) {
             <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Proy.</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-3 rounded-full bg-[#ff4500]" />
+            <div className="h-1.5 w-3 rounded-full bg-[#F25C05]" />
             <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Real</span>
           </div>
         </div>
@@ -57,11 +58,11 @@ export function WeeklyComplianceChart({ data }: WeeklyComplianceChartProps) {
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-8">
                           <span className="text-[10px] font-bold text-white/40 uppercase">Real</span>
-                          <span className="text-sm font-bold text-[#ff4500]">{payload[1]?.value} MT</span>
+                          <span className="text-sm font-bold text-[#F25C05]">{payload[1]?.value} {unidad}</span>
                         </div>
                         <div className="flex items-center justify-between gap-8">
                           <span className="text-[10px] font-bold text-white/40 uppercase">Proyectado</span>
-                          <span className="text-sm font-bold text-white/60">{payload[0]?.value} MT</span>
+                          <span className="text-sm font-bold text-white/60">{payload[0]?.value} {unidad}</span>
                         </div>
                       </div>
                     </div>
@@ -82,10 +83,10 @@ export function WeeklyComplianceChart({ data }: WeeklyComplianceChartProps) {
             <Line
               type="monotone"
               dataKey="real"
-              stroke="#ff4500"
+              stroke="#F25C05"
               strokeWidth={3}
-              dot={{ r: 4, fill: "#ff4500", strokeWidth: 0 }}
-              activeDot={{ r: 6, fill: "#ff4500", stroke: "#1A1A1A", strokeWidth: 2 }}
+              dot={{ r: 4, fill: "#F25C05", strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: "#F25C05", stroke: "#1A1A1A", strokeWidth: 2 }}
             />
           </LineChart>
         </ResponsiveContainer>

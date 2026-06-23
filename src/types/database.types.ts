@@ -1535,6 +1535,38 @@ export type Database = {
           },
         ]
       }
+      proyecto_metas: {
+        Row: {
+          id: string
+          proyecto_id: string
+          fecha: string
+          avance_esperado: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          proyecto_id: string
+          fecha: string
+          avance_esperado: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          proyecto_id?: string
+          fecha?: string
+          avance_esperado?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proyecto_metas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       proyecto_avances: {
         Row: {
           avance_proyectado: number
@@ -1660,10 +1692,13 @@ export type Database = {
           fecha_inicio: string | null
           id: string
           nombre: string
+          etiqueta_eje_y: string | null
+          meta_total_cantidad: number | null
           notas: string | null
           presupuesto_total: number | null
           subempresa_id: string
           ubicacion: string | null
+          unidad_medida: string
           updated_at: string
         }
         Insert: {
@@ -1682,10 +1717,13 @@ export type Database = {
           fecha_inicio?: string | null
           id?: string
           nombre: string
+          etiqueta_eje_y?: string | null
+          meta_total_cantidad?: number | null
           notas?: string | null
           presupuesto_total?: number | null
           subempresa_id: string
           ubicacion?: string | null
+          unidad_medida?: string
           updated_at?: string
         }
         Update: {
@@ -1704,10 +1742,13 @@ export type Database = {
           fecha_inicio?: string | null
           id?: string
           nombre?: string
+          etiqueta_eje_y?: string | null
+          meta_total_cantidad?: number | null
           notas?: string | null
           presupuesto_total?: number | null
           subempresa_id?: string
           ubicacion?: string | null
+          unidad_medida?: string
           updated_at?: string
         }
         Relationships: [
@@ -1949,6 +1990,7 @@ export type Database = {
           proyecto_id: string | null
           subempresa_id: string | null
           ultima_observacion_at: string | null
+          unidad_medida: string | null
         }
         Relationships: [
           {

@@ -4,7 +4,7 @@ import { Pencil, ClipboardList, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, puedeGestionarProyectos, puedeEditarParteDiario } from "@/lib/auth/roles";
-import { getProyecto, getProyectoAvances, getObservaciones, getFotos } from "@/lib/data/proyectos";
+import { getProyecto, getProyectoAvances, getObservaciones, getFotos, getProyectoMetas } from "@/lib/data/proyectos";
 import {
   getSSTStats,
   getEmpleadosAsignados,
@@ -21,6 +21,8 @@ import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { WeeklyComplianceChart } from "@/components/projects/weekly-compliance-chart";
 import { PhotoGallery } from "@/components/projects/photo-gallery";
 import { ObservationsSection } from "@/components/projects/observations-section";
+import { NuevoRegistroModal } from "@/components/projects/nuevo-registro-modal";
+import { PlanificadorCurvaModal } from "@/components/projects/planificador-curva-modal";
 
 type ProjectPageProps = {
   params: { id: string };
@@ -52,6 +54,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
   const [
     proyecto,
     avances,
+    metasData,
     sstStats,
     empleados,
     ausentismos,
@@ -67,6 +70,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
   ] = await Promise.all([
     getProyecto(db, params.id),
     getProyectoAvances(db, params.id),
+    getProyectoMetas(db, params.id),
     getSSTStats(db, params.id),
     getEmpleadosAsignados(db, params.id),
     getAusentismosHistorial(db, params.id),
@@ -85,14 +89,29 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
 
   const puedeEditar = puedeGestionarProyectos(perfil?.rol);
 
-  const chartData = avances.map((a) => ({
-    fecha: new Date(a.fecha).toLocaleDateString("es-CO", {
-      day: "2-digit",
-      month: "short",
-    }),
-    avance: Number(a.avance_real),
-    proyectado: Number(a.avance_proyectado),
-  }));
+  // Combine avances and metas by date
+  const combinedDataMap = new Map<string, { avance: number | null; proyectado: number | null }>();
+  
+  avances.forEach((a) => {
+    combinedDataMap.set(a.fecha, { avance: Number(a.avance_real), proyectado: null });
+  });
+
+  metasData.forEach((m) => {
+    const existing = combinedDataMap.get(m.fecha) || { avance: null, proyectado: null };
+    existing.proyectado = Number(m.avance_esperado);
+    combinedDataMap.set(m.fecha, existing);
+  });
+
+  const chartData = Array.from(combinedDataMap.entries())
+    .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+    .map(([fecha, values]) => ({
+      fecha: new Date(fecha).toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "short",
+      }),
+      avance: values.avance,
+      proyectado: values.proyectado,
+    }));
 
   const accidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo === "accidente").length : 0;
   const incidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo !== "accidente").length : 0;
@@ -108,7 +127,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
       
       {/* Header */}
       <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between rounded-3xl border border-white/5 bg-[#1A1A1A] p-8 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 h-full w-1/2 bg-gradient-to-l from-[#ff4500]/10 to-transparent opacity-50" />
+        <div className="absolute top-0 right-0 h-full w-1/2 bg-gradient-to-l from-[#F25C05]/10 to-transparent opacity-50" />
         <div className="text-center md:text-left relative z-10 flex-1 min-w-0 pr-0 md:pr-8">
           <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
             <h1 className="font-display text-4xl font-bold uppercase tracking-tight text-white md:text-6xl break-words">
@@ -123,21 +142,35 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-col sm:flex-row w-full shrink-0 md:w-auto mt-4 md:mt-0 gap-3">
-          <Link
-            href={`/proyectos/${proyecto.id}/parte/${hoy}`}
-            className="group flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-[#ff4500] px-6 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-xl transition-all hover:-translate-y-0.5 hover:bg-[#ff4500]/90 hover:shadow-[#ff4500]/20"
-          >
-            <ClipboardList className="h-4 w-4 transition-transform group-hover:scale-110" />
-            Parte de Hoy
-          </Link>
-          <Link
-            href={`/sst/bitacora`}
-            className="group flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl bg-white/5 border border-white/10 px-6 py-4 text-xs font-bold uppercase tracking-widest text-white transition-all hover:-translate-y-0.5 hover:bg-white/10"
-          >
-            <Calendar className="h-4 w-4 text-white/50 transition-colors group-hover:text-white" />
-            Bitácora
-          </Link>
+        <div className="relative z-10 flex flex-wrap items-center justify-end w-full md:w-auto mt-4 md:mt-0 gap-3">
+          <div className="flex items-center gap-2 mr-2">
+            {puedeEditar && (
+              <PlanificadorCurvaModal 
+                proyectoId={proyecto.id} 
+                unidad={proyecto.unidad_medida} 
+                etiquetaEjeY={proyecto.etiqueta_eje_y ?? undefined}
+                fechaInicio={proyecto.fecha_inicio ?? undefined}
+                fechaFin={proyecto.fecha_fin_proyectada ?? undefined}
+                totalEsperado={proyecto.meta_total_cantidad ? Number(proyecto.meta_total_cantidad) : undefined}
+                metasIniciales={metasData.map(m => ({ fecha: m.fecha, avanceEsperado: Number(m.avance_esperado) }))} 
+              />
+            )}
+            <Link
+              href={`/proyectos/${proyecto.id}/parte/${hoy}`}
+              className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Parte Hoy</span>
+            </Link>
+            <Link
+              href={`/sst/bitacora`}
+              className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Bitácora</span>
+            </Link>
+          </div>
+          <NuevoRegistroModal proyectoId={proyecto.id} unidad={proyecto.unidad_medida} />
         </div>
       </div>
 
@@ -163,7 +196,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
         </div>
         <div className="lg:col-span-8">
           {chartData.length > 0 ? (
-            <ProjectProgressChart data={chartData} />
+            <ProjectProgressChart data={chartData} unidad={proyecto.unidad_medida} etiquetaEjeY={proyecto.etiqueta_eje_y ?? undefined} />
           ) : (
             <EmptyPanel
               titulo="Avance total del proyecto"
@@ -177,7 +210,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5">
           {avanceHoy ? (
-            <DailyProgressChart real={avanceHoy.real} proyectado={avanceHoy.proyectado} />
+            <DailyProgressChart real={avanceHoy.real} proyectado={avanceHoy.proyectado} unidad={proyecto.unidad_medida} />
           ) : (
             <EmptyPanel
               titulo="Avance diario"
@@ -187,7 +220,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
         </div>
         <div className="lg:col-span-7">
           {avancesSemana.length > 0 ? (
-            <WeeklyComplianceChart data={avancesSemana} />
+            <WeeklyComplianceChart data={avancesSemana} unidad={proyecto.unidad_medida} />
           ) : (
             <EmptyPanel
               titulo="Desempeño semanal"
@@ -203,7 +236,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
           <div className="absolute inset-0 bg-gradient-to-t from-white/[0.01] to-transparent pointer-events-none" />
           <div className="relative z-10 flex items-center justify-between">
             <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">Historial de Partes Recientes</h3>
-            <Link href="/sst/bitacora" className="text-[10px] font-bold text-[#ff4500] uppercase tracking-widest hover:text-[#ff4500]/80">
+            <Link href="/sst/bitacora" className="text-[10px] font-bold text-[#F25C05] uppercase tracking-widest hover:text-[#F25C05]/80">
               Ver Todos →
             </Link>
           </div>

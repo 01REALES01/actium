@@ -59,6 +59,9 @@ export function ProyectoForm({
     fechaInicio: proyecto?.fecha_inicio ?? "",
     fechaFinProyectada: proyecto?.fecha_fin_proyectada ?? "",
     presupuestoTotal: proyecto?.presupuesto_total != null ? String(proyecto.presupuesto_total) : "",
+    unidadMedida: proyecto?.unidad_medida ?? "MT",
+    etiquetaEjeY: proyecto?.etiqueta_eje_y ?? "",
+    metaTotalCantidad: proyecto?.meta_total_cantidad != null ? String(proyecto.meta_total_cantidad) : "",
   });
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -96,6 +99,9 @@ export function ProyectoForm({
           fechaInicio: form.fechaInicio || undefined,
           fechaFinProyectada: form.fechaFinProyectada || undefined,
           presupuestoTotal: presupuesto,
+          unidadMedida: form.unidadMedida.trim() || undefined,
+          etiquetaEjeY: form.etiquetaEjeY.trim() || undefined,
+          metaTotalCantidad: form.metaTotalCantidad ? parseFloat(form.metaTotalCantidad) : undefined,
         });
         router.push(`/proyectos/${id}`);
         router.refresh();
@@ -112,6 +118,9 @@ export function ProyectoForm({
           fechaInicio: form.fechaInicio || undefined,
           fechaFinProyectada: form.fechaFinProyectada || undefined,
           presupuestoTotal: presupuesto,
+          unidadMedida: form.unidadMedida.trim() || undefined,
+          etiquetaEjeY: form.etiquetaEjeY.trim() || undefined,
+          metaTotalCantidad: form.metaTotalCantidad ? parseFloat(form.metaTotalCantidad) : undefined,
         });
         router.push(`/proyectos/${proyecto.id}`);
         router.refresh();
@@ -261,6 +270,43 @@ export function ProyectoForm({
               className={inputClass}
             />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Unidad de Medida (Eje Y)</label>
+          <input
+            value={form.unidadMedida}
+            onChange={(e) => update("unidadMedida", e.target.value)}
+            placeholder="Ej: MT, Kg, M3, USD"
+            required
+            className={inputClass}
+          />
+          <p className="text-[10px] text-white/30 px-1">Unidad abreviada que se muestra en las gráficas.</p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Nombre de Variable Y (Gráfica del Proyecto)</label>
+          <input
+            value={form.etiquetaEjeY}
+            onChange={(e) => update("etiquetaEjeY", e.target.value)}
+            placeholder="Ej: Acero fabricado, Excavación realizada, Baldosas puestas"
+            className={inputClass}
+          />
+          <p className="text-[10px] text-white/30 px-1">Nombre descriptivo de lo que mide el eje Y (aparece en la gráfica y el planificador).</p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className={labelClass}>Meta Total del Proyecto ({form.unidadMedida || "unidades"})</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.metaTotalCantidad}
+            onChange={(e) => update("metaTotalCantidad", e.target.value)}
+            placeholder="Ej: 500 (cantidad total a alcanzar)"
+            className={inputClass}
+          />
+          <p className="text-[10px] text-white/30 px-1">La cantidad total esperada al finalizar el proyecto.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

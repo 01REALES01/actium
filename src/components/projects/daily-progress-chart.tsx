@@ -6,20 +6,22 @@ interface DailyProgressChartProps {
   real: number;
   proyectado: number;
   title?: string;
+  unidad?: string;
 }
 
-export function DailyProgressChart({ real, proyectado, title = "AVANCE DIARIO (MT)" }: DailyProgressChartProps) {
+export function DailyProgressChart({ real, proyectado, title, unidad = "MT" }: DailyProgressChartProps) {
+  const displayTitle = title || `AVANCE DIARIO (${unidad})`;
   const data = [
     { name: "PROYECTADO", valor: proyectado, color: "rgba(255, 255, 255, 0.1)" },
-    { name: "REAL", valor: real, color: "#ff4500" },
+    { name: "REAL", valor: real, color: "#F25C05" },
   ];
 
   return (
     <div className="flex h-full flex-col gap-6 rounded-3xl border-0 bg-white/[0.02] p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl group">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#ff4500]/5 to-transparent opacity-50 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#F25C05]/5 to-transparent opacity-50 pointer-events-none" />
       <div className="relative z-10 flex items-center justify-between">
         <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
-          {title}
+          {displayTitle}
         </h3>
         <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">
           HOY: {new Date().toLocaleDateString('es-ES', { weekday: 'long' }).toUpperCase()}
@@ -44,7 +46,7 @@ export function DailyProgressChart({ real, proyectado, title = "AVANCE DIARIO (M
                   return (
                     <div className="rounded-lg border border-white/10 bg-[#262626] p-3 shadow-2xl">
                       <p className="text-[10px] font-bold text-white/40 uppercase mb-1">{payload[0].payload.name}</p>
-                      <p className="text-xl font-bold text-white">{payload[0].value} <span className="text-xs text-white/40">MT</span></p>
+                      <p className="text-xl font-bold text-white">{payload[0].value} <span className="text-xs text-white/40">{unidad}</span></p>
                     </div>
                   );
                 }
@@ -61,7 +63,7 @@ export function DailyProgressChart({ real, proyectado, title = "AVANCE DIARIO (M
                   fill={entry.color}
                   className="transition-all duration-500"
                   style={{
-                    filter: entry.name === "REAL" ? "drop-shadow(0 0 8px rgba(255, 69, 0, 0.3))" : "none"
+                    filter: entry.name === "REAL" ? "drop-shadow(0 0 8px rgba(242, 92, 5, 0.3))" : "none"
                   }}
                 />
               ))}
@@ -78,7 +80,7 @@ export function DailyProgressChart({ real, proyectado, title = "AVANCE DIARIO (M
         <div className="flex flex-col text-right">
           <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Desviación</p>
           <p className={`text-lg font-bold ${real >= proyectado ? 'text-emerald-500' : 'text-red-500'}`}>
-            {real >= proyectado ? '+' : ''}{(real - proyectado).toFixed(1)} MT
+            {real >= proyectado ? '+' : ''}{(real - proyectado).toFixed(1)} {unidad}
           </p>
         </div>
       </div>

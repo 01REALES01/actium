@@ -53,6 +53,20 @@ export async function getProyectoAvances(
   return data ?? [];
 }
 
+export async function getProyectoMetas(
+  supabase: Client,
+  proyectoId: string,
+): Promise<Tables<"proyecto_metas">[]> {
+  const { data, error } = await supabase
+    .from("proyecto_metas")
+    .select("*")
+    .eq("proyecto_id", proyectoId)
+    .order("fecha", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getProyectoResumen(
   supabase: Client,
   proyectoId: string,
