@@ -337,7 +337,7 @@ export async function duplicarAtsAction(formularioId: string): Promise<{ id: str
     throw new Error("No tiene permisos para duplicar formularios SST.");
   }
 
-  // Carga el formulario origen + sus pasos + ejecutores (sin firmas).
+  // Carga el formulario origen + sus pasos + todos los trabajadores (con firmas).
   const [origenRes, pasosRes, trabRes] = await Promise.all([
     supabase
       .from("formularios")
@@ -347,9 +347,8 @@ export async function duplicarAtsAction(formularioId: string): Promise<{ id: str
     supabase.from("ats_pasos").select("*").eq("formulario_id", formularioId).order("orden"),
     supabase
       .from("ats_trabajadores")
-      .select("empleado_id")
-      .eq("formulario_id", formularioId)
-      .not("empleado_id", "is", null),
+      .select("empleado_id, nombre_libre, cargo, firma_path")
+      .eq("formulario_id", formularioId),
   ]);
 
   if (origenRes.error || !origenRes.data) throw new Error("Formulario origen no encontrado.");
@@ -363,11 +362,11 @@ export async function duplicarAtsAction(formularioId: string): Promise<{ id: str
   };
   if (origen.tipo !== "ats") throw new Error("Solo se pueden duplicar formularios ATS.");
 
-  // 1. Nuevo formulario en borrador, fechado hoy.
+  // 1. Nuevo formulario en estado completado, fechado hoy.
   const { data: nuevo, error: errNuevo } = await (supabase.from("formularios") as any)
     .insert({
       tipo: "ats",
-      estado: "borrador",
+      estado: "completado",
       proyecto_id: origen.proyecto_id,
       empresa_id: origen.empresa_id,
       subempresa_id: origen.subempresa_id,
@@ -404,9 +403,11 @@ export async function duplicarAtsAction(formularioId: string): Promise<{ id: str
       const trabRows = trabajadores.map((t) => ({
         formulario_id: nuevoId,
         empleado_id: t.empleado_id,
-        nombre_libre: null,
-        cargo: null,
-        firma_path: null, // las firmas no se copian
+        nombre_libre: t.nombre_libre,
+        cargo: t.cargo,
+        // Conservamos la firma del responsable (empleado_id es null), 
+        // pero limpiamos la firma de los ejecutores operarios para que firmen hoy.
+        firma_path: t.empleado_id ? null : t.firma_path,
       }));
       const { error: e } = await (supabase.from("ats_trabajadores") as any).insert(trabRows);
       if (e) throw e;

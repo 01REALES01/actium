@@ -42,7 +42,7 @@ export function AtsAcciones({ formularioId, estado, puedeGestionar, hayFirmas }:
     startDuplicar(async () => {
       try {
         const { id } = await duplicarAtsAction(formularioId);
-        router.push(`/sst/${id}/editar`);
+        router.push(`/sst/${id}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "No fue posible duplicar el formulario.");
       }
