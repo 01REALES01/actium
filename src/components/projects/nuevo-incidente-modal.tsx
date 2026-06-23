@@ -105,7 +105,7 @@ export function NuevoIncidenteModal({
                   <select
                     value={tipo}
                     onChange={(e) => setTipo(e.target.value as any)}
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/30 transition-all"
+                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/30 transition-all [&>option]:bg-[#1A1A1A] [&>option]:text-white"
                   >
                     <option value="incidente">Incidente</option>
                     <option value="casi_accidente">Casi Accidente</option>
@@ -120,7 +120,7 @@ export function NuevoIncidenteModal({
                   <select
                     value={severidad}
                     onChange={(e) => setSeveridad(e.target.value as any)}
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/30 transition-all"
+                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/30 transition-all [&>option]:bg-[#1A1A1A] [&>option]:text-white"
                   >
                     <option value="leve">Leve</option>
                     <option value="moderado">Moderado</option>
@@ -151,7 +151,7 @@ export function NuevoIncidenteModal({
                   value={empleadoId}
                   onChange={(e) => setEmpleadoId(e.target.value)}
                   required
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/30 transition-all"
+                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-red-500/50 focus:outline-none focus:ring-1 focus:ring-red-500/30 transition-all [&>option]:bg-[#1A1A1A] [&>option]:text-white"
                 >
                   <option value="" disabled>Seleccione un empleado...</option>
                   {empleadosActivos.map((emp) => (

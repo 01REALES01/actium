@@ -106,7 +106,7 @@ export function NuevoAusentismoModal({
                   value={empleadoId}
                   onChange={(e) => setEmpleadoId(e.target.value)}
                   required
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all"
+                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all [&>option]:bg-[#1A1A1A] [&>option]:text-white"
                 >
                   <option value="" disabled>Seleccione un empleado...</option>
                   {empleadosActivos.map((emp) => (
@@ -124,7 +124,7 @@ export function NuevoAusentismoModal({
                 <select
                   value={tipo}
                   onChange={(e) => setTipo(e.target.value as any)}
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all"
+                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/30 transition-all [&>option]:bg-[#1A1A1A] [&>option]:text-white"
                 >
                   <option value="medico">Cita Médica</option>
                   <option value="incapacidad">Incapacidad</option>

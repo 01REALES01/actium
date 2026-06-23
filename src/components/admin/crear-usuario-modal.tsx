@@ -21,25 +21,33 @@ const ROLES: { value: string; label: string }[] = [
 
 type Props = {
   empresas: { id: string; nombre: string }[];
+  subempresas: { id: string; nombre: string; empresaId: string }[];
 };
 
-export function CrearUsuarioModal({ empresas }: Props) {
+export function CrearUsuarioModal({ empresas, subempresas }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [empresaId, setEmpresaId] = useState("");
   const [isPending, startTransition] = useTransition();
+
+  const subempresasFiltradas = empresaId
+    ? subempresas.filter((s) => s.empresaId === empresaId)
+    : [];
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
-    const empresaId = String(fd.get("empresaId") ?? "").trim();
+    const empresaIdField = String(fd.get("empresaId") ?? "").trim();
+    const subempresaIdField = String(fd.get("subempresaId") ?? "").trim();
     const input = {
       email: String(fd.get("email") ?? "").trim(),
       nombre: String(fd.get("nombre") ?? "").trim(),
       password: String(fd.get("password") ?? ""),
       rol: String(fd.get("rol") ?? "operativo") as never,
-      empresaId: empresaId || null,
+      empresaId: empresaIdField || null,
+      subempresaId: subempresaIdField || null,
       telefono: String(fd.get("telefono") ?? "").trim() || undefined,
       cedula: String(fd.get("cedula") ?? "").trim() || undefined,
       cargo: String(fd.get("cargo") ?? "").trim() || undefined,
@@ -49,6 +57,7 @@ export function CrearUsuarioModal({ empresas }: Props) {
       try {
         await crearUsuarioAction(input);
         setOpen(false);
+        setEmpresaId("");
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "No fue posible crear el usuario.");
@@ -62,6 +71,7 @@ export function CrearUsuarioModal({ empresas }: Props) {
         type="button"
         onClick={() => {
           setError(null);
+          setEmpresaId("");
           setOpen(true);
         }}
         className="inline-flex items-center gap-2 rounded-xl bg-actium-orange px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-actium-orange-hover"
@@ -121,13 +131,36 @@ export function CrearUsuarioModal({ empresas }: Props) {
                 </div>
                 <div>
                   <label className={labelClass}>Empresa</label>
-                  <select name="empresaId" defaultValue="" className={inputClass}>
+                  <select
+                    name="empresaId"
+                    value={empresaId}
+                    onChange={(e) => setEmpresaId(e.target.value)}
+                    className={inputClass}
+                  >
                     <option value="" className="bg-[#1A1A1A]">
                       Sin empresa
                     </option>
                     {empresas.map((e) => (
                       <option key={e.id} value={e.id} className="bg-[#1A1A1A]">
                         {e.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Subempresa</label>
+                  <select
+                    name="subempresaId"
+                    defaultValue=""
+                    disabled={!empresaId}
+                    className={`${inputClass} disabled:opacity-50`}
+                  >
+                    <option value="" className="bg-[#1A1A1A]">
+                      {empresaId ? "Sin subempresa" : "Seleccione una empresa primero"}
+                    </option>
+                    {subempresasFiltradas.map((s) => (
+                      <option key={s.id} value={s.id} className="bg-[#1A1A1A]">
+                        {s.nombre}
                       </option>
                     ))}
                   </select>

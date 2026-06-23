@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getEmpleadosAsignados } from "@/lib/data/sst";
 import { listProyectos } from "@/lib/data/proyectos";
+import { listEmpresas, listSubempresas } from "@/lib/data/organizacion";
+import { getPerfilActual } from "@/lib/auth/roles";
 import { WorkersTable } from "@/components/workers/workers-table";
 import { AlertCircle, Plus, Download } from "lucide-react";
 import { WorkerRegistrationModal } from "@/components/workers/worker-registration-modal";
@@ -16,7 +18,14 @@ export default async function FieldWorkersPage({
   const supabase = createClient();
 
   // Cargar todos los proyectos accesibles para el usuario
-  const proyectos = await listProyectos(supabase);
+  const [proyectos, perfil, empresas, subempresas] = await Promise.all([
+    listProyectos(supabase),
+    getPerfilActual(supabase),
+    listEmpresas(supabase),
+    listSubempresas(supabase),
+  ]);
+
+  const empresaFija = perfil?.rol === "super_admin" ? null : perfil?.empresa_id ?? null;
 
   // Cargar empleados de todos los proyectos activos en paralelo
   const empleadosPorProyecto = await Promise.all(
@@ -115,7 +124,16 @@ export default async function FieldWorkersPage({
               </p>
             </div>
           </div>
-          <WorkerRegistrationModal proyectos={proyectos} />
+          <WorkerRegistrationModal
+            proyectos={proyectos}
+            empresas={empresas.map((e) => ({ id: e.id, nombre: e.nombre }))}
+            subempresas={subempresas.map((s) => ({
+              id: s.id,
+              nombre: s.nombre,
+              empresa_id: s.empresa_id,
+            }))}
+            empresaFija={empresaFija}
+          />
         </div>
       </div>
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
 import type { FormularioTipo, FormularioEstado, DocumentoEmpleadoTipo } from "@/types/database.types";
 
 export async function addEmployeeDocumentAction(
@@ -124,13 +124,23 @@ export async function registrarTrabajadorAction(data: {
   arl?: string;
   fondoPension?: string;
   proyectoId?: string;
+  empresaId: string;
+  subempresaId: string;
 }) {
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
-  
+
   if (!perfil) throw new Error("No autenticado");
-  if (!perfil.empresa_id || !perfil.subempresa_id) {
-    throw new Error("Su perfil no tiene una empresa configurada, no puede registrar trabajadores.");
+  if (!puedeGestionarSST(perfil.rol)) {
+    throw new Error("No tiene permisos para registrar trabajadores.");
+  }
+  if (!data.empresaId || !data.subempresaId) {
+    throw new Error("Debe seleccionar la empresa y la subempresa del trabajador.");
+  }
+  // Defensa en profundidad: createAdminClient() bypasea RLS, así que un
+  // admin/sst no puede registrar trabajadores fuera de su propia empresa.
+  if (perfil.rol !== "super_admin" && data.empresaId !== perfil.empresa_id) {
+    throw new Error("No puede registrar trabajadores en otra empresa.");
   }
 
   const db = createAdminClient();
@@ -144,8 +154,8 @@ export async function registrarTrabajadorAction(data: {
     eps: data.eps || null,
     arl: data.arl || null,
     fondo_pension: data.fondoPension || null,
-    empresa_id: perfil.empresa_id,
-    subempresa_id: perfil.subempresa_id,
+    empresa_id: data.empresaId,
+    subempresa_id: data.subempresaId,
     activo: true,
   }).select("id").single();
 

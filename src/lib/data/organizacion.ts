@@ -73,12 +73,13 @@ export async function getEmpresa(
 
 export type UsuarioConEmpresa = Tables<"usuarios"> & {
   empresas: Pick<Tables<"empresas">, "nombre"> | null;
+  subempresas: Pick<Tables<"subempresas">, "nombre"> | null;
 };
 
 export async function listUsuarios(supabase: Client): Promise<UsuarioConEmpresa[]> {
   const { data, error } = await supabase
     .from("usuarios")
-    .select("*, empresas:empresa_id (nombre)")
+    .select("*, empresas:empresa_id (nombre), subempresas:subempresa_id (nombre)")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
