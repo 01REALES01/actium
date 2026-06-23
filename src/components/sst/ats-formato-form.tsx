@@ -23,7 +23,7 @@ const CARD = "rounded-actium border border-white/5 bg-[#1A1A1A] p-5 sm:p-6 shado
 const SECTION_TITLE = "flex items-center gap-2 text-sm font-semibold tracking-widest text-actium-orange uppercase mb-6";
 const NUM = "flex h-6 w-6 items-center justify-center rounded-full bg-actium-orange/10 text-xs";
 const LABEL = "text-[10px] font-semibold text-white/40 uppercase tracking-widest";
-const FIELD = "h-12 bg-white/5 border-white/10 text-white rounded-xl placeholder:text-white/20";
+const FIELD = "h-12 bg-white/5 border-white/10 text-white rounded-xl placeholder:text-white/20 [&>option]:bg-[#1A1A1A] [&>option]:text-white";
 const TEXTAREA = "w-full min-h-[80px] bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm placeholder:text-white/20 focus:border-actium-orange focus:outline-none focus:ring-2 focus:ring-actium-orange/20 transition-all";
 
 type EjecutorState = EjecutorAts & { id: number };

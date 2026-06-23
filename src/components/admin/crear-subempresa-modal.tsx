@@ -6,7 +6,7 @@ import { Plus, X, Loader2 } from "lucide-react";
 import { crearSubempresaAction } from "@/lib/actions/admin";
 
 const inputClass =
-  "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-actium-orange focus:outline-none focus:ring-1 focus:ring-actium-orange/30";
+  "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-white/25 focus:border-actium-orange focus:outline-none focus:ring-1 focus:ring-actium-orange/30 [&>option]:bg-[#1A1A1A] [&>option]:text-white";
 const labelClass = "block text-xs font-medium text-white/50 mb-1.5";
 
 type EmpresaOption = { id: string; nombre: string };

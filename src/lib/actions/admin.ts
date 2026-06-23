@@ -208,8 +208,31 @@ export async function asignarEmpresaUsuarioAction(
   if (!parsed.success) throw new Error("Datos inválidos.");
 
   const supabase = await assertSuperAdmin();
+  // Al cambiar de empresa se limpia la subempresa: la subempresa previa
+  // pertenece a la empresa anterior y dejaría el registro incoherente con la
+  // FK y el constraint chk_subempresa_pertenece_empresa.
   const { error } = await (supabase.from("usuarios") as any)
-    .update({ empresa_id: parsed.data.empresaId })
+    .update({ empresa_id: parsed.data.empresaId, subempresa_id: null })
+    .eq("id", parsed.data.usuarioId);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/usuarios");
+}
+
+const AsignarSubempresaSchema = z.object({
+  usuarioId: z.string().min(1),
+  subempresaId: z.string().min(1).nullable(),
+});
+
+export async function asignarSubempresaUsuarioAction(
+  input: z.infer<typeof AsignarSubempresaSchema>,
+): Promise<void> {
+  const parsed = AsignarSubempresaSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  const supabase = await assertSuperAdmin();
+  const { error } = await (supabase.from("usuarios") as any)
+    .update({ subempresa_id: parsed.data.subempresaId })
     .eq("id", parsed.data.usuarioId);
 
   if (error) throw new Error(error.message);

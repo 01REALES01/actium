@@ -21,10 +21,25 @@ import {
 } from "@/components/ui/select";
 import { registrarTrabajadorAction } from "@/lib/actions/sst-actions";
 
+type ProyectoOpcion = {
+  id: string;
+  nombre: string;
+  empresa_id: string;
+  subempresa_id: string;
+};
+type EmpresaOpcion = { id: string; nombre: string };
+type SubempresaOpcion = { id: string; nombre: string; empresa_id: string };
+
 export function WorkerRegistrationModal({
   proyectos,
+  empresas,
+  subempresas,
+  empresaFija,
 }: {
-  proyectos: { id: string; nombre: string }[];
+  proyectos: ProyectoOpcion[];
+  empresas: EmpresaOpcion[];
+  subempresas: SubempresaOpcion[];
+  empresaFija: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -38,9 +53,20 @@ export function WorkerRegistrationModal({
   const [arl, setArl] = useState("");
   const [fondoPension, setFondoPension] = useState("");
   const [proyectoId, setProyectoId] = useState<string>("none");
+  const [empresaId, setEmpresaId] = useState<string>(empresaFija ?? empresas[0]?.id ?? "");
+  const [subempresaId, setSubempresaId] = useState<string>("");
 
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  const sinProyecto = proyectoId === "none";
+  const subempresasFiltradas = subempresas.filter((s) => s.empresa_id === empresaId);
+
+  function handleEmpresaChange(value: string) {
+    setEmpresaId(value);
+    const primeraSub = subempresas.find((s) => s.empresa_id === value);
+    setSubempresaId(primeraSub?.id ?? "");
+  }
 
   const resetForm = () => {
     setCedula("");
@@ -51,6 +77,8 @@ export function WorkerRegistrationModal({
     setArl("");
     setFondoPension("");
     setProyectoId("none");
+    setEmpresaId(empresaFija ?? empresas[0]?.id ?? "");
+    setSubempresaId("");
     setErrorMsg("");
     setSuccessMsg("");
   };
@@ -73,6 +101,15 @@ export function WorkerRegistrationModal({
       return;
     }
 
+    const proyecto = !sinProyecto ? proyectos.find((p) => p.id === proyectoId) : undefined;
+    const empresaResuelta = proyecto?.empresa_id ?? empresaId;
+    const subempresaResuelta = proyecto?.subempresa_id ?? subempresaId;
+
+    if (!empresaResuelta || !subempresaResuelta) {
+      setErrorMsg("Selecciona la empresa y la subempresa del trabajador");
+      return;
+    }
+
     setLoading(true);
     try {
       await registrarTrabajadorAction({
@@ -83,7 +120,9 @@ export function WorkerRegistrationModal({
         eps: eps.trim(),
         arl: arl.trim(),
         fondoPension: fondoPension.trim(),
-        proyectoId: proyectoId !== "none" ? proyectoId : undefined,
+        proyectoId: !sinProyecto ? proyectoId : undefined,
+        empresaId: empresaResuelta,
+        subempresaId: subempresaResuelta,
       });
 
       setSuccessMsg("Trabajador registrado exitosamente");
@@ -243,6 +282,49 @@ export function WorkerRegistrationModal({
               Si no asignas un proyecto, el trabajador no aparecerá en el listado activo hasta que sea vinculado a una obra.
             </p>
           </div>
+
+          {sinProyecto && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2 col-span-2 sm:col-span-1">
+                <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                  Empresa *
+                </Label>
+                <Select
+                  value={empresaId}
+                  onValueChange={handleEmpresaChange}
+                  disabled={!!empresaFija}
+                >
+                  <SelectTrigger className="h-11 bg-white/5 border-white/10 text-white rounded-xl disabled:opacity-50">
+                    <SelectValue placeholder="Seleccionar empresa" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
+                    {empresas.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>
+                        {e.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2 col-span-2 sm:col-span-1">
+                <Label className="text-[10px] font-bold text-white/50 uppercase tracking-widest">
+                  Subempresa *
+                </Label>
+                <Select value={subempresaId} onValueChange={setSubempresaId} disabled={!empresaId}>
+                  <SelectTrigger className="h-11 bg-white/5 border-white/10 text-white rounded-xl disabled:opacity-50">
+                    <SelectValue placeholder="Seleccionar subempresa" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
+                    {subempresasFiltradas.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
           <div className="mt-4 flex gap-3 justify-end">
             <button

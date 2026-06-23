@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import { listUsuarios, listEmpresas } from "@/lib/data/organizacion";
+import { listUsuarios, listEmpresas, listSubempresas } from "@/lib/data/organizacion";
 import { getPerfilActual } from "@/lib/auth/roles";
 import { UsuarioRolSelect } from "@/components/admin/usuario-rol-select";
 import { UsuarioEmpresaSelect } from "@/components/admin/usuario-empresa-select";
+import { UsuarioSubempresaSelect } from "@/components/admin/usuario-subempresa-select";
 import { UsuarioActivoToggle } from "@/components/admin/usuario-activo-toggle";
 import { CrearUsuarioModal } from "@/components/admin/crear-usuario-modal";
 
@@ -19,13 +20,19 @@ function getInitials(nombre: string) {
 
 export default async function AdminUsuariosPage() {
   const supabase = createClient();
-  const [usuarios, empresas, perfil] = await Promise.all([
+  const [usuarios, empresas, subempresas, perfil] = await Promise.all([
     listUsuarios(supabase),
     listEmpresas(supabase),
+    listSubempresas(supabase),
     getPerfilActual(supabase),
   ]);
 
   const empresasOpciones = empresas.map((e) => ({ id: e.id, nombre: e.nombre }));
+  const subempresasOpciones = subempresas.map((s) => ({
+    id: s.id,
+    nombre: s.nombre,
+    empresaId: s.empresa_id,
+  }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,7 +40,7 @@ export default async function AdminUsuariosPage() {
         <p className="text-sm text-white/40">
           {usuarios.length} {usuarios.length === 1 ? "usuario registrado" : "usuarios registrados"}
         </p>
-        <CrearUsuarioModal empresas={empresasOpciones} />
+        <CrearUsuarioModal empresas={empresasOpciones} subempresas={subempresasOpciones} />
       </div>
 
       {usuarios.length === 0 ? (
@@ -42,12 +49,13 @@ export default async function AdminUsuariosPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-actium border border-white/5">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[920px] text-left text-sm">
             <thead>
               <tr className="border-b border-white/5 bg-white/[0.02] text-xs uppercase tracking-wider text-white/40">
                 <th className="px-4 py-3 font-medium">Usuario</th>
                 <th className="px-4 py-3 font-medium">Rol</th>
                 <th className="px-4 py-3 font-medium">Empresa</th>
+                <th className="px-4 py-3 font-medium">Subempresa</th>
                 <th className="px-4 py-3 font-medium">Acceso</th>
               </tr>
             </thead>
@@ -92,6 +100,14 @@ export default async function AdminUsuariosPage() {
                       />
                     </td>
                     <td className="px-4 py-3">
+                      <UsuarioSubempresaSelect
+                        usuarioId={usuario.id}
+                        subempresaId={usuario.subempresa_id}
+                        empresaId={usuario.empresa_id}
+                        subempresas={subempresasOpciones}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
                       <UsuarioActivoToggle
                         usuarioId={usuario.id}
                         activo={usuario.activo}
@@ -107,7 +123,9 @@ export default async function AdminUsuariosPage() {
       )}
 
       <p className="rounded-lg border border-white/5 bg-white/[0.02] p-3 text-xs text-white/30">
-        Por seguridad, no puede modificar su propio rol ni desactivar su propia cuenta.
+        Por seguridad, no puede modificar su propio rol ni desactivar su propia cuenta. Al cambiar
+        la empresa de un usuario se restablece su subempresa. Si modifica la subempresa de un
+        usuario con sesión activa, este deberá volver a iniciar sesión para ver sus proyectos.
       </p>
     </div>
   );
