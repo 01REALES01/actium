@@ -6,3 +6,5 @@ tsconfig.tsbuildinfo
 supabase/.branches/
 supabase/.temp/
 .vercel
+.DS_Store
+*.DS_Store

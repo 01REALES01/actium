@@ -58,427 +58,254 @@ export type AtsFormatoPDFData = {
   firmaDataUrl: string;
 };
 
-// Paleta del formato: rejilla en marrón café, cabeceras en marrón café, texto de cabeceras en beige, texto general grafito.
-const BORDER_COLOR = ACTIUM_PDF.espresso;
-const BG_HEADER = ACTIUM_PDF.espresso;
-const TEXT_DARK = ACTIUM_PDF.graphite;
+const ORANGE = ACTIUM_PDF.orange;
 const ESPRESSO = ACTIUM_PDF.espresso;
-const TEXT_LIGHT = ACTIUM_PDF.seashell;
+const SADDLE = ACTIUM_PDF.saddle;
+const SEASHELL = ACTIUM_PDF.seashell;
+const BEIGE_BORDER = ACTIUM_PDF.beigeBorder;
+const GRAY = ACTIUM_PDF.gray;
 
+// Hoja de estilos compartida con permiso-altura / permiso-caliente:
+// mismo encabezado, secciones, grilla, chips, tablas y pie de página.
 const s = StyleSheet.create({
-  page: { 
-    paddingTop: 30, 
-    paddingBottom: 30, 
-    paddingHorizontal: 30, 
-    fontSize: 8, 
-    color: TEXT_DARK, 
-    fontFamily: "Manrope" 
-  },
-  // Contenedor principal con borde exterior grueso (opcional, como en la imagen parece haber un borde de todo el form)
-  outerBorder: {
-    borderWidth: 2,
-    borderColor: BORDER_COLOR,
-    flex: 1,
-  },
-  headerRow: { 
-    flexDirection: "row", 
-    borderBottomWidth: 1, 
-    borderBottomColor: BORDER_COLOR,
-    alignItems: "center"
-  },
-  logoBox: {
-    width: "40%",
-    padding: 10,
-    borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-    alignItems: "center"
-  },
-  brandLogo: { width: 140, objectFit: "contain" },
-  titleBox: {
-    width: "60%",
-    padding: 10,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  docTitle: {
-    fontSize: 16,
-    fontFamily: "Manrope", fontWeight: 700,
-    color: ESPRESSO,
-    textTransform: "uppercase"
-  },
-  // General table structure
-  row: { 
-    flexDirection: "row", 
-    borderBottomWidth: 1, 
-    borderBottomColor: BORDER_COLOR 
-  },
-  col2: { 
-    width: "50%", 
-    borderRightWidth: 1, 
-    borderRightColor: BORDER_COLOR,
-    padding: 4 
-  },
-  col2Last: { 
-    width: "50%", 
-    padding: 4 
-  },
-  colFull: {
-    width: "100%",
-    padding: 4
-  },
-  label: { 
-    fontFamily: "Manrope", 
-    fontSize: 7.5,
-    marginBottom: 2
-  },
-  value: { 
-    fontSize: 8,
-    fontFamily: "Manrope",
-  },
-  headerText: {
-    fontSize: 8,
-    fontFamily: "Manrope",
-    color: TEXT_LIGHT,
-  },
-  headerTextBold: {
-    fontSize: 8,
-    fontFamily: "Manrope",
-    fontWeight: 700,
-    color: TEXT_LIGHT,
-  },
-  sectionHeaderBox: {
-    backgroundColor: BG_HEADER,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
-    padding: 4,
-    alignItems: "center"
-  },
-  sectionHeaderText: {
-    fontFamily: "Manrope", fontWeight: 700,
-    fontSize: 8,
-    color: TEXT_LIGHT,
-    textTransform: "uppercase"
-  },
-  
-  // Permisos Table
-  permisoRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
-  },
-  permisoCol: {
-    width: "33.33%",
-    borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-    padding: 4,
-  },
-  permisoColLast: {
-    width: "33.33%",
-    padding: 4,
-  },
-  permisoText: {
-    fontSize: 8,
-    fontFamily: "Manrope"
-  },
-  
-  // Ejecutores Signatures
-  ejecutorHeader: {
-    flexDirection: "row",
-    backgroundColor: BG_HEADER,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
-  },
-  ejecutorCol1: {
-    width: "60%",
-    borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-    padding: 4,
-    alignItems: "center"
-  },
-  ejecutorCol2: {
-    width: "40%",
-    padding: 4,
-    alignItems: "center"
-  },
-  ejecutorRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
-    height: 20
-  },
-  ejecutorVal1: {
-    width: "60%",
-    borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-    padding: 4,
-    justifyContent: "center"
-  },
-  ejecutorVal2: {
-    width: "40%",
-    padding: 4,
-  },
-  
-  // Equipos Table
-  equipoRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
-  },
-  equipoCol1: {
-    width: "20%",
-    borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-    padding: 4,
-    fontFamily: "Manrope", fontWeight: 700
-  },
-  equipoCol2: {
-    width: "5%",
-    borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-  }, // checkbox simulado
-  equipoCol3: {
-    width: "75%",
-    padding: 4,
-  },
-  
-  // Analisis
-  analisisRow: {
-    flexDirection: "row",
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
-  },
-  analisisCol1: {
-    width: "50%",
-    borderRightWidth: 1,
-    borderRightColor: BORDER_COLOR,
-    padding: 4,
-  },
-  analisisCol2: {
-    width: "50%",
-    padding: 4,
-  },
-  
-  // Pasos Table
-  pasosHeader: {
-    flexDirection: "row",
-    backgroundColor: BG_HEADER,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER_COLOR,
-  },
-  pasosH1: { width: "25%", borderRightWidth: 1, borderRightColor: BORDER_COLOR, padding: 4, fontFamily: "Manrope", fontWeight: 700, textAlign: "center" },
-  pasosH2: { width: "25%", borderRightWidth: 1, borderRightColor: BORDER_COLOR, padding: 4, fontFamily: "Manrope", fontWeight: 700, textAlign: "center" },
-  pasosH3: { width: "20%", borderRightWidth: 1, borderRightColor: BORDER_COLOR, padding: 4, fontFamily: "Manrope", fontWeight: 700, textAlign: "center" },
-  pasosH4: { width: "30%", padding: 4, fontFamily: "Manrope", fontWeight: 700, textAlign: "center" },
-  
-  pasosRow: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BORDER_COLOR, minHeight: 20 },
-  pasosD1: { width: "25%", borderRightWidth: 1, borderRightColor: BORDER_COLOR, padding: 4 },
-  pasosD2: { width: "25%", borderRightWidth: 1, borderRightColor: BORDER_COLOR, padding: 4 },
-  pasosD3: { width: "20%", borderRightWidth: 1, borderRightColor: BORDER_COLOR, padding: 4 },
-  pasosD4: { width: "30%", padding: 4 },
-
-  // Evaluacion
-  evalRow: { padding: 4, borderBottomWidth: 1, borderBottomColor: BORDER_COLOR },
-  evalQuestion: { fontFamily: "Manrope", fontWeight: 700, fontStyle: "italic", marginBottom: 4 },
-  evalOptionRow: { flexDirection: "row", alignItems: "center", marginBottom: 3 },
-  evalBoxIcon: { width: 10, height: 10, borderWidth: 1, borderColor: BORDER_COLOR, marginRight: 4, justifyContent: "center", alignItems: "center" },
-  evalBoxChecked: { fontSize: 8 },
-  evalLabelText: { fontSize: 8 },
-  
-  emisorSignatureRow: { flexDirection: "row", minHeight: 60, alignItems: "center", justifyContent: "center" },
-  emisorImg: { height: 40, width: 100, objectFit: "contain" }
+  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ESPRESSO, paddingBottom: 10, marginBottom: 14 },
+  brandLogo: { width: 118, height: 32, objectFit: "contain" },
+  docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
+  docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  // datos en grilla 2 columnas
+  grid: { flexDirection: "row", flexWrap: "wrap" },
+  field: { width: "50%", marginBottom: 6, paddingRight: 8 },
+  fieldFull: { width: "100%", marginBottom: 6 },
+  fieldLabel: { fontSize: 6.5, color: SADDLE, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Manrope", fontWeight: 700, marginBottom: 2 },
+  fieldValue: { fontSize: 9, color: "#282828" },
+  // chips
+  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 4 },
+  chip: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, paddingVertical: 3, paddingHorizontal: 6, fontSize: 7.5, color: "#3A3A3A" },
+  chipOn: { borderColor: ORANGE, backgroundColor: "#FDEDE4", color: ESPRESSO },
+  obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
+  // tablas
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 4 },
+  trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
+  thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
+  tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER },
+  td: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, color: "#3A3A3A" },
+  resp: { fontSize: 7.5, paddingVertical: 4, paddingHorizontal: 5, textAlign: "center", fontFamily: "Manrope", fontWeight: 700 },
+  empty: { fontSize: 8, color: GRAY, fontStyle: "italic", paddingVertical: 8, paddingHorizontal: 6 },
+  // evaluación de riesgo
+  evalGuide: { fontSize: 7.5, color: "#3A3A3A", lineHeight: 1.35, marginTop: 2, marginBottom: 6 },
+  // firma
+  firmaBox: { marginTop: 14, flexDirection: "row", justifyContent: "space-between" },
+  firmaCol: { width: "48%" },
+  firmaSlot: { height: 70, justifyContent: "flex-end", alignItems: "center" },
+  firmaImg: { width: 150, height: 64, objectFit: "contain" },
+  firmaLinea: { borderTopWidth: 1, borderTopColor: "#282828", marginTop: 4, paddingTop: 3 },
+  disclaimer: { fontSize: 6.5, color: GRAY, fontStyle: "italic", marginTop: 8, lineHeight: 1.3 },
+  footer: { position: "absolute", bottom: 22, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#E5E0DA", paddingTop: 6 },
+  footerText: { fontSize: 7, color: GRAY },
 });
 
+function Campo({ label, value, full }: { label: string; value: string; full?: boolean }) {
+  return (
+    <View style={full ? s.fieldFull : s.field}>
+      <Text style={s.fieldLabel}>{label}</Text>
+      <Text style={s.fieldValue}>{value || "—"}</Text>
+    </View>
+  );
+}
+
+function EvalRiesgo({
+  pregunta,
+  respuesta,
+  textoSi,
+  textoNo,
+}: {
+  pregunta: string;
+  respuesta: ProbabilidadIncidente;
+  textoSi: string;
+  textoNo: string;
+}) {
+  const guia = respuesta === "si" ? textoSi : respuesta === "no" ? textoNo : "";
+  return (
+    <View wrap={false} style={{ marginBottom: 8 }}>
+      <Text style={[s.fieldValue, { fontFamily: "Manrope", fontWeight: 700, marginBottom: 4 }]}>{pregunta}</Text>
+      <View style={s.chipsRow}>
+        <Text style={[s.chip, respuesta === "si" ? s.chipOn : {}]}>{respuesta === "si" ? "[x] " : "[ ] "}Sí</Text>
+        <Text style={[s.chip, respuesta === "no" ? s.chipOn : {}]}>{respuesta === "no" ? "[x] " : "[ ] "}No</Text>
+      </View>
+      {guia ? <Text style={s.evalGuide}>{guia}</Text> : null}
+    </View>
+  );
+}
+
 function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
-  // Helpers para checkear si un permiso está
-  const isPermiso = (id: string) => data.permisos.includes(id) ? "X" : " ";
-  
-  // Garantizar siempre mínimo 5 filas vacías para firmas
-  const maxEjecutores = Math.max(5, data.ejecutores.length);
-  const ejecutoresFilas = Array.from({ length: maxEjecutores }).map((_, i) => data.ejecutores[i]);
-
-  // Garantizar mínimo 10 filas de pasos
-  const maxPasos = Math.max(10, data.pasos.length);
-  const pasosFilas = Array.from({ length: maxPasos }).map((_, i) => data.pasos[i]);
-
   return (
     <Document title={`ATS ${data.empresa} ${data.fecha}`}>
       <Page size="A4" style={s.page}>
-        <View style={s.outerBorder}>
-          
-          {/* Header */}
-          <View style={s.headerRow}>
-            <View style={s.logoBox}>
-              <Image src={getLogoSrc()} style={s.brandLogo} />
-            </View>
-            <View style={s.titleBox}>
-              <Text style={s.docTitle}>ATS <Text style={{fontSize: 12}}>ANALISIS DE TRABAJO SEGURO</Text></Text>
-            </View>
+        <View style={s.header} fixed>
+          <View>
+            {/* eslint-disable-next-line jsx-a11y/alt-text */}
+            <Image src={getLogoSrc()} style={s.brandLogo} />
           </View>
-
-          {/* Datos Basicos */}
-          <View style={s.row}>
-            <View style={s.col2}><Text style={s.label}>Empresa:</Text><Text style={s.value}>{data.empresa}</Text></View>
-            <View style={s.col2Last}><Text style={s.label}>Ciudad:</Text><Text style={s.value}>{data.ciudad}</Text></View>
+          <View>
+            <Text style={s.docTitle}>Análisis de Trabajo Seguro (ATS)</Text>
+            <Text style={s.docMeta}>{data.empresa || "—"}</Text>
+            <Text style={s.docMeta}>{data.fecha || "—"}</Text>
           </View>
-          <View style={s.row}>
-            <View style={s.col2}><Text style={s.label}>Área/Proceso:</Text><Text style={s.value}>{data.areaProceso}</Text></View>
-            <View style={s.col2Last}><Text style={s.label}>Ubicación donde se realiza el trabajo:</Text><Text style={s.value}>{data.ubicacion}</Text></View>
-          </View>
-          <View style={s.row}>
-            <View style={s.col2}><Text style={s.label}>Fecha de realización del Trabajo (dd/mm/aaaa):</Text><Text style={s.value}>{data.fecha}</Text></View>
-            <View style={s.col2Last}><Text style={s.label}>Lugar de Trabajo:</Text><Text style={s.value}>{data.lugarTrabajo}</Text></View>
-          </View>
-          <View style={s.row}>
-            <View style={s.col2}><Text style={s.label}>Hora de Inicio (a.m./p.m.):</Text><Text style={s.value}>{data.horaInicio}</Text></View>
-            <View style={s.col2Last}><Text style={s.label}>Hora de Finalización (a.m./p.m.):</Text><Text style={s.value}>{data.horaFin}</Text></View>
-          </View>
-          <View style={[s.row, { minHeight: 40 }]}>
-            <View style={s.colFull}>
-              <Text style={s.label}>Descripción de la tarea a realizar:</Text>
-              <Text style={s.value}>{data.descripcionTarea}</Text>
-            </View>
-          </View>
-
-          {/* Permisos */}
-          <View style={s.sectionHeaderBox}>
-            <Text style={s.sectionHeaderText}>PARA ESTE TRABAJO SE REQUIERE PERMISO DE:</Text>
-          </View>
-          
-          <View style={s.permisoRow}>
-            <View style={s.permisoCol}><Text style={s.permisoText}>TRABAJO EN ALTURA  {isPermiso('altura')}</Text></View>
-            <View style={s.permisoCol}><Text style={s.permisoText}>ESPACIO CONFINADO  {isPermiso('confinado')}</Text></View>
-            <View style={s.permisoColLast}><Text style={s.permisoText}>CALIENTE  {isPermiso('caliente')}</Text></View>
-          </View>
-          <View style={s.permisoRow}>
-            <View style={s.col2}><Text style={s.permisoText}>ENERGIA PELIGROSAS  {isPermiso('energia')}</Text></View>
-            <View style={s.col2Last}><Text style={s.permisoText}>OTRO, CUAL?  {data.permisoOtroCual}</Text></View>
-          </View>
-
-          {/* Ejecutores Tabla 1 */}
-          <View style={s.ejecutorHeader}>
-            <View style={s.ejecutorCol1}><Text style={s.headerText}>Cedula, Nombres y Apellidos de los trabajadores (Ejecutor)</Text></View>
-            <View style={s.ejecutorCol2}><Text style={s.headerText}>Firma</Text></View>
-          </View>
-          {ejecutoresFilas.map((e, idx) => (
-            <View key={`ej1-${idx}`} style={s.ejecutorRow}>
-              <View style={s.ejecutorVal1}>
-                <Text style={s.value}>{e ? `${e.cedula || ""} - ${e.nombre || ""}` : ""}</Text>
-              </View>
-              <View style={s.ejecutorVal2}></View>
-            </View>
-          ))}
-
-          {/* Equipos */}
-          <View style={s.sectionHeaderBox}>
-            <Text style={s.sectionHeaderText}>EQUIPOS Y HERRAMIENTAS A UTILIZAR</Text>
-          </View>
-          <View style={s.ejecutorHeader}>
-            <View style={[s.equipoCol1, { alignItems: "center", borderRightWidth: 0 }]}><Text style={s.headerText}>EQUIPOS Y</Text><Text style={s.headerText}>HERRAMIENTAS</Text></View>
-            <View style={[s.equipoCol3, { width: "80%", alignItems: "center", justifyContent: "center" }]}><Text style={[s.headerText, {fontStyle: "italic", fontWeight: 700}]}>Indique cada una de las herramientas a utilizar.</Text></View>
-          </View>
-          
-          {CATEGORIAS_HERRAMIENTAS.map((c, i, arr) => (
-            <View key={`cat-${c.id}`} style={[s.equipoRow, i === arr.length - 1 ? { borderBottomWidth: 0 } : {}]}>
-              <View style={s.equipoCol1}><Text style={s.value}>{c.label}</Text></View>
-              <View style={s.equipoCol2}>
-                <Text style={{textAlign: 'center', marginTop: 2}}>{data.herramientas[c.id] ? "X" : ""}</Text>
-              </View>
-              <View style={s.equipoCol3}><Text style={s.value}>{data.herramientas[c.id] || ""}</Text></View>
-            </View>
-          ))}
-          
         </View>
-      </Page>
 
-      <Page size="A4" style={s.page}>
-        <View style={s.outerBorder}>
-          {/* Analisis Tarea */}
-          <View style={s.sectionHeaderBox}>
-            <Text style={s.sectionHeaderText}>ANALISIS DE LA TAREA</Text>
+        {/* 1. Datos básicos */}
+        <Text style={s.sectionTitle}>1. Datos del trabajo</Text>
+        <View style={s.grid}>
+          <Campo label="Empresa" value={data.empresa} />
+          <Campo label="Ciudad" value={data.ciudad} />
+          <Campo label="Área / Proceso" value={data.areaProceso} />
+          <Campo label="Ubicación donde se realiza el trabajo" value={data.ubicacion} />
+          <Campo label="Lugar de trabajo" value={data.lugarTrabajo} />
+          <Campo label="Fecha de realización" value={data.fecha} />
+          <Campo label="Hora de inicio" value={data.horaInicio} />
+          <Campo label="Hora de finalización" value={data.horaFin} />
+          <Campo label="Descripción de la tarea a realizar" value={data.descripcionTarea} full />
+        </View>
+
+        {/* 2. Permisos requeridos */}
+        <Text style={s.sectionTitle}>2. Permisos requeridos</Text>
+        <View style={s.chipsRow}>
+          {PERMISOS_REQUERIDOS.map((p) => {
+            const on = data.permisos.includes(p.id);
+            return (
+              <Text key={p.id} style={[s.chip, on ? s.chipOn : {}]}>
+                {on ? "[x] " : "[ ] "}{p.label}
+              </Text>
+            );
+          })}
+        </View>
+        {data.permisoOtroCual ? <Text style={s.obsBox}>Otro permiso (¿cuál?): {data.permisoOtroCual}</Text> : null}
+
+        {/* 3. Equipos y herramientas */}
+        <Text style={s.sectionTitle}>3. Equipos y herramientas a utilizar</Text>
+        <View style={s.table}>
+          <View style={s.trHead}>
+            <Text style={[s.thText, { width: "28%" }]}>Categoría</Text>
+            <Text style={[s.thText, { width: "72%" }]}>Detalle</Text>
+          </View>
+          {CATEGORIAS_HERRAMIENTAS.map((c) => {
+            const detalle = data.herramientas[c.id];
+            return (
+              <View key={c.id} style={s.tr} wrap={false}>
+                <Text style={[s.td, { width: "28%", fontFamily: "Manrope", fontWeight: 700, color: detalle ? ESPRESSO : GRAY }]}>{c.label}</Text>
+                <Text style={[s.td, { width: "72%" }]}>{detalle || "—"}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Personal ejecutor */}
+        <Text style={s.sectionTitle}>Personal ejecutor</Text>
+        <View style={s.table}>
+          <View style={s.trHead}>
+            <Text style={[s.thText, { width: "22%" }]}>Cédula</Text>
+            <Text style={[s.thText, { width: "58%" }]}>Nombres y apellidos</Text>
+            <Text style={[s.thText, { width: "20%", textAlign: "center" }]}>Firma</Text>
+          </View>
+          {data.ejecutores.length === 0 ? (
+            <Text style={s.empty}>Sin personal ejecutor registrado.</Text>
+          ) : (
+            data.ejecutores.map((e, i) => (
+              <View key={i} style={s.tr}>
+                <Text style={[s.td, { width: "22%" }]}>{e.cedula || "—"}</Text>
+                <Text style={[s.td, { width: "58%" }]}>{e.nombre || "—"}</Text>
+                <View style={{ width: "20%", borderLeftWidth: 1, borderLeftColor: "#F0EBE5" }}></View>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* 4. Análisis de la tarea */}
+        <Text style={s.sectionTitle} break>4. Análisis de la tarea</Text>
+        <View style={s.table}>
+          <View style={s.trHead}>
+            <Text style={[s.thText, { width: "60%" }]}>Pregunta</Text>
+            <Text style={[s.thText, { width: "40%" }]}>Respuesta</Text>
           </View>
           {PREGUNTAS_ANALISIS.map((q) => (
-            <View key={`q-${q.id}`} style={s.analisisRow}>
-              <View style={s.analisisCol1}><Text style={s.value}>{q.texto}</Text></View>
-              <View style={s.analisisCol2}><Text style={s.value}>{data.analisis[q.id] || ""}</Text></View>
+            <View key={q.id} style={s.tr} wrap={false}>
+              <Text style={[s.td, { width: "60%" }]}>{q.texto}</Text>
+              <Text style={[s.td, { width: "40%" }]}>{data.analisis[q.id] || "—"}</Text>
             </View>
           ))}
+        </View>
 
-          {/* Pasos */}
-          <View style={s.pasosHeader}>
-            <View style={s.pasosH1}><Text style={s.headerText}>Pasos detallados de la tarea</Text></View>
-            <View style={s.pasosH2}><Text style={s.headerText}>Peligros existentes y potenciales</Text></View>
-            <View style={s.pasosH3}><Text style={s.headerText}>Consecuencias</Text></View>
-            <View style={s.pasosH4}><Text style={s.headerText}>Controles Requeridos</Text></View>
+        {/* 5. Pasos de la tarea */}
+        <Text style={s.sectionTitle}>5. Pasos detallados de la tarea</Text>
+        <View style={s.table}>
+          <View style={s.trHead}>
+            <Text style={[s.thText, { width: "25%" }]}>Paso</Text>
+            <Text style={[s.thText, { width: "25%" }]}>Peligros</Text>
+            <Text style={[s.thText, { width: "20%" }]}>Consecuencias</Text>
+            <Text style={[s.thText, { width: "30%" }]}>Controles requeridos</Text>
           </View>
-          
-          {pasosFilas.map((p, idx) => (
-            <View key={`p-${idx}`} style={s.pasosRow}>
-              <View style={s.pasosD1}><Text style={s.value}>{p ? p.paso : ""}</Text></View>
-              <View style={s.pasosD2}><Text style={s.value}>{p ? p.peligros : ""}</Text></View>
-              <View style={s.pasosD3}><Text style={s.value}>{p ? p.consecuencias : ""}</Text></View>
-              <View style={s.pasosD4}><Text style={s.value}>{p ? p.controles : ""}</Text></View>
-            </View>
-          ))}
-
-          {/* Evaluacion Riesgo */}
-          <View style={s.sectionHeaderBox}>
-            <Text style={s.sectionHeaderText}>EVALUACION DEL RIESGO</Text>
-          </View>
-          
-          <View style={s.evalRow}>
-            <Text style={s.evalQuestion}>{EVALUACION_RIESGO.probabilidad.pregunta}</Text>
-            <View style={s.evalOptionRow}>
-              <View style={s.evalBoxIcon}><Text style={s.evalBoxChecked}>{data.probabilidadIncidente === "si" ? "X" : " "}</Text></View>
-              <Text style={s.evalLabelText}>{EVALUACION_RIESGO.probabilidad.si}</Text>
-            </View>
-            <View style={s.evalOptionRow}>
-              <View style={s.evalBoxIcon}><Text style={s.evalBoxChecked}>{data.probabilidadIncidente === "no" ? "X" : " "}</Text></View>
-              <Text style={s.evalLabelText}>{EVALUACION_RIESGO.probabilidad.no}</Text>
-            </View>
-          </View>
-          
-          <View style={s.evalRow}>
-            <Text style={s.evalQuestion}>{EVALUACION_RIESGO.seguridad.pregunta}</Text>
-            <View style={s.evalOptionRow}>
-              <View style={s.evalBoxIcon}><Text style={s.evalBoxChecked}>{data.seguroProceder === "si" ? "X" : " "}</Text></View>
-              <Text style={s.evalLabelText}>{EVALUACION_RIESGO.seguridad.si}</Text>
-            </View>
-            <View style={s.evalOptionRow}>
-              <View style={s.evalBoxIcon}><Text style={s.evalBoxChecked}>{data.seguroProceder === "no" ? "X" : " "}</Text></View>
-              <Text style={s.evalLabelText}>{EVALUACION_RIESGO.seguridad.no}</Text>
-            </View>
-          </View>
-
-          {/* Ejecutores Tabla 2 */}
-          <View style={s.ejecutorHeader}>
-            <View style={s.ejecutorCol1}><Text style={s.headerTextBold}>Nombre y Cedula de los trabajadores (Ejecutor)</Text></View>
-            <View style={s.ejecutorCol2}><Text style={s.headerTextBold}>Firma</Text></View>
-          </View>
-          {ejecutoresFilas.map((e, idx) => (
-            <View key={`ej2-${idx}`} style={s.ejecutorRow}>
-              <View style={s.ejecutorVal1}>
-                <Text style={s.value}>{e ? `${e.nombre || ""} - ${e.cedula || ""}` : ""}</Text>
+          {data.pasos.length === 0 ? (
+            <Text style={s.empty}>Sin pasos registrados.</Text>
+          ) : (
+            data.pasos.map((p, i) => (
+              <View key={i} style={s.tr} wrap={false}>
+                <Text style={[s.td, { width: "25%" }]}>{p.paso || "—"}</Text>
+                <Text style={[s.td, { width: "25%" }]}>{p.peligros || "—"}</Text>
+                <Text style={[s.td, { width: "20%" }]}>{p.consecuencias || "—"}</Text>
+                <Text style={[s.td, { width: "30%" }]}>{p.controles || "—"}</Text>
               </View>
-              <View style={s.ejecutorVal2}></View>
-            </View>
-          ))}
+            ))
+          )}
+        </View>
 
-          {/* Emisor */}
-          <View style={s.ejecutorHeader}>
-            <View style={s.ejecutorCol1}><Text style={s.headerTextBold}>Nombre y Cedula de la persona (Emisor)</Text></View>
-            <View style={s.ejecutorCol2}><Text style={s.headerTextBold}>Firma</Text></View>
-          </View>
-          <View style={[s.ejecutorRow, s.emisorSignatureRow, { borderBottomWidth: 0 }]}>
-            <View style={s.ejecutorVal1}>
-              <Text style={s.value}>{data.emisorNombre} - {data.emisorCedula}</Text>
-            </View>
-            <View style={[s.ejecutorVal2, { justifyContent: "center", alignItems: "center" }]}>
+        {/* 6. Evaluación del riesgo */}
+        <Text style={s.sectionTitle}>6. Evaluación del riesgo</Text>
+        <EvalRiesgo
+          pregunta={EVALUACION_RIESGO.probabilidad.pregunta}
+          respuesta={data.probabilidadIncidente}
+          textoSi={EVALUACION_RIESGO.probabilidad.si}
+          textoNo={EVALUACION_RIESGO.probabilidad.no}
+        />
+        <EvalRiesgo
+          pregunta={EVALUACION_RIESGO.seguridad.pregunta}
+          respuesta={data.seguroProceder}
+          textoSi={EVALUACION_RIESGO.seguridad.si}
+          textoNo={EVALUACION_RIESGO.seguridad.no}
+        />
+
+        {/* Autorización y firma */}
+        <Text style={s.sectionTitle}>Autorización (Emisor)</Text>
+        <View style={s.firmaBox} wrap={false}>
+          <View style={s.firmaCol}>
+            <View style={s.firmaSlot}>
               {data.firmaDataUrl ? (
-                <Image src={data.firmaDataUrl} style={s.emisorImg} />
+                // eslint-disable-next-line jsx-a11y/alt-text
+                <Image src={data.firmaDataUrl} style={s.firmaImg} />
               ) : null}
             </View>
+            <View style={s.firmaLinea}>
+              <Text style={s.fieldValue}>{data.emisorNombre || "—"}</Text>
+              <Text style={s.fieldLabel}>Nombre de quien autoriza</Text>
+            </View>
           </View>
+          <View style={s.firmaCol}>
+            <View style={s.firmaSlot} />
+            <View style={s.firmaLinea}>
+              <Text style={s.fieldValue}>C.C. {data.emisorCedula || "—"}</Text>
+              <Text style={s.fieldLabel}>Cédula</Text>
+            </View>
+          </View>
+        </View>
+        <Text style={s.disclaimer}>
+          Esta firma tiene carácter informativo y NO constituye firma electrónica certificada
+          según la Ley 527 de 1999.
+        </Text>
 
+        <View style={s.footer} fixed>
+          <Text style={s.footerText}>Generado por Actium · {new Date().toLocaleString("es-CO")}</Text>
+          <Text style={s.footerText} render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`} />
         </View>
       </Page>
     </Document>
