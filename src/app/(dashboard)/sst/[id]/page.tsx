@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ChevronLeft, ShieldAlert, FileText, MapPin, User, CalendarDays, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
 import { PersonalEjecutor, type TrabajadorItem } from "@/components/sst/personal-ejecutor";
 import { AtsAcciones } from "@/components/sst/ats-acciones";
+import { BotonEliminarSST } from "@/components/sst/boton-eliminar-sst";
 import type { Tables } from "@/types/database.types";
 
 type Props = {
@@ -35,6 +36,7 @@ export default async function FormularioDetallePage({ params }: Props) {
 
   const perfil = await getPerfilActual(supabase);
   const puedeGestionar = puedeCrearFormularioSST(perfil?.rol);
+  const puedeEliminar = puedeGestionarSST(perfil?.rol);
   const formAbierto = form.estado !== "firmado" && form.estado !== "archivado";
   const puedeEditar = form.tipo === "ats" && formAbierto && puedeGestionar;
 
@@ -145,6 +147,9 @@ export default async function FormularioDetallePage({ params }: Props) {
                 <FileText className="h-4 w-4" />
                 Descargar PDF
               </a>
+            )}
+            {puedeEliminar && (
+              <BotonEliminarSST formularioId={form.id} />
             )}
             {/* Editar removido temporalmente hasta integrar AtsFormatoForm */}
           </div>
