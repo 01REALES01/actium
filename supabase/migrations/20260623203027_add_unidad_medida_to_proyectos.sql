@@ -1,45 +1,56 @@
 -- Añadir columna unidad_medida a la tabla proyectos
 ALTER TABLE public.proyectos 
-ADD COLUMN unidad_medida text NOT NULL DEFAULT 'MT';
+ADD COLUMN IF NOT EXISTS unidad_medida text NOT NULL DEFAULT 'MT';
 
 -- Actualizar la vista vw_proyecto_resumen para incluir unidad_medida
 DROP VIEW IF EXISTS public.vw_proyecto_resumen CASCADE;
 
 CREATE OR REPLACE VIEW public.vw_proyecto_resumen AS
-SELECT 
-    p.id as proyecto_id,
-    p.empresa_id,
-    p.subempresa_id,
-    p.nombre,
-    p.estado,
-    p.fecha_inicio,
-    p.fecha_fin_proyectada,
-    p.presupuesto_total,
-    p.unidad_medida,
-    COALESCE(
-        (SELECT SUM(m.monto) FROM movimientos m WHERE m.proyecto_id = p.id AND m.estado = 'aprobado' AND m.tipo = 'ingreso') -
-        (SELECT SUM(m.monto) FROM movimientos m WHERE m.proyecto_id = p.id AND m.estado = 'aprobado' AND m.tipo = 'egreso'),
-        0
-    ) as presupuesto_ejecutado,
-    COALESCE(
-        (SELECT SUM(m.monto) FROM movimientos m WHERE m.proyecto_id = p.id AND m.estado = 'pendiente' AND m.tipo = 'egreso'),
-        0
-    ) as presupuesto_comprometido,
-    CASE 
-        WHEN p.presupuesto_total > 0 THEN 
-            ROUND(COALESCE(
-                (SELECT SUM(m.monto) FROM movimientos m WHERE m.proyecto_id = p.id AND m.estado = 'aprobado' AND m.tipo = 'ingreso') -
-                (SELECT SUM(m.monto) FROM movimientos m WHERE m.proyecto_id = p.id AND m.estado = 'aprobado' AND m.tipo = 'egreso'),
-                0
-            ) / p.presupuesto_total * 100, 2)
-        ELSE 0 
-    END as porcentaje_ejecutado,
-    (SELECT pa.avance_proyectado FROM proyecto_avances pa WHERE pa.proyecto_id = p.id ORDER BY pa.fecha DESC LIMIT 1) as avance_proyectado,
-    (SELECT pa.avance_real FROM proyecto_avances pa WHERE pa.proyecto_id = p.id ORDER BY pa.fecha DESC LIMIT 1) as avance_real,
-    (SELECT pa.fecha FROM proyecto_avances pa WHERE pa.proyecto_id = p.id ORDER BY pa.fecha DESC LIMIT 1) as avance_fecha,
-    (SELECT COUNT(*) FROM incidentes i WHERE i.proyecto_id = p.id AND i.fecha >= (CURRENT_DATE - INTERVAL '30 days')) as incidentes_30d,
-    (SELECT o.created_at FROM observaciones o WHERE o.proyecto_id = p.id ORDER BY o.created_at DESC LIMIT 1) as ultima_observacion_at
-FROM 
-    public.proyectos p
-WHERE 
-    p.deleted_at IS NULL;
+SELECT
+  p.id                                                AS proyecto_id,
+  p.empresa_id,
+  p.subempresa_id,
+  p.nombre,
+  p.estado,
+  p.fecha_inicio,
+  p.fecha_fin_proyectada,
+  p.presupuesto_total,
+  p.unidad_medida,
+  ult.avance_real,
+  ult.avance_proyectado,
+  ult.fecha                                           AS avance_fecha,
+  COALESCE(bal.ejecutado, 0)                          AS presupuesto_ejecutado,
+  COALESCE(bal.comprometido, 0)                       AS presupuesto_comprometido,
+  CASE
+    WHEN p.presupuesto_total IS NULL OR p.presupuesto_total = 0 THEN NULL
+    ELSE ROUND((COALESCE(bal.ejecutado, 0) / p.presupuesto_total) * 100, 2)
+  END                                                 AS porcentaje_ejecutado,
+  COALESCE(inc.incidentes_30d, 0)                     AS incidentes_30d,
+  obs.ultima_observacion_at
+FROM public.proyectos p
+LEFT JOIN LATERAL (
+  SELECT avance_real, avance_proyectado, fecha
+    FROM public.proyecto_avances
+   WHERE proyecto_id = p.id
+   ORDER BY fecha DESC
+   LIMIT 1
+) ult ON TRUE
+LEFT JOIN LATERAL (
+  SELECT
+    SUM(ejecutado)    AS ejecutado,
+    SUM(comprometido) AS comprometido
+    FROM public.vw_rubro_balance
+   WHERE proyecto_id = p.id
+) bal ON TRUE
+LEFT JOIN LATERAL (
+  SELECT COUNT(*) AS incidentes_30d
+    FROM public.incidentes
+   WHERE proyecto_id = p.id
+     AND fecha >= NOW() - INTERVAL '30 days'
+) inc ON TRUE
+LEFT JOIN LATERAL (
+  SELECT MAX(created_at) AS ultima_observacion_at
+    FROM public.observaciones
+   WHERE proyecto_id = p.id
+) obs ON TRUE
+WHERE p.deleted_at IS NULL;
