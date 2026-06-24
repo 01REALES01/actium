@@ -128,6 +128,9 @@ export async function actualizarFormularioPdfAction(
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
   if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para diligenciar permisos SST.");
+  }
 
   const { error } = await (supabase.from("formularios") as any)
     .update({ pdf_generado_path: pdfPath, estado: "firmado" })

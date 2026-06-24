@@ -2,9 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { assertSuperAdmin } from "@/lib/auth/guards";
 
 const RegistrarAvanceSchema = z.object({
   proyectoId: z.string(),
@@ -22,12 +21,7 @@ export async function registrarAvanceAction(
     throw new Error(`Datos inválidos: ${parsed.error.message}`);
   }
 
-  const supabase = createClient();
-  const perfil = await getPerfilActual(supabase);
-  if (!perfil) throw new Error("No autenticado");
-  if (!puedeCrearFormularioSST(perfil.rol)) {
-    throw new Error("No tiene permisos para registrar avances de obra.");
-  }
+  const { perfil } = await assertSuperAdmin();
 
   // Calcular avance_proyectado para la fecha
   let avanceProyectado = 0;
@@ -127,11 +121,7 @@ export async function guardarProyectoMetasAction(
     throw new Error(`Datos inválidos: ${parsed.error.issues[0]?.message ?? parsed.error.message}`);
   }
 
-  const supabase = createClient();
-  const perfil = await getPerfilActual(supabase);
-  if (!perfil) throw new Error("No autenticado");
-  // Aquí asumiendo que los que pueden gestionar proyectos pueden planificar las metas:
-  // Se podría hacer check de puedeGestionarProyectos(perfil.rol)
+  await assertSuperAdmin();
 
   const db = createAdminClient();
 
@@ -186,11 +176,7 @@ export async function crearProyectoAction(
     throw new Error(`Datos inválidos: ${parsed.error.issues[0]?.message ?? parsed.error.message}`);
   }
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Sesión expirada. Inicia sesión de nuevo.");
+  const { supabase, perfil } = await assertSuperAdmin();
 
   const { data, error } = await supabase
     .from("proyectos")
@@ -209,7 +195,7 @@ export async function crearProyectoAction(
       unidad_medida: parsed.data.unidadMedida ?? "MT",
       etiqueta_eje_y: parsed.data.etiquetaEjeY ?? null,
       meta_total_cantidad: parsed.data.metaTotalCantidad ?? null,
-      created_by: user.id,
+      created_by: perfil.id,
     } as any)
     .select("id")
     .single();
@@ -249,7 +235,7 @@ export async function editarProyectoAction(
     throw new Error(`Datos inválidos: ${parsed.error.issues[0]?.message ?? parsed.error.message}`);
   }
 
-  const supabase = createClient();
+  const { supabase } = await assertSuperAdmin();
   const { error } = await (supabase as any)
     .from("proyectos")
     .update({
@@ -293,9 +279,7 @@ export async function addObservacionAction(
     throw new Error(`Datos inválidos: ${parsed.error.message}`);
   }
 
-  const supabase = createClient();
-  const perfil = await getPerfilActual(supabase);
-  if (!perfil) throw new Error("No autenticado");
+  const { perfil } = await assertSuperAdmin();
 
   const db = createAdminClient();
   const { error } = await (db.from("observaciones") as any).insert({
@@ -318,9 +302,7 @@ export async function uploadFotoAction(formData: FormData): Promise<void> {
   if (!file || file.size === 0) throw new Error("No se seleccionó ningún archivo.");
   if (!proyectoId || !empresaId || !subempresaId) throw new Error("Faltan datos del proyecto.");
 
-  const supabase = createClient();
-  const perfil = await getPerfilActual(supabase);
-  if (!perfil) throw new Error("No autenticado");
+  const { perfil } = await assertSuperAdmin();
 
   const ext = file.name.split(".").pop() ?? "jpg";
   const storagePath = `${empresaId}/${subempresaId}/${proyectoId}/${crypto.randomUUID()}.${ext}`;

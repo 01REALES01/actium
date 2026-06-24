@@ -2,18 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
 
 export async function cerrarFormularioAction(formularioId: string): Promise<void> {
   const supabase = createClient();
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para cerrar permisos SST.");
+  }
   const { error } = await supabase.rpc("cerrar_formulario_sst", {
     p_formulario_id: formularioId,
   } as any);
   if (error) throw new Error(error.message);
   revalidatePath("/sst");
 }
-
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, puedeGestionarSST } from "@/lib/auth/roles";
 
 export async function eliminarFormularioAction(formularioId: string): Promise<void> {
   const supabase = createClient();

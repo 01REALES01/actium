@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getEmpleadoPerfil } from "@/lib/data/sst";
+import { getPerfilActual, esSuperAdmin } from "@/lib/auth/roles";
 import { SubirDocumentoButton } from "@/components/workers/subir-documento-button";
 
 export const dynamic = "force-dynamic";
@@ -68,11 +69,15 @@ function fmtFecha(fecha: string | null): string {
 
 export default async function EmpleadoPerfilPage({ params }: Props) {
   const supabase = createClient();
-  const perfil = await getEmpleadoPerfil(supabase, params.id);
+  const [perfil, usuarioActual] = await Promise.all([
+    getEmpleadoPerfil(supabase, params.id),
+    getPerfilActual(supabase),
+  ]);
 
   if (!perfil) notFound();
 
   const { empleado, documentos, ausentismos, incidentes, proyectos } = perfil;
+  const puedeEditar = esSuperAdmin(usuarioActual?.rol);
 
   return (
     <div className="flex flex-col gap-8 pb-12 max-w-5xl">
@@ -164,10 +169,12 @@ export default async function EmpleadoPerfilPage({ params }: Props) {
           <h2 className="flex items-center gap-2 text-xs font-bold tracking-widest text-white/50 uppercase">
             <FileText className="h-4 w-4 text-[#FF916E]" /> Documentación y Certificaciones
           </h2>
-          <SubirDocumentoButton
-            empleado={{ ...empleado, documentos }}
-            empresaId={empleado.empresa_id}
-          />
+          {puedeEditar && (
+            <SubirDocumentoButton
+              empleado={{ ...empleado, documentos }}
+              empresaId={empleado.empresa_id}
+            />
+          )}
         </div>
         {documentos.length === 0 ? (
           <p className="text-sm text-white/20 italic">Aún no hay documentos cargados para este empleado.</p>

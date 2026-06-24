@@ -77,11 +77,12 @@ type EmpleadoConProyecto = EmpleadoConDocumentos & { proyecto_nombre: string };
 interface WorkersTableProps {
   empleados: EmpleadoConProyecto[];
   proyectos: Tables<"proyectos">[];
+  puedeEditar?: boolean;
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export function WorkersTable({ empleados }: WorkersTableProps) {
+export function WorkersTable({ empleados, puedeEditar = false }: WorkersTableProps) {
   const router = useRouter();
   const [selectedWorker, setSelectedWorker] = useState<EmpleadoConProyecto | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -205,11 +206,12 @@ export function WorkersTable({ empleados }: WorkersTableProps) {
         </p>
       </div>
 
-      <WorkerDetailsModal 
-        open={modalOpen} 
-        onOpenChange={setModalOpen} 
-        empleado={selectedWorker} 
-        empresaId={selectedWorker?.empresa_id} 
+      <WorkerDetailsModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        empleado={selectedWorker}
+        empresaId={selectedWorker?.empresa_id}
+        puedeEditar={puedeEditar}
       />
     </div>
   );

@@ -31,30 +31,36 @@ export function esAdminOSuperior(rol: UserRole | null | undefined): boolean {
   return rol === "super_admin" || rol === "admin";
 }
 
+/**
+ * Por pedido del cliente, el único rol que puede INGRESAR información (cualquier
+ * cosa que no sea mera visualización) es `super_admin`. La única excepción son
+ * los permisos SST (ATS/altura/caliente), que también puede diligenciar el rol
+ * `sst` (ver `puedeCrearFormularioSST`). Estos helpers gobiernan tanto los
+ * guards de página/acción como la visibilidad de los CTAs de escritura.
+ */
+
 /** Puede crear y editar proyectos. */
 export function puedeGestionarProyectos(rol: UserRole | null | undefined): boolean {
-  return esAdminOSuperior(rol);
+  return esSuperAdmin(rol);
 }
 
 /** Puede operar el módulo de presupuesto (solicitar/aprobar/ejecutar). */
 export function puedeGestionarPresupuesto(rol: UserRole | null | undefined): boolean {
-  return rol === "super_admin" || rol === "admin" || rol === "financiero";
+  return esSuperAdmin(rol);
 }
 
 /** Puede registrar y firmar formularios SST. */
 export function puedeGestionarSST(rol: UserRole | null | undefined): boolean {
-  return rol === "super_admin" || rol === "admin" || rol === "sst";
+  return esSuperAdmin(rol);
 }
 
 /**
- * Puede crear/editar formularios SST en campo (ATS, permisos).
- * Coincide con la RLS de `formularios`: incluye operativo, que es quien
- * normalmente diligencia el ATS diario en obra.
+ * Puede crear/editar y cerrar permisos SST en campo (ATS, permiso de altura,
+ * permiso de caliente). Única excepción al bloqueo super_admin: el rol `sst`
+ * también puede diligenciarlos (acotado por RLS a su empresa/proyecto).
  */
 export function puedeCrearFormularioSST(rol: UserRole | null | undefined): boolean {
-  return (
-    rol === "super_admin" || rol === "admin" || rol === "sst" || rol === "operativo"
-  );
+  return rol === "super_admin" || rol === "sst";
 }
 
 /**
@@ -62,7 +68,7 @@ export function puedeCrearFormularioSST(rol: UserRole | null | undefined): boole
  * Por petición, solo el super_admin puede editarlos.
  */
 export function puedeEditarParteDiario(rol: UserRole | null | undefined): boolean {
-  return rol === "super_admin";
+  return esSuperAdmin(rol);
 }
 
 /**

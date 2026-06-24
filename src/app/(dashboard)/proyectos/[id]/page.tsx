@@ -87,6 +87,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
   if (!proyecto) notFound();
 
   const puedeEditar = puedeGestionarProyectos(perfil?.rol);
+  const puedeRegistrarParte = puedeEditarParteDiario(perfil?.rol);
 
   // Combine avances and metas by date
   const combinedDataMap = new Map<string, { avance: number | null; proyectado: number | null }>();
@@ -160,13 +161,15 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
                 metasIniciales={metasData.map(m => ({ fecha: m.fecha, avanceEsperado: Number(m.avance_esperado) }))} 
               />
             )}
-            <Link
-              href={`/proyectos/${proyecto.id}/parte/${hoy}`}
-              className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
-            >
-              <ClipboardList className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Parte Hoy</span>
-            </Link>
+            {puedeRegistrarParte && (
+              <Link
+                href={`/proyectos/${proyecto.id}/parte/${hoy}`}
+                className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
+              >
+                <ClipboardList className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Parte Hoy</span>
+              </Link>
+            )}
             <Link
               href={`/sst/bitacora`}
               className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
@@ -175,14 +178,16 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
               <span className="hidden sm:inline">Bitácora</span>
             </Link>
           </div>
-          <Link
-            href={`/proyectos/${proyecto.id}/parte/${hoy}`}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#F25C05] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nuevo Registro</span>
-            <span className="sm:hidden">Registro</span>
-          </Link>
+          {puedeRegistrarParte && (
+            <Link
+              href={`/proyectos/${proyecto.id}/parte/${hoy}`}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#F25C05] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nuevo Registro</span>
+              <span className="sm:hidden">Registro</span>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -307,6 +312,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
           proyectoId={proyecto.id}
           empresaId={proyecto.empresa_id}
           subempresaId={proyecto.subempresa_id}
+          puedeEditar={puedeEditar}
         />
       </div>
 

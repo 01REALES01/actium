@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { assertSuperAdmin } from "@/lib/auth/guards";
 
 const MovimientoTipoEnum = z.enum(["gasto", "traslado_entre_rubros", "ajuste"]);
 
@@ -21,7 +21,7 @@ export async function solicitarMovimientoAction(
   const parsed = SolicitarMovimientoSchema.safeParse(input);
   if (!parsed.success) throw new Error(`Datos inválidos: ${parsed.error.message}`);
 
-  const supabase = createClient();
+  const { supabase } = await assertSuperAdmin();
   const { data, error } = await supabase.rpc("solicitar_movimiento_rubro", {
     p_proyecto_id: parsed.data.proyectoId,
     p_rubro_destino_id: parsed.data.rubroDestinoId,
@@ -38,21 +38,21 @@ export async function solicitarMovimientoAction(
 }
 
 export async function aprobarMovimientoAction(movimientoId: string): Promise<void> {
-  const supabase = createClient();
+  const { supabase } = await assertSuperAdmin();
   const { error } = await supabase.rpc("aprobar_movimiento", { p_movimiento_id: movimientoId } as any);
   if (error) throw new Error(error.message);
   revalidatePath("/presupuesto");
 }
 
 export async function rechazarMovimientoAction(movimientoId: string): Promise<void> {
-  const supabase = createClient();
+  const { supabase } = await assertSuperAdmin();
   const { error } = await supabase.rpc("rechazar_movimiento", { p_movimiento_id: movimientoId } as any);
   if (error) throw new Error(error.message);
   revalidatePath("/presupuesto");
 }
 
 export async function ejecutarMovimientoAction(movimientoId: string): Promise<void> {
-  const supabase = createClient();
+  const { supabase } = await assertSuperAdmin();
   const { error } = await supabase.rpc("ejecutar_movimiento", { p_movimiento_id: movimientoId } as any);
   if (error) throw new Error(error.message);
   revalidatePath("/presupuesto");

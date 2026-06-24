@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
+import { assertSuperAdmin } from "@/lib/auth/guards";
 import type { FormularioTipo, FormularioEstado, DocumentoEmpleadoTipo } from "@/types/database.types";
 
 export async function addEmployeeDocumentAction(
@@ -13,12 +12,7 @@ export async function addEmployeeDocumentAction(
   vigenciaDesde: string,
   vigenciaHasta: string
 ) {
-  const supabase = createClient();
-  const { data: userData, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !userData?.user) {
-    throw new Error("No autenticado");
-  }
+  const { supabase, perfil } = await assertSuperAdmin();
 
   const { error } = await supabase.from("empleado_documentos").insert({
     empleado_id: empleadoId,
@@ -26,7 +20,7 @@ export async function addEmployeeDocumentAction(
     storage_path: storagePath,
     vigencia_desde: vigenciaDesde,
     vigencia_hasta: vigenciaHasta,
-    uploaded_by: userData.user.id,
+    uploaded_by: perfil.id,
   } as any);
 
   if (error) {
@@ -48,12 +42,7 @@ export async function registrarIncidenteAction(data: {
   descripcion: string;
   accionesTomadas?: string;
 }) {
-  const supabase = createClient();
-  const perfil = await getPerfilActual(supabase);
-  if (!perfil) throw new Error("No autenticado");
-  if (!puedeCrearFormularioSST(perfil.rol)) {
-    throw new Error("No tiene permisos para registrar incidentes.");
-  }
+  const { perfil } = await assertSuperAdmin();
 
   if (!data.empleadoId) {
     throw new Error("Debe seleccionar un empleado involucrado para registrar el incidente.");
@@ -88,12 +77,7 @@ export async function registrarAusentismoAction(data: {
   fechaFin: string;
   razon: string;
 }) {
-  const supabase = createClient();
-  const perfil = await getPerfilActual(supabase);
-  if (!perfil) throw new Error("No autenticado");
-  if (!puedeCrearFormularioSST(perfil.rol)) {
-    throw new Error("No tiene permisos para registrar ausentismos.");
-  }
+  const { perfil } = await assertSuperAdmin();
 
   const db = createAdminClient();
   const { error } = await (db.from("ausentismos") as any).insert({
@@ -127,20 +111,10 @@ export async function registrarTrabajadorAction(data: {
   empresaId: string;
   subempresaId: string;
 }) {
-  const supabase = createClient();
-  const perfil = await getPerfilActual(supabase);
+  const { perfil } = await assertSuperAdmin();
 
-  if (!perfil) throw new Error("No autenticado");
-  if (!puedeGestionarSST(perfil.rol)) {
-    throw new Error("No tiene permisos para registrar trabajadores.");
-  }
   if (!data.empresaId || !data.subempresaId) {
     throw new Error("Debe seleccionar la empresa y la subempresa del trabajador.");
-  }
-  // Defensa en profundidad: createAdminClient() bypasea RLS, así que un
-  // admin/sst no puede registrar trabajadores fuera de su propia empresa.
-  if (perfil.rol !== "super_admin" && data.empresaId !== perfil.empresa_id) {
-    throw new Error("No puede registrar trabajadores en otra empresa.");
   }
 
   const db = createAdminClient();

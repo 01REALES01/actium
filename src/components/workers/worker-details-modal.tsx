@@ -18,9 +18,10 @@ interface WorkerDetailsModalProps {
   onOpenChange: (open: boolean) => void;
   empleado: EmpleadoConDocumentos | null;
   empresaId?: string;
+  puedeEditar?: boolean;
 }
 
-export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId }: WorkerDetailsModalProps) {
+export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId, puedeEditar = false }: WorkerDetailsModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocumentoEmpleadoTipo>("arl");
   const [vigenciaDesde, setVigenciaDesde] = useState("");
@@ -178,12 +179,14 @@ export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId }: 
             )}
           </div>
 
+          {puedeEditar && (
+          <>
           <div className="h-px bg-white/5 w-full my-2" />
 
           {/* Upload New Document */}
           <div className="space-y-4 pb-6">
             <h3 className="text-xs font-bold text-[#F25C05] uppercase tracking-widest">Subir Nuevo Documento</h3>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Tipo de Documento</Label>
@@ -250,6 +253,8 @@ export function WorkerDetailsModal({ open, onOpenChange, empleado, empresaId }: 
               </button>
             </div>
           </div>
+          </>
+          )}
         </div>
       </SheetContent>
     </Sheet>

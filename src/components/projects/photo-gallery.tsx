@@ -11,9 +11,10 @@ type Props = {
   proyectoId: string;
   empresaId: string;
   subempresaId: string;
+  puedeEditar?: boolean;
 };
 
-export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subempresaId }: Props) {
+export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subempresaId, puedeEditar = false }: Props) {
   const [fotos, setFotos] = useState(initialFotos);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -96,26 +97,28 @@ export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subem
           )}
         </div>
 
-        <div className="flex items-center gap-3">
-          {isPending && (
-            <Loader2 className="h-4 w-4 text-white/40 animate-spin" />
-          )}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isPending}
-            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold text-white/60 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            Subir Foto
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-        </div>
+        {puedeEditar && (
+          <div className="flex items-center gap-3">
+            {isPending && (
+              <Loader2 className="h-4 w-4 text-white/40 animate-spin" />
+            )}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isPending}
+              className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold text-white/60 uppercase tracking-widest hover:bg-white/10 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Subir Foto
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
+        )}
       </div>
 
       {error && (
@@ -129,12 +132,16 @@ export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subem
 
       {empty ? (
         <div
-          onClick={() => fileInputRef.current?.click()}
-          className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-white/10 bg-white/[0.02] py-12 cursor-pointer hover:border-white/20 hover:bg-white/[0.04] transition-all"
+          onClick={puedeEditar ? () => fileInputRef.current?.click() : undefined}
+          className={`flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-white/10 bg-white/[0.02] py-12 transition-all ${
+            puedeEditar ? "cursor-pointer hover:border-white/20 hover:bg-white/[0.04]" : ""
+          }`}
         >
           <Camera className="h-8 w-8 text-white/20" />
           <p className="text-xs text-white/30">
-            Aún no hay fotos registradas. Haz clic para subir la primera.
+            {puedeEditar
+              ? "Aún no hay fotos registradas. Haz clic para subir la primera."
+              : "Aún no hay fotos registradas."}
           </p>
         </div>
       ) : (

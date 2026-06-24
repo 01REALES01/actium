@@ -13,6 +13,8 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import { listFormularios } from "@/lib/data/sst";
 import { hoyLocal } from "@/lib/fecha";
 import { listProyectos } from "@/lib/data/proyectos";
@@ -26,6 +28,8 @@ export default async function SstDashboardPage({
 }) {
   // Lecturas por admin: tablas SST con RLS activo y auth_rol() rota.
   const supabase = createAdminClient();
+  const perfil = await getPerfilActual(createClient());
+  const puedeCrearPermiso = puedeCrearFormularioSST(perfil?.rol);
 
   // Filtros desde query params
   const filtros: { tipo?: any; estado?: any } = {};
@@ -102,6 +106,7 @@ export default async function SstDashboardPage({
       </div>
 
       {/* Action Cards Grid - Redesigned */}
+      {puedeCrearPermiso && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-2">
         <Link
           href="/sst/nuevo-ats"
@@ -145,6 +150,7 @@ export default async function SstDashboardPage({
           </div>
         </Link>
       </div>
+      )}
 
       {/* KPI Cards — Ahora con métricas SST reales */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
