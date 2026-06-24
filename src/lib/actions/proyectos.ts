@@ -81,6 +81,10 @@ export async function registrarAvanceAction(
     }
   }
 
+  if (typeof avanceProyectado !== "number" || isNaN(avanceProyectado)) {
+    avanceProyectado = 0;
+  }
+
   // Escritura con admin client (rol ya validado): evita el bloqueo de RLS.
   const { data, error } = await (db.from("proyecto_avances") as any).upsert({
     proyecto_id: parsed.data.proyectoId,
