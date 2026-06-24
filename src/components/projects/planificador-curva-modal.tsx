@@ -30,6 +30,7 @@ export function PlanificadorCurvaModal({
   const [metas, setMetas] = useState(metasIniciales);
 
   const nombreVariable = etiquetaEjeY || `Avance (${unidad})`;
+  const hayTotal = totalEsperado != null && totalEsperado > 0;
 
   function handleClose() {
     setOpen(false);
@@ -45,9 +46,23 @@ export function PlanificadorCurvaModal({
     setMetas(metas.filter((_, i) => i !== index));
   }
 
-  function updateMeta(index: number, field: "fecha" | "avanceEsperado", value: string | number) {
+  function updateMetaCantidad(index: number, cantidad: number) {
     const newMetas = [...metas];
-    newMetas[index] = { ...newMetas[index], [field]: value };
+    newMetas[index] = { ...newMetas[index], avanceEsperado: cantidad };
+    setMetas(newMetas);
+  }
+
+  function updateMetaPorcentaje(index: number, pct: number) {
+    if (!hayTotal) return;
+    const cantidad = Number(((pct / 100) * totalEsperado!).toFixed(2));
+    const newMetas = [...metas];
+    newMetas[index] = { ...newMetas[index], avanceEsperado: cantidad };
+    setMetas(newMetas);
+  }
+
+  function updateMetaFecha(index: number, fecha: string) {
+    const newMetas = [...metas];
+    newMetas[index] = { ...newMetas[index], fecha };
     setMetas(newMetas);
   }
 
@@ -78,12 +93,12 @@ export function PlanificadorCurvaModal({
       });
     }
 
-    if (totalEsperado && totalEsperado > 0 && weeks.length > 0) {
-      const step = totalEsperado / weeks.length;
+    if (hayTotal && weeks.length > 0) {
+      const step = totalEsperado! / weeks.length;
       weeks.forEach((w, i) => {
         w.avanceEsperado = Number((step * (i + 1)).toFixed(2));
       });
-      weeks[weeks.length - 1].avanceEsperado = totalEsperado;
+      weeks[weeks.length - 1].avanceEsperado = totalEsperado!;
     }
 
     setMetas(weeks);
@@ -125,10 +140,15 @@ export function PlanificadorCurvaModal({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          style={{ zIndex: 9999 }}
+          onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+        >
           <div
-            className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#1A1A1A] shadow-2xl"
+            className="relative w-full max-w-2xl rounded-2xl border border-white/10 bg-[#1A1A1A] shadow-2xl"
             role="dialog"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/5 px-6 py-5">
@@ -154,10 +174,10 @@ export function PlanificadorCurvaModal({
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Eje Y</span>
                   <span className="text-sm font-bold text-white">{nombreVariable}</span>
                 </div>
-                {totalEsperado ? (
+                {hayTotal ? (
                   <div className="flex flex-col gap-0.5 text-right">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Meta Total</span>
-                    <span className="text-sm font-bold text-white">{totalEsperado.toLocaleString()} {unidad}</span>
+                    <span className="text-sm font-bold text-white">{totalEsperado!.toLocaleString()} {unidad}</span>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-0.5 text-right">
@@ -183,36 +203,47 @@ export function PlanificadorCurvaModal({
                 ) : (
                   <>
                     {/* Table header */}
-                    <div className="flex items-center gap-3 px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-white/30">
-                      <span className="flex-1">Fecha</span>
-                      <span className="flex-1">Meta ({unidad})</span>
-                      {totalEsperado ? <span className="w-12 text-center">%</span> : null}
-                      <span className="w-[38px]" />
+                    <div className="flex items-center gap-2 px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-white/30">
+                      <span className="w-[140px] shrink-0">Fecha</span>
+                      <span className="flex-1">Cantidad ({unidad})</span>
+                      {hayTotal && <span className="w-[72px] text-center">%</span>}
+                      <span className="w-8" />
                     </div>
                     {metas.map((meta, i) => {
-                      const pct = totalEsperado && totalEsperado > 0
-                        ? Math.round((meta.avanceEsperado / totalEsperado) * 100)
+                      const pct = hayTotal
+                        ? Number(((meta.avanceEsperado / totalEsperado!) * 100).toFixed(1))
                         : null;
                       return (
-                        <div key={i} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+                        <div key={i} className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
                           <input
                             type="date"
                             required
                             value={meta.fecha}
-                            onChange={(e) => updateMeta(i, "fecha", e.target.value)}
-                            className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all [color-scheme:dark]"
+                            onChange={(e) => updateMetaFecha(i, e.target.value)}
+                            className="w-[140px] shrink-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all [color-scheme:dark]"
                           />
                           <input
                             type="number"
                             step="0.01"
                             required
                             value={meta.avanceEsperado}
-                            onChange={(e) => updateMeta(i, "avanceEsperado", parseFloat(e.target.value) || 0)}
+                            onChange={(e) => updateMetaCantidad(i, parseFloat(e.target.value) || 0)}
                             className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
                           />
-                          {pct !== null ? (
-                            <span className="w-12 text-center text-xs font-bold text-[#F25C05]">{pct}%</span>
-                          ) : null}
+                          {hayTotal && (
+                            <div className="relative w-[72px] shrink-0">
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={pct ?? ""}
+                                onChange={(e) => updateMetaPorcentaje(i, parseFloat(e.target.value) || 0)}
+                                className="w-full rounded-lg border border-[#F25C05]/20 bg-[#F25C05]/5 px-2 py-1.5 pr-6 text-xs text-[#F25C05] font-bold text-center focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
+                              />
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[#F25C05]/50 pointer-events-none">%</span>
+                            </div>
+                          )}
                           <button
                             type="button"
                             onClick={() => removeMeta(i)}
