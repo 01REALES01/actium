@@ -63,7 +63,10 @@ export async function getProyectoMetas(
     .eq("proyecto_id", proyectoId)
     .order("fecha", { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error getProyectoMetas:", error);
+    return [];
+  }
   return data ?? [];
 }
 
