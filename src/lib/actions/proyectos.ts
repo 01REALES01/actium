@@ -10,6 +10,7 @@ const RegistrarAvanceSchema = z.object({
   proyectoId: z.string(),
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   avanceReal: z.number().min(0).max(100000000), // Allowing large units like budget, kg, etc.
+  avanceProyectado: z.number().min(0).max(100000000).optional(), // Optional manual override
   notas: z.string().optional(),
 });
 
@@ -79,6 +80,11 @@ export async function registrarAvanceAction(
         }
       }
     }
+  }
+
+  // Si el usuario proporcionó manualmente un valor, usamos ese.
+  if (parsed.data.avanceProyectado !== undefined) {
+    avanceProyectado = parsed.data.avanceProyectado;
   }
 
   if (typeof avanceProyectado !== "number" || isNaN(avanceProyectado)) {

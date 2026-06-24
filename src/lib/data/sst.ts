@@ -397,6 +397,15 @@ export async function getAvancesSemanaActual(
     return 0;
   }
 
+  function getProyectadoDelta(fechaStr: string): number {
+    const ms = new Date(fechaStr + "T12:00:00Z").getTime();
+    const msAyer = ms - 24 * 60 * 60 * 1000;
+    const ayerStr = new Date(msAyer).toISOString().split("T")[0];
+    const hoyCum = interpolarMeta(fechaStr);
+    const ayerCum = interpolarMeta(ayerStr);
+    return Number(Math.max(0, hoyCum - ayerCum).toFixed(2));
+  }
+
   const diasNombre = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
   const result: AvanceDiario[] = [];
 
@@ -407,7 +416,7 @@ export async function getAvancesSemanaActual(
 
     result.push({
       dia: diasNombre[i],
-      proyectado: interpolarMeta(dateStr),
+      proyectado: getProyectadoDelta(dateStr),
       real: avancesMap.get(dateStr) || 0,
     });
   }
@@ -470,37 +479,35 @@ export async function getAvanceHoy(
     }
   }
 
-  let proyectado = 0;
-  if (hitos.length > 0) {
-    const ms = new Date(today + "T12:00:00Z").getTime();
-
-    // Estrictamente antes o igual al origen -> 0
-    if (ms <= hitos[0].ms) {
-      proyectado = 0;
-    } else if (ms >= hitos[hitos.length - 1].ms) {
-      // Después del último hito -> mantener el último valor
-      proyectado = hitos[hitos.length - 1].valor;
-    } else {
-      // Interpolar entre los dos puntos más cercanos
-      for (let i = 0; i < hitos.length - 1; i++) {
-        const a = hitos[i];
-        const b = hitos[i + 1];
-        if (ms > a.ms && ms < b.ms) {
-          const ratio = (ms - a.ms) / (b.ms - a.ms);
-          proyectado = Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
-          break;
-        }
-        if (ms === b.ms) {
-          proyectado = b.valor;
-          break;
-        }
+  function interpolarMeta(fechaStr: string): number {
+    if (hitos.length === 0) return 0;
+    const ms = new Date(fechaStr + "T12:00:00Z").getTime();
+    if (ms < hitos[0].ms) return 0;
+    if (ms === hitos[0].ms) return 0;
+    if (ms >= hitos[hitos.length - 1].ms) return hitos[hitos.length - 1].valor;
+    for (let i = 0; i < hitos.length - 1; i++) {
+      const a = hitos[i];
+      const b = hitos[i + 1];
+      if (ms > a.ms && ms < b.ms) {
+        const ratio = (ms - a.ms) / (b.ms - a.ms);
+        return Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
       }
+      if (ms === b.ms) return b.valor;
     }
+    return 0;
   }
+
+  const ms = new Date(today + "T12:00:00Z").getTime();
+  const msAyer = ms - 24 * 60 * 60 * 1000;
+  const ayerStr = new Date(msAyer).toISOString().split("T")[0];
+
+  const hoyCum = interpolarMeta(today);
+  const ayerCum = interpolarMeta(ayerStr);
+  const proyectadoDelta = Number(Math.max(0, hoyCum - ayerCum).toFixed(2));
 
   return {
     real: Number(data.avance_real),
-    proyectado,
+    proyectado: proyectadoDelta,
   };
 }
 

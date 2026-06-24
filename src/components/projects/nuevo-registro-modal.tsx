@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { registrarAvanceAction } from "@/lib/actions/proyectos";
@@ -29,6 +29,8 @@ export function NuevoRegistroModal({
   const [fecha, setFecha] = useState(hoyLocal());
   const [avanceReal, setAvanceReal] = useState("");
   const [porcentaje, setPorcentaje] = useState("");
+  const [avanceProyectado, setAvanceProyectado] = useState("");
+  const [porcentajeProyectado, setPorcentajeProyectado] = useState("");
   const [notas, setNotas] = useState("");
 
   const puedeConvertir = metaTotal && metaTotal > 0;
@@ -56,20 +58,28 @@ export function NuevoRegistroModal({
       hitos.unshift({ fecha: origenFecha, valor: 0, ms: origenMs });
     }
 
-    const ms = new Date(fecha + "T12:00:00Z").getTime();
-    if (ms <= hitos[0].ms) return 0;
-    if (ms >= hitos[hitos.length - 1].ms) return hitos[hitos.length - 1].valor;
-
-    for (let i = 0; i < hitos.length - 1; i++) {
-      const a = hitos[i];
-      const b = hitos[i + 1];
-      if (ms > a.ms && ms < b.ms) {
-        const ratio = (ms - a.ms) / (b.ms - a.ms);
-        return Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
+    function interpolarMeta(msTarget: number): number {
+      if (msTarget <= hitos[0].ms) return 0;
+      if (msTarget >= hitos[hitos.length - 1].ms) return hitos[hitos.length - 1].valor;
+      for (let i = 0; i < hitos.length - 1; i++) {
+        const a = hitos[i];
+        const b = hitos[i + 1];
+        if (msTarget > a.ms && msTarget < b.ms) {
+          const ratio = (msTarget - a.ms) / (b.ms - a.ms);
+          return Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
+        }
+        if (msTarget === b.ms) return b.valor;
       }
-      if (ms === b.ms) return b.valor;
+      return 0;
     }
-    return 0;
+
+    const msHoy = new Date(fecha + "T12:00:00Z").getTime();
+    const msAyer = msHoy - 24 * 60 * 60 * 1000;
+    
+    const cumHoy = interpolarMeta(msHoy);
+    const cumAyer = interpolarMeta(msAyer);
+    
+    return Number(Math.max(0, cumHoy - cumAyer).toFixed(2));
   }, [fecha, metas, fechaInicio]);
 
   function handleCantidadChange(val: string) {
@@ -92,11 +102,37 @@ export function NuevoRegistroModal({
     }
   }
 
-  function preCargarProyectado() {
-    if (proyectadoDia != null) {
-      handleCantidadChange(proyectadoDia.toString());
+  function handleCantidadProyectadaChange(val: string) {
+    setAvanceProyectado(val);
+    if (puedeConvertir && val !== "") {
+      const n = parseFloat(val);
+      if (!isNaN(n)) setPorcentajeProyectado(((n / metaTotal!) * 100).toFixed(2));
+    } else {
+      setPorcentajeProyectado("");
     }
   }
+
+  function handlePorcentajeProyectadaChange(val: string) {
+    setPorcentajeProyectado(val);
+    if (puedeConvertir && val !== "") {
+      const p = parseFloat(val);
+      if (!isNaN(p)) setAvanceProyectado(((p / 100) * metaTotal!).toFixed(2));
+    } else {
+      setAvanceProyectado("");
+    }
+  }
+
+  useEffect(() => {
+    if (proyectadoDia !== null) {
+      setAvanceProyectado(proyectadoDia.toString());
+      if (puedeConvertir) {
+        setPorcentajeProyectado(((proyectadoDia / metaTotal!) * 100).toFixed(2));
+      }
+    } else {
+      setAvanceProyectado("");
+      setPorcentajeProyectado("");
+    }
+  }, [proyectadoDia, puedeConvertir, metaTotal]);
 
   function handleClose() {
     setOpen(false);
@@ -112,11 +148,14 @@ export function NuevoRegistroModal({
         proyectoId,
         fecha,
         avanceReal: parseFloat(avanceReal),
+        avanceProyectado: avanceProyectado !== "" && !isNaN(parseFloat(avanceProyectado)) ? parseFloat(avanceProyectado) : undefined,
         notas: notas.trim() || undefined,
       });
       handleClose();
       setAvanceReal("");
       setPorcentaje("");
+      setAvanceProyectado("");
+      setPorcentajeProyectado("");
       setNotas("");
       router.refresh();
     } catch (err) {
@@ -181,62 +220,86 @@ export function NuevoRegistroModal({
                 />
               </div>
 
-              {/* Cantidad y porcentaje — bidireccional */}
-              <div className={`grid gap-3 ${puedeConvertir ? "grid-cols-2" : "grid-cols-1"}`}>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex justify-between items-center">
-                    <span>Avance Real ({unidad})</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={avanceReal}
-                    onChange={(e) => handleCantidadChange(e.target.value)}
-                    placeholder="0.00"
-                    required
-                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
-                  />
-                  {proyectadoDia != null && (
-                    <div className="mt-1 flex items-center gap-1.5 text-[10px]">
-                      <span className="text-white/30 uppercase tracking-widest font-bold">Proyectado:</span>
-                      <button 
-                        type="button" 
-                        onClick={preCargarProyectado}
-                        className="text-[#F25C05] font-bold hover:underline transition-all hover:text-[#F25C05]/80"
-                        title="Haz clic para usar este valor"
-                      >
-                        {proyectadoDia} {unidad}
-                      </button>
+              <div className="flex flex-col gap-4 border-t border-white/5 pt-4">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1">Planeado para hoy</h3>
+                <div className={`grid gap-3 ${puedeConvertir ? "grid-cols-2" : "grid-cols-1"}`}>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex justify-between items-center">
+                      <span>Proyectado ({unidad})</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={avanceProyectado}
+                      onChange={(e) => handleCantidadProyectadaChange(e.target.value)}
+                      placeholder="0.00"
+                      className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
+                    />
+                  </div>
+                  {puedeConvertir && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                        Porcentaje (%)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={porcentajeProyectado}
+                          onChange={(e) => handlePorcentajeProyectadaChange(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all pr-8"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30">%</span>
+                      </div>
                     </div>
                   )}
                 </div>
+              </div>
 
-                {puedeConvertir && (
+              <div className="flex flex-col gap-4 border-t border-[#F25C05]/20 pt-4">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#F25C05] mb-1">Ejecutado (Real)</h3>
+                <div className={`grid gap-3 ${puedeConvertir ? "grid-cols-2" : "grid-cols-1"}`}>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                      Porcentaje (%)
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex justify-between items-center">
+                      <span>Avance Real ({unidad})</span>
                     </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        value={porcentaje}
-                        onChange={(e) => handlePorcentajeChange(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all pr-8"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30">%</span>
-                    </div>
-                    {proyectadoDia != null && metaTotal && (
-                      <p className="mt-1 text-[10px] font-bold text-white/30">
-                        {((proyectadoDia / metaTotal) * 100).toFixed(1)}%
-                      </p>
-                    )}
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={avanceReal}
+                      onChange={(e) => handleCantidadChange(e.target.value)}
+                      placeholder="0.00"
+                      required
+                      className="rounded-lg border border-[#F25C05]/30 bg-[#F25C05]/10 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05] focus:outline-none focus:ring-1 focus:ring-[#F25C05] transition-all"
+                    />
                   </div>
-                )}
+
+                  {puedeConvertir && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                        Porcentaje (%)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={porcentaje}
+                          onChange={(e) => handlePorcentajeChange(e.target.value)}
+                          placeholder="0.00"
+                          className="w-full rounded-lg border border-[#F25C05]/30 bg-[#F25C05]/10 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05] focus:outline-none focus:ring-1 focus:ring-[#F25C05] transition-all pr-8"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30">%</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5 mt-2">

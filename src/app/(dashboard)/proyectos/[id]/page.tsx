@@ -101,16 +101,22 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
     combinedDataMap.set(m.fecha, existing);
   });
 
+  let runningAvance = 0;
   const chartData = Array.from(combinedDataMap.entries())
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
-    .map(([fecha, values]) => ({
-      fecha: new Date(fecha).toLocaleDateString("es-CO", {
-        day: "2-digit",
-        month: "short",
-      }),
-      avance: values.avance,
-      proyectado: values.proyectado,
-    }));
+    .map(([fecha, values]) => {
+      if (values.avance !== null) {
+        runningAvance += values.avance;
+      }
+      return {
+        fecha: new Date(fecha).toLocaleDateString("es-CO", {
+          day: "2-digit",
+          month: "short",
+        }),
+        avance: runningAvance,
+        proyectado: values.proyectado,
+      };
+    });
 
   const accidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo === "accidente").length : 0;
   const incidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo !== "accidente").length : 0;
