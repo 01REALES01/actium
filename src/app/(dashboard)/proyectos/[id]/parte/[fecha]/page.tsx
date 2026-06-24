@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getParteCockpitDelDia } from "@/lib/data/partes-sst";
 import { getEmpleadosAsignados, getAvancesSemanaActual } from "@/lib/data/sst";
-import { getProyectoAvances, getProyecto } from "@/lib/data/proyectos";
+import { getProyectoAvances, getProyecto, getProyectoMetas } from "@/lib/data/proyectos";
 import { hoyLocal } from "@/lib/fecha";
 import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 import { GraficaAsistencia, GraficaEventos } from "@/components/sst/parte-graficas";
@@ -61,12 +61,13 @@ export default async function ParteDiaProyectoPage({
 
   // Lecturas por admin: las tablas SST tienen RLS activo y auth_rol() está rota.
   const db = createAdminClient();
-  const [d, empleadosActivos, avancesSemana, avancesProyecto, proyecto] = await Promise.all([
+  const [d, empleadosActivos, avancesSemana, avancesProyecto, proyecto, metas] = await Promise.all([
     getParteCockpitDelDia(db, params.id, params.fecha),
     getEmpleadosAsignados(db, params.id),
     getAvancesSemanaActual(db, params.id),
     getProyectoAvances(db, params.id),
     getProyecto(db, params.id),
+    getProyectoMetas(db, params.id),
   ]);
   if (!d || !proyecto) notFound();
 
@@ -190,7 +191,13 @@ export default async function ParteDiaProyectoPage({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {puedeEditar && (
-              <NuevoRegistroModal proyectoId={params.id} unidad={proyecto.unidad_medida} metaTotal={(proyecto as any).meta_total_cantidad ?? null} />
+              <NuevoRegistroModal 
+                proyectoId={params.id} 
+                unidad={proyecto.unidad_medida} 
+                metaTotal={(proyecto as any).meta_total_cantidad ?? null} 
+                fechaInicio={proyecto.fecha_inicio ?? null}
+                metas={metas}
+              />
             )}
             <ParteDescargarPDF data={pdfData} />
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { registrarAvanceAction } from "@/lib/actions/proyectos";
@@ -10,12 +10,16 @@ export function NuevoRegistroModal({
   proyectoId, 
   unidad = "MT",
   metaTotal,
+  fechaInicio,
+  metas,
   customTrigger 
 }: { 
   proyectoId: string; 
   unidad?: string;
   /** Meta total del proyecto en unidades (para calcular %) */
   metaTotal?: number | null;
+  fechaInicio?: string | null;
+  metas?: { fecha: string; avance_esperado: number }[];
   customTrigger?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -28,6 +32,45 @@ export function NuevoRegistroModal({
   const [notas, setNotas] = useState("");
 
   const puedeConvertir = metaTotal && metaTotal > 0;
+
+  // Calculamos la proyección esperada al vuelo dependiendo de la fecha elegida
+  const proyectadoDia = useMemo(() => {
+    if (!metas || metas.length === 0) return null;
+    
+    const hitosRaw = metas.map(m => ({
+      fecha: m.fecha,
+      valor: Number(m.avance_esperado),
+      ms: new Date(m.fecha + "T12:00:00Z").getTime(),
+    }));
+
+    const hitos = [...hitosRaw];
+    let origenFecha: string;
+    if (fechaInicio) {
+      const fechaInicioMs = new Date(fechaInicio + "T12:00:00Z").getTime();
+      origenFecha = new Date(fechaInicioMs - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    } else {
+      origenFecha = new Date(hitos[0].ms - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    }
+    const origenMs = new Date(origenFecha + "T12:00:00Z").getTime();
+    if (origenMs < hitos[0].ms) {
+      hitos.unshift({ fecha: origenFecha, valor: 0, ms: origenMs });
+    }
+
+    const ms = new Date(fecha + "T12:00:00Z").getTime();
+    if (ms <= hitos[0].ms) return 0;
+    if (ms >= hitos[hitos.length - 1].ms) return hitos[hitos.length - 1].valor;
+
+    for (let i = 0; i < hitos.length - 1; i++) {
+      const a = hitos[i];
+      const b = hitos[i + 1];
+      if (ms > a.ms && ms < b.ms) {
+        const ratio = (ms - a.ms) / (b.ms - a.ms);
+        return Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
+      }
+      if (ms === b.ms) return b.valor;
+    }
+    return 0;
+  }, [fecha, metas, fechaInicio]);
 
   function handleCantidadChange(val: string) {
     setAvanceReal(val);
@@ -46,6 +89,12 @@ export function NuevoRegistroModal({
       if (!isNaN(p)) setAvanceReal(((p / 100) * metaTotal!).toFixed(2));
     } else {
       setAvanceReal("");
+    }
+  }
+
+  function preCargarProyectado() {
+    if (proyectadoDia != null) {
+      handleCantidadChange(proyectadoDia.toString());
     }
   }
 
@@ -135,8 +184,8 @@ export function NuevoRegistroModal({
               {/* Cantidad y porcentaje — bidireccional */}
               <div className={`grid gap-3 ${puedeConvertir ? "grid-cols-2" : "grid-cols-1"}`}>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                    Avance Real ({unidad})
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 flex justify-between items-center">
+                    <span>Avance Real ({unidad})</span>
                   </label>
                   <input
                     type="number"
@@ -148,6 +197,19 @@ export function NuevoRegistroModal({
                     required
                     className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
                   />
+                  {proyectadoDia != null && (
+                    <div className="mt-1 flex items-center gap-1.5 text-[10px]">
+                      <span className="text-white/30 uppercase tracking-widest font-bold">Proyectado:</span>
+                      <button 
+                        type="button" 
+                        onClick={preCargarProyectado}
+                        className="text-[#F25C05] font-bold hover:underline transition-all hover:text-[#F25C05]/80"
+                        title="Haz clic para usar este valor"
+                      >
+                        {proyectadoDia} {unidad}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {puedeConvertir && (
@@ -168,14 +230,16 @@ export function NuevoRegistroModal({
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30">%</span>
                     </div>
-                    <p className="text-[9px] text-white/20 font-medium tracking-wide">
-                      Meta total: {metaTotal} {unidad}
-                    </p>
+                    {proyectadoDia != null && metaTotal && (
+                      <p className="mt-1 text-[10px] font-bold text-white/30">
+                        {((proyectadoDia / metaTotal) * 100).toFixed(1)}%
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-1.5 mt-2">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
                   Notas del día (opcional)
                 </label>
@@ -194,7 +258,7 @@ export function NuevoRegistroModal({
                 </p>
               )}
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={handleClose}
