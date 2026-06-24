@@ -305,8 +305,10 @@ export type AvanceDiario = {
 export async function getAvancesSemanaActual(
   supabase: Client,
   proyectoId: string,
+  weekOffset: number = 0
 ): Promise<AvanceDiario[]> {
   const base = new Date(`${hoyLocal()}T12:00:00Z`);
+  base.setUTCDate(base.getUTCDate() + weekOffset * 7);
   const diaSemana = base.getUTCDay();
   const diffAlLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
   const lunes = new Date(base);
@@ -316,12 +318,11 @@ export async function getAvancesSemanaActual(
 
   const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
-  // Avances reales sólo de esta semana
+  // Avances reales históricos hasta el domingo de esta semana
   const { data: avancesData, error } = await supabase
     .from("proyecto_avances")
     .select("fecha, avance_real")
     .eq("proyecto_id", proyectoId)
-    .gte("fecha", formatDate(lunes))
     .lte("fecha", formatDate(domingo))
     .order("fecha", { ascending: true });
 
@@ -341,7 +342,7 @@ export async function getAvancesSemanaActual(
       .maybeSingle(),
   ]);
 
-  const avancesMap = new Map((avancesData || []).map(a => [a.fecha, Number(a.avance_real)]));
+  const avancesArray = avancesData || [];
 
   // Construir array de hitos, precedido por un punto de origen en 0
   const hitosRaw = (todasMetas || []).map(m => ({
@@ -397,15 +398,6 @@ export async function getAvancesSemanaActual(
     return 0;
   }
 
-  function getProyectadoDelta(fechaStr: string): number {
-    const ms = new Date(fechaStr + "T12:00:00Z").getTime();
-    const msAyer = ms - 24 * 60 * 60 * 1000;
-    const ayerStr = new Date(msAyer).toISOString().split("T")[0];
-    const hoyCum = interpolarMeta(fechaStr);
-    const ayerCum = interpolarMeta(ayerStr);
-    return Number(Math.max(0, hoyCum - ayerCum).toFixed(2));
-  }
-
   const diasNombre = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
   const result: AvanceDiario[] = [];
 
@@ -414,10 +406,18 @@ export async function getAvancesSemanaActual(
     currentDate.setUTCDate(lunes.getUTCDate() + i);
     const dateStr = formatDate(currentDate);
 
+    // Sumar todos los avances hasta la fecha actual
+    let sumReal = 0;
+    for (const a of avancesArray) {
+      if (a.fecha <= dateStr) {
+        sumReal += Number(a.avance_real);
+      }
+    }
+
     result.push({
       dia: diasNombre[i],
-      proyectado: getProyectadoDelta(dateStr),
-      real: avancesMap.get(dateStr) || 0,
+      proyectado: interpolarMeta(dateStr),
+      real: Number(sumReal.toFixed(2)),
     });
   }
 

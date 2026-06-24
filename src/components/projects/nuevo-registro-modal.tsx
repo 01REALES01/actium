@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { Plus, X, CheckCircle } from "lucide-react";
 import { registrarAvanceAction } from "@/lib/actions/proyectos";
 import { hoyLocal } from "@/lib/fecha";
 
@@ -26,6 +26,7 @@ export function NuevoRegistroModal({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [fecha, setFecha] = useState(hoyLocal());
   const [avanceReal, setAvanceReal] = useState("");
   const [porcentaje, setPorcentaje] = useState("");
@@ -79,7 +80,10 @@ export function NuevoRegistroModal({
     const cumHoy = interpolarMeta(msHoy);
     const cumAyer = interpolarMeta(msAyer);
     
-    return Number(Math.max(0, cumHoy - cumAyer).toFixed(2));
+    return {
+      delta: Number(Math.max(0, cumHoy - cumAyer).toFixed(2)),
+      acumulado: Number(cumHoy.toFixed(2))
+    };
   }, [fecha, metas, fechaInicio]);
 
   function handleCantidadChange(val: string) {
@@ -124,9 +128,9 @@ export function NuevoRegistroModal({
 
   useEffect(() => {
     if (proyectadoDia !== null) {
-      setAvanceProyectado(proyectadoDia.toString());
+      setAvanceProyectado(proyectadoDia.delta.toString());
       if (puedeConvertir) {
-        setPorcentajeProyectado(((proyectadoDia / metaTotal!) * 100).toFixed(2));
+        setPorcentajeProyectado(((proyectadoDia.delta / metaTotal!) * 100).toFixed(2));
       }
     } else {
       setAvanceProyectado("");
@@ -151,13 +155,19 @@ export function NuevoRegistroModal({
         avanceProyectado: avanceProyectado !== "" && !isNaN(parseFloat(avanceProyectado)) ? parseFloat(avanceProyectado) : undefined,
         notas: notas.trim() || undefined,
       });
-      handleClose();
-      setAvanceReal("");
-      setPorcentaje("");
-      setAvanceProyectado("");
-      setPorcentajeProyectado("");
-      setNotas("");
-      router.refresh();
+      
+      setSuccess(true);
+      setTimeout(() => {
+        handleClose();
+        setAvanceReal("");
+        setPorcentaje("");
+        setAvanceProyectado("");
+        setPorcentajeProyectado("");
+        setNotas("");
+        setSuccess(false);
+        router.refresh();
+      }, 1500);
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible guardar los cambios. Intenta de nuevo.");
     } finally {
@@ -206,7 +216,16 @@ export function NuevoRegistroModal({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {success ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-green-500 mb-4">
+                  <CheckCircle className="h-8 w-8" />
+                </div>
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest text-center">Registro guardado exitosamente</h3>
+                <p className="text-[10px] text-white/40 mt-2">Actualizando gráficas...</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
                   Fecha del registro
@@ -258,6 +277,11 @@ export function NuevoRegistroModal({
                     </div>
                   )}
                 </div>
+                {proyectadoDia != null && metaTotal && (
+                  <p className="mt-1 text-[10px] font-bold text-white/30">
+                    Acumulado esperado a esta fecha: <span className="text-white/50">{proyectadoDia.acumulado} {unidad}</span> ({((proyectadoDia.acumulado / metaTotal) * 100).toFixed(1)}%)
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-4 border-t border-[#F25C05]/20 pt-4">
@@ -338,6 +362,7 @@ export function NuevoRegistroModal({
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}

@@ -1,6 +1,8 @@
 "use client";
 
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type WeeklyProgressData = {
   dia: string;
@@ -11,16 +13,42 @@ type WeeklyProgressData = {
 interface WeeklyComplianceChartProps {
   data: WeeklyProgressData[];
   unidad?: string;
+  weekOffset?: number;
 }
 
-export function WeeklyComplianceChart({ data, unidad = "MT" }: WeeklyComplianceChartProps) {
+export function WeeklyComplianceChart({ data, unidad = "MT", weekOffset = 0 }: WeeklyComplianceChartProps) {
+  const router = useRouter();
+
+  function changeWeek(delta: number) {
+    const newOffset = weekOffset + delta;
+    if (newOffset > 0) return; // Prevent going to future weeks
+    router.push(`?weekOffset=${newOffset}`, { scroll: false });
+  }
   return (
     <div className="flex h-full flex-col gap-6 rounded-3xl border-0 bg-white/[0.02] p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
       <div className="absolute inset-0 bg-gradient-to-bl from-[#F25C05]/5 to-transparent opacity-50 pointer-events-none" />
-      <div className="relative z-10 flex items-center justify-between mb-2">
-        <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
-          DESEMPEÑO SEMANAL ({unidad})
-        </h3>
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => changeWeek(-1)} 
+              className="rounded bg-white/5 p-1 text-white/40 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="h-3 w-3" />
+            </button>
+            <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
+              SEMANA {weekOffset === 0 ? "ACTUAL" : weekOffset < 0 ? weekOffset : `+${weekOffset}`}
+            </h3>
+            <button 
+              onClick={() => changeWeek(1)} 
+              disabled={weekOffset >= 0}
+              className={`rounded bg-white/5 p-1 text-white/40 transition-colors ${weekOffset >= 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-white/10 hover:text-white"}`}
+            >
+              <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+          <span className="text-[9px] text-white/30 font-bold uppercase tracking-widest ml-7">DESEMPEÑO ({unidad})</span>
+        </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="h-1.5 w-3 rounded-full bg-white/20" />
@@ -68,6 +96,14 @@ export function WeeklyComplianceChart({ data, unidad = "MT" }: WeeklyComplianceC
                           <span className="text-[10px] font-bold text-white/40 uppercase">Proyectado</span>
                           <span className="text-sm font-bold text-white/60">{proyectadoData?.value != null ? `${proyectadoData.value} ${unidad}` : "N/A"}</span>
                         </div>
+                        {avanceData?.value != null && proyectadoData?.value != null && Number(proyectadoData.value) > 0 && (
+                          <div className="flex items-center justify-between gap-8 pt-1.5 border-t border-white/5 mt-1.5">
+                            <span className="text-[10px] font-bold text-green-400 uppercase">Cumplimiento</span>
+                            <span className="text-sm font-bold text-green-400">
+                              {((Number(avanceData.value) / Number(proyectadoData.value)) * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

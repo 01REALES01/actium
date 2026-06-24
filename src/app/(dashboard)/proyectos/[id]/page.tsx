@@ -25,6 +25,7 @@ import { PlanificadorCurvaModal } from "@/components/projects/planificador-curva
 
 type ProjectPageProps = {
   params: { id: string };
+  searchParams: { weekOffset?: string };
 };
 
 function EmptyPanel({ titulo, mensaje }: { titulo: string; mensaje: string }) {
@@ -39,8 +40,9 @@ function EmptyPanel({ titulo, mensaje }: { titulo: string; mensaje: string }) {
   );
 }
 
-export default async function ProyectoDashboardPage({ params }: ProjectPageProps) {
+export default async function ProyectoDashboardPage({ params, searchParams }: ProjectPageProps) {
   const supabase = createClient();
+  const weekOffset = parseInt(searchParams.weekOffset || "0", 10);
 
   const hoy = hoyLocal();
 
@@ -75,7 +77,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
     getAusentismosHistorial(db, params.id),
     getIncidentesPorProyecto(db, params.id, "incidente"),
     getIncidentesPorProyecto(db, params.id, "accidente"),
-    getAvancesSemanaActual(db, params.id),
+    getAvancesSemanaActual(db, params.id, weekOffset),
     getAvanceHoy(db, params.id),
     getObservaciones(db, params.id),
     getFotos(db, params.id),
@@ -102,6 +104,12 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
     combinedDataMap.set(m.fecha, existing);
   });
 
+  // Find the last date that has an avance_real
+  const hasAvances = avances.length > 0;
+  const maxFechaRealMs = hasAvances 
+    ? Math.max(...avances.map((a) => new Date(a.fecha + "T12:00:00Z").getTime())) 
+    : 0;
+
   let runningAvance = 0;
   const chartData = Array.from(combinedDataMap.entries())
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
@@ -109,12 +117,16 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
       if (values.avance !== null) {
         runningAvance += values.avance;
       }
+      
+      const currentMs = new Date(fecha + "T12:00:00Z").getTime();
+      const shouldShowAvance = hasAvances && currentMs <= maxFechaRealMs;
+
       return {
         fecha: new Date(fecha).toLocaleDateString("es-CO", {
           day: "2-digit",
           month: "short",
         }),
-        avance: runningAvance,
+        avance: shouldShowAvance ? runningAvance : null,
         proyectado: values.proyectado,
       };
     });
@@ -237,7 +249,7 @@ export default async function ProyectoDashboardPage({ params }: ProjectPageProps
         </div>
         <div className="lg:col-span-7">
           {avancesSemana.length > 0 ? (
-            <WeeklyComplianceChart data={avancesSemana} unidad={proyecto.unidad_medida} />
+            <WeeklyComplianceChart data={avancesSemana} unidad={proyecto.unidad_medida} weekOffset={weekOffset} />
           ) : (
             <EmptyPanel
               titulo="Desempeño semanal"

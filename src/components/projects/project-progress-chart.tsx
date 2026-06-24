@@ -111,6 +111,14 @@ export function ProjectProgressChart({ data, unidad = "MT", etiquetaEjeY }: Proj
                           <span className="text-[10px] font-bold text-white/40 uppercase">Proyectado</span>
                           <span className="text-sm font-bold text-white/60">{proyectadoData?.value != null ? `${proyectadoData.value} ${unidad}` : "N/A"}</span>
                         </div>
+                        {avanceData?.value != null && proyectadoData?.value != null && Number(proyectadoData.value) > 0 && (
+                          <div className="flex items-center justify-between gap-8 pt-1.5 border-t border-white/5 mt-1.5">
+                            <span className="text-[10px] font-bold text-green-400 uppercase">Cumplimiento</span>
+                            <span className="text-sm font-bold text-green-400">
+                              {((Number(avanceData.value) / Number(proyectadoData.value)) * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
