@@ -195,6 +195,7 @@ Serio e inteligente, pero a la vez amable. No debe sonar relajada, sino que debe
 9. NO más de 4 KPI cards por fila.
 10. NO inventar componentes — si shadcn/ui lo tiene, úsalo y estilízalo con tokens.
 11. NO `bg-zinc-*`, `bg-orange-500`, `text-orange-400`, etc. — usa los tokens `actium-*`.
+12. No hacer commit sin haber el usuario pedirlo antes.
 
 ---
 

@@ -50,19 +50,23 @@ export function WeeklyComplianceChart({ data, unidad = "MT" }: WeeklyComplianceC
               tick={{ fill: "#4D4D4D", fontSize: 10 }}
             />
             <Tooltip
+              cursor={{ stroke: "rgba(255,255,255,0.1)", strokeWidth: 1, strokeDasharray: "4 4", fill: "transparent" }}
               content={({ active, payload, label }) => {
-                if (active && payload && payload.length) {
+                if (active && payload && payload.length > 0) {
+                  const avanceData = payload.find(p => p.dataKey === "real");
+                  const proyectadoData = payload.find(p => p.dataKey === "proyectado");
+                  
                   return (
                     <div className="rounded-lg border border-white/10 bg-[#262626] p-3 shadow-2xl">
                       <p className="text-[10px] font-bold text-white/40 uppercase mb-2 border-b border-white/5 pb-1">{label}</p>
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between gap-8">
-                          <span className="text-[10px] font-bold text-white/40 uppercase">Real</span>
-                          <span className="text-sm font-bold text-[#F25C05]">{payload[1]?.value} {unidad}</span>
+                          <span className="text-[10px] font-bold text-[#F25C05] uppercase">Real</span>
+                          <span className="text-sm font-bold text-[#F25C05]">{avanceData?.value != null ? `${avanceData.value} ${unidad}` : "0 " + unidad}</span>
                         </div>
                         <div className="flex items-center justify-between gap-8">
                           <span className="text-[10px] font-bold text-white/40 uppercase">Proyectado</span>
-                          <span className="text-sm font-bold text-white/60">{payload[0]?.value} {unidad}</span>
+                          <span className="text-sm font-bold text-white/60">{proyectadoData?.value != null ? `${proyectadoData.value} ${unidad}` : "N/A"}</span>
                         </div>
                       </div>
                     </div>

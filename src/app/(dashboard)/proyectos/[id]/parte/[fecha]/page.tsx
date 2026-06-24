@@ -9,7 +9,6 @@ import {
   UserMinus,
   AlertTriangle,
   ShieldAlert,
-  Pencil,
   Camera,
   MessageSquare,
   CalendarDays,
@@ -27,6 +26,7 @@ import { ParteDescargarPDF, type PartePDFData } from "@/components/sst/parte-pdf
 import { NuevoRegistroModal } from "@/components/projects/nuevo-registro-modal";
 import { NuevoIncidenteModal } from "@/components/projects/nuevo-incidente-modal";
 import { NuevoAusentismoModal } from "@/components/projects/nuevo-ausentismo-modal";
+import { PasarAsistenciaModal } from "@/components/projects/pasar-asistencia-modal";
 
 const TIPO_AUSENCIA_LABEL: Record<string, string> = {
   medico: "Médica",
@@ -73,6 +73,27 @@ export default async function ParteDiaProyectoPage({
   const accidentes = d.incidentes.filter((e) => e.tipo === "accidente");
   const otrosIncidentes = d.incidentes.filter((e) => e.tipo !== "accidente");
   const ausentes = d.programado - d.presentes;
+
+  // Datos para el check-in de asistencia (modal "Pasar asistencia").
+  const empleadosCheckin = d.roster.map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+    cedula: null,
+    cargo: e.cargo,
+    proyecto_id: params.id,
+  }));
+  const estadoInicialCheckin: Record<
+    string,
+    { presente: boolean; tipo: "medico" | "personal" | "vacaciones" | "incapacidad" | "otro"; razon: string }
+  > = {};
+  for (const a of d.inasistencias) {
+    estadoInicialCheckin[a.empleado_id] = {
+      presente: false,
+      tipo: a.tipo as "medico" | "personal" | "vacaciones" | "incapacidad" | "otro",
+      razon: a.razon,
+    };
+  }
+
   const hoy = hoyLocal();
   const prev = addDays(params.fecha, -1);
   const next = addDays(params.fecha, 1);
@@ -169,12 +190,7 @@ export default async function ParteDiaProyectoPage({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {puedeEditar && (
-              <Link
-                href={`/proyectos/${params.id}/parte/${params.fecha}/editar`}
-                className="flex h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-white/10"
-              >
-                <Pencil className="h-3.5 w-3.5" /> {d.parte ? "Editar parte" : "Registrar parte"}
-              </Link>
+              <NuevoRegistroModal proyectoId={params.id} unidad={proyecto.unidad_medida} metaTotal={(proyecto as any).meta_total_cantidad ?? null} />
             )}
             <ParteDescargarPDF data={pdfData} />
           </div>
@@ -204,17 +220,70 @@ export default async function ParteDiaProyectoPage({
           </Link>
         </div>
 
-        {/* Registros rápidos del día */}
+        {/* Registros rápidos del día (Rediseñado) */}
         {puedeEditar && (
-          <div className="flex flex-col gap-2 rounded-xl border border-white/5 bg-white/[0.02] p-3 sm:flex-row sm:items-center">
-            <span className="px-1 text-[10px] font-bold uppercase tracking-widest text-white/30">
-              Registrar del día
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <NuevoRegistroModal proyectoId={params.id} unidad={proyecto.unidad_medida} />
-              <NuevoIncidenteModal proyectoId={params.id} empleadosActivos={empleadosActivos} />
-              <NuevoAusentismoModal proyectoId={params.id} empleadosActivos={empleadosActivos} />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+            <PasarAsistenciaModal
+              proyectoId={params.id}
+              proyectoNombre={d.proyectoNombre}
+              fecha={params.fecha}
+              empleados={empleadosCheckin}
+              estadoInicial={estadoInicialCheckin}
+              observacionInicial={d.parte?.observaciones ?? ""}
+              parteExiste={Boolean(d.parte)}
+              customTrigger={
+                <div className="group flex h-full flex-col justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 transition-all hover:bg-emerald-500/10 hover:-translate-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <UserCheck className="h-6 w-6 text-emerald-400" />
+                    <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-emerald-400">Asistencia</span>
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">
+                      {d.parte ? "Editar asistencia" : "Pasar asistencia"}
+                    </h3>
+                    <p className="mt-1 text-xs text-white/50">Gestionar check-in de {empleadosCheckin.length} trabajadores</p>
+                  </div>
+                </div>
+              }
+            />
+
+            <NuevoAusentismoModal
+              proyectoId={params.id}
+              empleadosActivos={empleadosActivos}
+              customTrigger={
+                <div className="group flex h-full flex-col justify-between rounded-2xl border border-orange-500/20 bg-orange-500/5 p-5 transition-all hover:bg-orange-500/10 hover:-translate-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <UserMinus className="h-6 w-6 text-orange-400" />
+                    <span className="rounded-full bg-orange-500/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-orange-400">Personal</span>
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="text-sm font-bold text-white group-hover:text-orange-300 transition-colors">
+                      Reportar Ausencia
+                    </h3>
+                    <p className="mt-1 text-xs text-white/50">Registrar incapacidades, permisos o vacaciones</p>
+                  </div>
+                </div>
+              }
+            />
+
+            <NuevoIncidenteModal
+              proyectoId={params.id}
+              empleadosActivos={empleadosActivos}
+              customTrigger={
+                <div className="group flex h-full flex-col justify-between rounded-2xl border border-red-500/20 bg-red-500/5 p-5 transition-all hover:bg-red-500/10 hover:-translate-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <ShieldAlert className="h-6 w-6 text-red-500" />
+                    <span className="rounded-full bg-red-500/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-red-400">SST</span>
+                  </div>
+                  <div className="mt-4">
+                    <h3 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors">
+                      Registrar Evento
+                    </h3>
+                    <p className="mt-1 text-xs text-white/50">Reportar incidentes o accidentes de trabajo</p>
+                  </div>
+                </div>
+              }
+            />
           </div>
         )}
       </div>

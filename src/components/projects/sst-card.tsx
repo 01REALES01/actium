@@ -156,11 +156,7 @@ export function SSTCard({
 
       {/* CTA principal */}
       <Link
-        href={
-          parteExiste
-            ? `/proyectos/${proyectoId}/parte/${fecha}`
-            : (puedeEditarParte ? `/proyectos/${proyectoId}/parte/${fecha}/editar` : `/proyectos/${proyectoId}/parte/${fecha}`)
-        }
+        href={`/proyectos/${proyectoId}/parte/${fecha}`}
         className="mt-auto flex items-center justify-center gap-2 rounded-xl bg-[#ff4500] px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-[#ff4500]/90"
       >
         {parteExiste || !puedeEditarParte ? (

@@ -37,6 +37,8 @@ export function ParteCheckinForm({
   estadoInicial,
   observacionInicial = "",
   destino = "bitacora",
+  onSaved,
+  compact = false,
 }: {
   proyectos: ProyectoOpt[];
   empleados: EmpleadoOpt[];
@@ -47,8 +49,12 @@ export function ParteCheckinForm({
   /** Estado inicial de asistencia por empleado (para editar un parte existente). */
   estadoInicial?: Record<string, Estado>;
   observacionInicial?: string;
-  /** A dónde redirigir tras guardar. */
+  /** A dónde redirigir tras guardar. Se ignora si se pasa onSaved. */
   destino?: "bitacora" | "proyecto";
+  /** Si se provee, se llama tras guardar en lugar de navegar (uso en modal). */
+  onSaved?: () => void;
+  /** Oculta la cabecera proyecto/fecha (redundante dentro de un modal). */
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [proyectoId, setProyectoId] = useState<string>(
@@ -103,6 +109,10 @@ export function ParteCheckinForm({
           observaciones,
           asistencias,
         });
+        if (onSaved) {
+          onSaved();
+          return;
+        }
         router.push(
           destino === "proyecto"
             ? `/proyectos/${res.proyectoId}/parte/${res.fecha}`
@@ -117,42 +127,44 @@ export function ParteCheckinForm({
   return (
     <div className="flex flex-col gap-6">
       {/* Cabecera: proyecto + fecha */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
-        <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-            Obra / Proyecto
-          </label>
-          {proyectoFijo ? (
-            <div className="flex h-12 items-center rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white">
-              {proyectos.find((p) => p.id === proyectoId)?.nombre ?? "Proyecto"}
-            </div>
-          ) : (
-            <select
-              value={proyectoId}
-              onChange={(e) => setProyectoId(e.target.value)}
-              className="h-12 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white focus:border-[#F25C05] focus:outline-none"
-            >
-              {proyectos.length === 0 && <option value="">Sin proyectos</option>}
-              {proyectos.map((p) => (
-                <option key={p.id} value={p.id} className="bg-[#1A1A1A]">
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
-          )}
+      {!compact && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+              Obra / Proyecto
+            </label>
+            {proyectoFijo ? (
+              <div className="flex h-12 items-center rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-bold text-white">
+                {proyectos.find((p) => p.id === proyectoId)?.nombre ?? "Proyecto"}
+              </div>
+            ) : (
+              <select
+                value={proyectoId}
+                onChange={(e) => setProyectoId(e.target.value)}
+                className="h-12 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white focus:border-[#F25C05] focus:outline-none"
+              >
+                {proyectos.length === 0 && <option value="">Sin proyectos</option>}
+                {proyectos.map((p) => (
+                  <option key={p.id} value={p.id} className="bg-[#1A1A1A]">
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+              Fecha del parte
+            </label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="h-12 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white focus:border-[#F25C05] focus:outline-none [color-scheme:dark]"
+            />
+          </div>
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-            Fecha del parte
-          </label>
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-            className="h-12 rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-white focus:border-[#F25C05] focus:outline-none [color-scheme:dark]"
-          />
-        </div>
-      </div>
+      )}
 
       {/* KPIs en vivo */}
       <div className="grid grid-cols-3 gap-4">

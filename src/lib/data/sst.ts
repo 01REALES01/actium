@@ -306,11 +306,8 @@ export async function getAvancesSemanaActual(
   supabase: Client,
   proyectoId: string,
 ): Promise<AvanceDiario[]> {
-  // Semana actual en hora de Colombia, de LUNES a DOMINGO (incluye fines de
-  // semana porque en obra se trabaja sábado/domingo). Operamos sobre mediodía
-  // UTC para evitar corrimientos de huso.
   const base = new Date(`${hoyLocal()}T12:00:00Z`);
-  const diaSemana = base.getUTCDay(); // 0=Dom, 1=Lun...6=Sab
+  const diaSemana = base.getUTCDay();
   const diffAlLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
   const lunes = new Date(base);
   lunes.setUTCDate(base.getUTCDate() + diffAlLunes);
@@ -319,7 +316,8 @@ export async function getAvancesSemanaActual(
 
   const formatDate = (d: Date) => d.toISOString().split("T")[0];
 
-  const { data, error } = await supabase
+  // Avances reales sólo de esta semana
+  const { data: avancesData, error } = await supabase
     .from("proyecto_avances")
     .select("fecha, avance_real")
     .eq("proyecto_id", proyectoId)
@@ -329,17 +327,76 @@ export async function getAvancesSemanaActual(
 
   if (error) throw error;
 
-  const { data: metas } = await supabase
-    .from("proyecto_metas")
-    .select("fecha, avance_esperado")
-    .eq("proyecto_id", proyectoId)
-    .gte("fecha", formatDate(lunes))
-    .lte("fecha", formatDate(domingo));
+  // Traer TODOS los hitos + fecha_inicio del proyecto
+  const [{ data: todasMetas }, { data: proyectoData }] = await Promise.all([
+    supabase
+      .from("proyecto_metas")
+      .select("fecha, avance_esperado")
+      .eq("proyecto_id", proyectoId)
+      .order("fecha", { ascending: true }),
+    supabase
+      .from("proyectos")
+      .select("fecha_inicio")
+      .eq("id", proyectoId)
+      .maybeSingle(),
+  ]);
 
-  const metasMap = new Map((metas || []).map(m => [m.fecha, Number(m.avance_esperado)]));
-  const avancesMap = new Map((data || []).map(a => [a.fecha, Number(a.avance_real)]));
+  const avancesMap = new Map((avancesData || []).map(a => [a.fecha, Number(a.avance_real)]));
 
-  // Mapear a formato de gráfica (Lun=0 … Dom=6)
+  // Construir array de hitos, precedido por un punto de origen en 0
+  const hitosRaw = (todasMetas || []).map(m => ({
+    fecha: m.fecha,
+    valor: Number(m.avance_esperado),
+    ms: new Date(m.fecha + "T12:00:00Z").getTime(),
+  }));
+
+  // Punto de origen: UN DÍA ANTES de fecha_inicio (valor=0), de modo que
+  // fecha_inicio misma ya tenga un valor interpolado visible en la gráfica.
+  const hitos = [...hitosRaw];
+  if (hitos.length > 0) {
+    let origenFecha: string;
+    const fechaInicioRaw = (proyectoData as { fecha_inicio: string | null } | null)?.fecha_inicio;
+    if (fechaInicioRaw) {
+      // Un día antes de fecha_inicio
+      const fechaInicioMs = new Date(fechaInicioRaw + "T12:00:00Z").getTime();
+      origenFecha = formatDate(new Date(fechaInicioMs - 24 * 60 * 60 * 1000));
+    } else {
+      // Sin fecha configurada: 7 días antes del primer hito
+      origenFecha = formatDate(new Date(hitos[0].ms - 7 * 24 * 60 * 60 * 1000));
+    }
+    const origenMs = new Date(origenFecha + "T12:00:00Z").getTime();
+    if (origenMs < hitos[0].ms) {
+      hitos.unshift({ fecha: origenFecha, valor: 0, ms: origenMs });
+    }
+  }
+
+  function interpolarMeta(fechaStr: string): number {
+    if (hitos.length === 0) return 0;
+    const ms = new Date(fechaStr + "T12:00:00Z").getTime();
+
+    // Estrictamente antes del origen -> 0
+    if (ms < hitos[0].ms) return 0;
+
+    // En el origen exacto -> 0 (todavía no ha empezado)
+    if (ms === hitos[0].ms) return 0;
+
+    // Después del último hito -> mantener el último valor
+    if (ms >= hitos[hitos.length - 1].ms) return hitos[hitos.length - 1].valor;
+
+    // Interpolar entre los dos puntos más cercanos
+    for (let i = 0; i < hitos.length - 1; i++) {
+      const a = hitos[i];
+      const b = hitos[i + 1];
+      if (ms > a.ms && ms < b.ms) {
+        const ratio = (ms - a.ms) / (b.ms - a.ms);
+        return Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
+      }
+      // Coincidencia exacta con un hito
+      if (ms === b.ms) return b.valor;
+    }
+    return 0;
+  }
+
   const diasNombre = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
   const result: AvanceDiario[] = [];
 
@@ -347,12 +404,10 @@ export async function getAvancesSemanaActual(
     const currentDate = new Date(lunes);
     currentDate.setUTCDate(lunes.getUTCDate() + i);
     const dateStr = formatDate(currentDate);
-    
-    // Only include days that have either real progress or a meta, or all days?
-    // Let's just include all 7 days for the weekly chart
+
     result.push({
       dia: diasNombre[i],
-      proyectado: metasMap.get(dateStr) || 0,
+      proyectado: interpolarMeta(dateStr),
       real: avancesMap.get(dateStr) || 0,
     });
   }
@@ -378,16 +433,74 @@ export async function getAvanceHoy(
   if (error) throw error;
   if (!data) return null;
 
-  const { data: meta } = await supabase
-    .from("proyecto_metas")
-    .select("avance_esperado")
-    .eq("proyecto_id", proyectoId)
-    .eq("fecha", today)
-    .maybeSingle();
+  // Traer hitos y fecha_inicio para interpolar con punto de origen en 0
+  const [{ data: todasMetas }, { data: proyectoData }] = await Promise.all([
+    supabase
+      .from("proyecto_metas")
+      .select("fecha, avance_esperado")
+      .eq("proyecto_id", proyectoId)
+      .order("fecha", { ascending: true }),
+    supabase
+      .from("proyectos")
+      .select("fecha_inicio")
+      .eq("id", proyectoId)
+      .maybeSingle(),
+  ]);
+
+  const hitosRaw = (todasMetas || []).map(m => ({
+    fecha: m.fecha,
+    valor: Number(m.avance_esperado),
+    ms: new Date(m.fecha + "T12:00:00Z").getTime(),
+  }));
+
+  // Mismo origen que getAvancesSemanaActual: un día ANTES de fecha_inicio
+  const hitos = [...hitosRaw];
+  if (hitos.length > 0) {
+    const fechaInicioRaw = (proyectoData as { fecha_inicio: string | null } | null)?.fecha_inicio;
+    let origenFecha: string;
+    if (fechaInicioRaw) {
+      const fechaInicioMs = new Date(fechaInicioRaw + "T12:00:00Z").getTime();
+      origenFecha = new Date(fechaInicioMs - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    } else {
+      origenFecha = new Date(hitos[0].ms - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    }
+    const origenMs = new Date(origenFecha + "T12:00:00Z").getTime();
+    if (origenMs < hitos[0].ms) {
+      hitos.unshift({ fecha: origenFecha, valor: 0, ms: origenMs });
+    }
+  }
+
+  let proyectado = 0;
+  if (hitos.length > 0) {
+    const ms = new Date(today + "T12:00:00Z").getTime();
+
+    // Estrictamente antes o igual al origen -> 0
+    if (ms <= hitos[0].ms) {
+      proyectado = 0;
+    } else if (ms >= hitos[hitos.length - 1].ms) {
+      // Después del último hito -> mantener el último valor
+      proyectado = hitos[hitos.length - 1].valor;
+    } else {
+      // Interpolar entre los dos puntos más cercanos
+      for (let i = 0; i < hitos.length - 1; i++) {
+        const a = hitos[i];
+        const b = hitos[i + 1];
+        if (ms > a.ms && ms < b.ms) {
+          const ratio = (ms - a.ms) / (b.ms - a.ms);
+          proyectado = Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
+          break;
+        }
+        if (ms === b.ms) {
+          proyectado = b.valor;
+          break;
+        }
+      }
+    }
+  }
 
   return {
     real: Number(data.avance_real),
-    proyectado: meta ? Number(meta.avance_esperado) : 0,
+    proyectado,
   };
 }
 

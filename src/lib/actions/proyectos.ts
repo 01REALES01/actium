@@ -28,12 +28,66 @@ export async function registrarAvanceAction(
     throw new Error("No tiene permisos para registrar avances de obra.");
   }
 
-  // Escritura con admin client (rol ya validado): evita el bloqueo de RLS.
+  // Calcular avance_proyectado para la fecha
+  let avanceProyectado = 0;
   const db = createAdminClient();
+  const [{ data: metas }, { data: proyectoData }] = await Promise.all([
+    db.from("proyecto_metas").select("fecha, avance_esperado").eq("proyecto_id", parsed.data.proyectoId).order("fecha", { ascending: true }),
+    db.from("proyectos").select("fecha_inicio").eq("id", parsed.data.proyectoId).single(),
+  ]);
+
+  const hitosRaw = (metas || []).map(m => ({
+    fecha: m.fecha,
+    valor: Number(m.avance_esperado),
+    ms: new Date(m.fecha + "T12:00:00Z").getTime(),
+  }));
+
+  const hitos = [...hitosRaw];
+  if (hitos.length > 0) {
+    let origenFecha: string;
+    const fechaInicioRaw = (proyectoData as any)?.fecha_inicio;
+    if (fechaInicioRaw) {
+      const fechaInicioMs = new Date(fechaInicioRaw + "T12:00:00Z").getTime();
+      const d = new Date(fechaInicioMs - 24 * 60 * 60 * 1000);
+      origenFecha = d.toISOString().split("T")[0];
+    } else {
+      const d = new Date(hitos[0].ms - 7 * 24 * 60 * 60 * 1000);
+      origenFecha = d.toISOString().split("T")[0];
+    }
+    const origenMs = new Date(origenFecha + "T12:00:00Z").getTime();
+    if (origenMs < hitos[0].ms) {
+      hitos.unshift({ fecha: origenFecha, valor: 0, ms: origenMs });
+    }
+  }
+
+  if (hitos.length > 0) {
+    const ms = new Date(parsed.data.fecha + "T12:00:00Z").getTime();
+    if (ms >= hitos[hitos.length - 1].ms) {
+      avanceProyectado = hitos[hitos.length - 1].valor;
+    } else if (ms > hitos[0].ms) {
+      for (let i = 0; i < hitos.length - 1; i++) {
+        const a = hitos[i];
+        const b = hitos[i + 1];
+        if (ms > a.ms && ms < b.ms) {
+          const ratio = (ms - a.ms) / (b.ms - a.ms);
+          avanceProyectado = Number((a.valor + ratio * (b.valor - a.valor)).toFixed(2));
+          break;
+        }
+        if (ms === b.ms) {
+          avanceProyectado = b.valor;
+          break;
+        }
+      }
+    }
+  }
+
+  // Escritura con admin client (rol ya validado): evita el bloqueo de RLS.
   const { data, error } = await (db.from("proyecto_avances") as any).upsert({
     proyecto_id: parsed.data.proyectoId,
     fecha: parsed.data.fecha,
     avance_real: parsed.data.avanceReal,
+    avance_proyectado: avanceProyectado,
+    notas: parsed.data.notas,
     registrado_por: perfil.id,
   }, { onConflict: 'proyecto_id, fecha' }).select('id').single();
 

@@ -9,10 +9,12 @@ import { Tables } from "@/types/database.types";
 
 export function NuevoIncidenteModal({
   proyectoId,
-  empleadosActivos
+  empleadosActivos,
+  customTrigger
 }: {
-  proyectoId: string,
-  empleadosActivos: Tables<"empleados">[]
+  proyectoId: string;
+  empleadosActivos: Tables<"empleados">[];
+  customTrigger?: React.ReactNode;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -62,14 +64,20 @@ export function NuevoIncidenteModal({
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-500 transition-all hover:bg-red-500/20"
-      >
-        <AlertTriangle className="h-4 w-4" />
-        <span className="hidden sm:inline">Registrar Incidente</span>
-        <span className="sm:hidden">Incidente</span>
-      </button>
+      {customTrigger ? (
+        <div onClick={() => setOpen(true)} className="cursor-pointer">
+          {customTrigger}
+        </div>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex items-center justify-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2 text-xs font-bold text-red-500 transition-all hover:bg-red-500/20"
+        >
+          <AlertTriangle className="h-4 w-4" />
+          <span className="hidden sm:inline">Registrar Incidente</span>
+          <span className="sm:hidden">Incidente</span>
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

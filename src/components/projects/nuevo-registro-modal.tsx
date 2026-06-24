@@ -6,14 +6,48 @@ import { Plus, X } from "lucide-react";
 import { registrarAvanceAction } from "@/lib/actions/proyectos";
 import { hoyLocal } from "@/lib/fecha";
 
-export function NuevoRegistroModal({ proyectoId, unidad = "MT" }: { proyectoId: string, unidad?: string }) {
+export function NuevoRegistroModal({ 
+  proyectoId, 
+  unidad = "MT",
+  metaTotal,
+  customTrigger 
+}: { 
+  proyectoId: string; 
+  unidad?: string;
+  /** Meta total del proyecto en unidades (para calcular %) */
+  metaTotal?: number | null;
+  customTrigger?: React.ReactNode;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fecha, setFecha] = useState(hoyLocal());
   const [avanceReal, setAvanceReal] = useState("");
+  const [porcentaje, setPorcentaje] = useState("");
   const [notas, setNotas] = useState("");
+
+  const puedeConvertir = metaTotal && metaTotal > 0;
+
+  function handleCantidadChange(val: string) {
+    setAvanceReal(val);
+    if (puedeConvertir && val !== "") {
+      const n = parseFloat(val);
+      if (!isNaN(n)) setPorcentaje(((n / metaTotal!) * 100).toFixed(2));
+    } else {
+      setPorcentaje("");
+    }
+  }
+
+  function handlePorcentajeChange(val: string) {
+    setPorcentaje(val);
+    if (puedeConvertir && val !== "") {
+      const p = parseFloat(val);
+      if (!isNaN(p)) setAvanceReal(((p / 100) * metaTotal!).toFixed(2));
+    } else {
+      setAvanceReal("");
+    }
+  }
 
   function handleClose() {
     setOpen(false);
@@ -33,6 +67,7 @@ export function NuevoRegistroModal({ proyectoId, unidad = "MT" }: { proyectoId: 
       });
       handleClose();
       setAvanceReal("");
+      setPorcentaje("");
       setNotas("");
       router.refresh();
     } catch (err) {
@@ -44,14 +79,20 @@ export function NuevoRegistroModal({ proyectoId, unidad = "MT" }: { proyectoId: 
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#F25C05] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
-      >
-        <Plus className="h-4 w-4" />
-        <span className="hidden sm:inline">Nuevo Registro</span>
-        <span className="sm:hidden">Registro</span>
-      </button>
+      {customTrigger ? (
+        <div onClick={() => setOpen(true)} className="cursor-pointer">
+          {customTrigger}
+        </div>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#F25C05] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
+        >
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Nuevo Registro</span>
+          <span className="sm:hidden">Registro</span>
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -91,20 +132,47 @@ export function NuevoRegistroModal({ proyectoId, unidad = "MT" }: { proyectoId: 
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                  Avance Real ({unidad})
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={avanceReal}
-                  onChange={(e) => setAvanceReal(e.target.value)}
-                  placeholder="0.00"
-                  required
-                  className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
-                />
+              {/* Cantidad y porcentaje — bidireccional */}
+              <div className={`grid gap-3 ${puedeConvertir ? "grid-cols-2" : "grid-cols-1"}`}>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                    Avance Real ({unidad})
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={avanceReal}
+                    onChange={(e) => handleCantidadChange(e.target.value)}
+                    placeholder="0.00"
+                    required
+                    className="rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all"
+                  />
+                </div>
+
+                {puedeConvertir && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                      Porcentaje (%)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={porcentaje}
+                        onChange={(e) => handlePorcentajeChange(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/20 focus:border-[#F25C05]/50 focus:outline-none focus:ring-1 focus:ring-[#F25C05]/30 transition-all pr-8"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-white/30">%</span>
+                    </div>
+                    <p className="text-[9px] text-white/20 font-medium tracking-wide">
+                      Meta total: {metaTotal} {unidad}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">
