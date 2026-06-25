@@ -78,7 +78,12 @@ export function puedeEditarParteDiario(rol: UserRole | null | undefined): boolea
  */
 export function puedeVerPersonal(rol: UserRole | null | undefined): boolean {
   return (
-    rol === "super_admin" || rol === "admin" || rol === "sst" || rol === "operativo"
+    rol === "super_admin" ||
+    rol === "admin" ||
+    rol === "sst" ||
+    rol === "operativo" ||
+    rol === "cliente_principal" ||
+    rol === "subcliente"
   );
 }
 
@@ -113,8 +118,8 @@ const NAV_BY_ROLE: Record<UserRole, NavKey[]> = {
   financiero: ["dashboard"],
   sst: ["dashboard", "personal", "sst"],
   operativo: ["dashboard", "personal"],
-  cliente_principal: ["dashboard"],
-  subcliente: ["dashboard"],
+  cliente_principal: ["dashboard", "personal"],
+  subcliente: ["dashboard", "personal"],
 };
 
 export function getNavItems(rol: UserRole | null | undefined): NavItemDef[] {
