@@ -330,3 +330,32 @@ export async function uploadFotoAction(formData: FormData): Promise<void> {
   revalidatePath(`/proyectos/${proyectoId}`);
 }
 
+// ─── Eliminar registro de avance ──────────────────────────────────────────────
+
+const EliminarAvanceSchema = z.object({
+  avanceId: z.string().min(1),
+  proyectoId: z.string().min(1),
+});
+
+export async function eliminarAvanceAction(
+  input: z.infer<typeof EliminarAvanceSchema>,
+): Promise<void> {
+  const parsed = EliminarAvanceSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(`Datos inválidos: ${parsed.error.message}`);
+  }
+
+  await assertSuperAdmin();
+
+  const db = createAdminClient();
+  const { error } = await db
+    .from("proyecto_avances")
+    .delete()
+    .eq("id", parsed.data.avanceId)
+    .eq("proyecto_id", parsed.data.proyectoId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
+}
+

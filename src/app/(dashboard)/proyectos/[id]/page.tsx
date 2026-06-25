@@ -19,6 +19,7 @@ import { SSTCard } from "@/components/projects/sst-card";
 import { ProjectProgressChart } from "@/components/projects/project-progress-chart";
 import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { WeeklyComplianceChart } from "@/components/projects/weekly-compliance-chart";
+import { RegistrosAvanceTable } from "@/components/projects/registros-avance-table";
 import { PhotoGallery } from "@/components/projects/photo-gallery";
 import { ObservationsSection } from "@/components/projects/observations-section";
 import { PlanificadorCurvaModal } from "@/components/projects/planificador-curva-modal";
@@ -258,6 +259,18 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
           )}
         </div>
       </div>
+
+      {/* Tabla de registros de avance — solo super_admin */}
+      {puedeEditar && avances.length > 0 && (
+        <div className="w-full">
+          <RegistrosAvanceTable
+            avances={avances as any}
+            proyectoId={proyecto.id}
+            unidad={proyecto.unidad_medida}
+            puedeEditar={puedeEditar}
+          />
+        </div>
+      )}
 
       {/* Últimos Partes (Historial Rápido) */}
       <div className="w-full">
