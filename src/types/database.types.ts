@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -476,6 +456,13 @@ export type Database = {
             referencedColumns: ["proyecto_id"]
           },
           {
+            foreignKeyName: "ausentismos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
             foreignKeyName: "ausentismos_registrado_por_fkey"
             columns: ["registrado_por"]
             isOneToOne: false
@@ -721,6 +708,282 @@ export type Database = {
           },
         ]
       }
+      cuentas_por_cobrar: {
+        Row: {
+          cliente_nit: string | null
+          cliente_nombre: string
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["factura_estado"]
+          fecha_emision: string
+          fecha_vencimiento: string
+          id: string
+          monto_cobrado: number
+          monto_total: number
+          notas: string | null
+          numero_factura: string
+          proyecto_id: string
+          rubro_id: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_nit?: string | null
+          cliente_nombre: string
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_emision: string
+          fecha_vencimiento: string
+          id?: string
+          monto_cobrado?: number
+          monto_total: number
+          notas?: string | null
+          numero_factura: string
+          proyecto_id: string
+          rubro_id: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_nit?: string | null
+          cliente_nombre?: string
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_emision?: string
+          fecha_vencimiento?: string
+          id?: string
+          monto_cobrado?: number
+          monto_total?: number
+          notas?: string | null
+          numero_factura?: string
+          proyecto_id?: string
+          rubro_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuentas_por_cobrar_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_rubro_id_fkey"
+            columns: ["rubro_id"]
+            isOneToOne: false
+            referencedRelation: "rubros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_rubro_id_fkey"
+            columns: ["rubro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_flujo_caja_quincenal"
+            referencedColumns: ["rubro_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_rubro_id_fkey"
+            columns: ["rubro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_rubro_balance"
+            referencedColumns: ["rubro_id"]
+          },
+        ]
+      }
+      cuentas_por_cobrar_cuotas: {
+        Row: {
+          created_at: string
+          cxc_id: string
+          estado: Database["public"]["Enums"]["factura_estado"]
+          fecha_vencimiento: string
+          id: string
+          monto: number
+          monto_cobrado: number
+          numero_cuota: number
+          proyecto_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cxc_id: string
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_vencimiento: string
+          id?: string
+          monto: number
+          monto_cobrado?: number
+          numero_cuota: number
+          proyecto_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cxc_id?: string
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_vencimiento?: string
+          id?: string
+          monto?: number
+          monto_cobrado?: number
+          numero_cuota?: number
+          proyecto_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuentas_por_cobrar_cuotas_cxc_id_fkey"
+            columns: ["cxc_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas_por_cobrar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_cuotas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_cuotas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_cobrar_cuotas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+        ]
+      }
+      cuentas_por_pagar: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["factura_estado"]
+          fecha_emision: string
+          fecha_vencimiento: string
+          id: string
+          monto_pagado: number
+          monto_total: number
+          notas: string | null
+          numero_factura: string
+          proveedor_nit: string | null
+          proveedor_nombre: string
+          proyecto_id: string
+          rubro_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_emision: string
+          fecha_vencimiento: string
+          id?: string
+          monto_pagado?: number
+          monto_total: number
+          notas?: string | null
+          numero_factura: string
+          proveedor_nit?: string | null
+          proveedor_nombre: string
+          proyecto_id: string
+          rubro_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_emision?: string
+          fecha_vencimiento?: string
+          id?: string
+          monto_pagado?: number
+          monto_total?: number
+          notas?: string | null
+          numero_factura?: string
+          proveedor_nit?: string | null
+          proveedor_nombre?: string
+          proyecto_id?: string
+          rubro_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuentas_por_pagar_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_rubro_id_fkey"
+            columns: ["rubro_id"]
+            isOneToOne: false
+            referencedRelation: "rubros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_rubro_id_fkey"
+            columns: ["rubro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_flujo_caja_quincenal"
+            referencedColumns: ["rubro_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_rubro_id_fkey"
+            columns: ["rubro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_rubro_balance"
+            referencedColumns: ["rubro_id"]
+          },
+        ]
+      }
       empleado_documentos: {
         Row: {
           empleado_id: string
@@ -829,6 +1092,13 @@ export type Database = {
             referencedRelation: "vw_proyecto_resumen"
             referencedColumns: ["proyecto_id"]
           },
+          {
+            foreignKeyName: "empleado_proyectos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
         ]
       }
       empleados: {
@@ -902,13 +1172,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "empresas"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "empleados_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dashboard_empresa"
-            referencedColumns: ["empresa_id"]
           },
           {
             foreignKeyName: "empleados_subempresa_id_fkey"
@@ -991,13 +1254,6 @@ export type Database = {
             referencedRelation: "empresas"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "formulario_secuencias_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dashboard_empresa"
-            referencedColumns: ["empresa_id"]
-          },
         ]
       }
       formularios: {
@@ -1074,13 +1330,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "formularios_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dashboard_empresa"
-            referencedColumns: ["empresa_id"]
-          },
-          {
             foreignKeyName: "formularios_proyecto_id_fkey"
             columns: ["proyecto_id"]
             isOneToOne: false
@@ -1092,6 +1341,13 @@ export type Database = {
             columns: ["proyecto_id"]
             isOneToOne: false
             referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "formularios_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
             referencedColumns: ["proyecto_id"]
           },
           {
@@ -1166,6 +1422,13 @@ export type Database = {
             columns: ["proyecto_id"]
             isOneToOne: false
             referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "fotos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
             referencedColumns: ["proyecto_id"]
           },
         ]
@@ -1296,6 +1559,13 @@ export type Database = {
             referencedColumns: ["proyecto_id"]
           },
           {
+            foreignKeyName: "incidentes_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
             foreignKeyName: "incidentes_registrado_por_fkey"
             columns: ["registrado_por"]
             isOneToOne: false
@@ -1311,6 +1581,7 @@ export type Database = {
           created_at: string
           ejecutado_at: string | null
           estado: Database["public"]["Enums"]["movimiento_estado"]
+          fecha_efectiva: string
           id: string
           justificacion: string
           monto: number
@@ -1327,6 +1598,7 @@ export type Database = {
           created_at?: string
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
+          fecha_efectiva?: string
           id?: string
           justificacion: string
           monto: number
@@ -1343,6 +1615,7 @@ export type Database = {
           created_at?: string
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
+          fecha_efectiva?: string
           id?: string
           justificacion?: string
           monto?: number
@@ -1376,11 +1649,25 @@ export type Database = {
             referencedColumns: ["proyecto_id"]
           },
           {
+            foreignKeyName: "movimientos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
             foreignKeyName: "movimientos_rubro_destino_id_fkey"
             columns: ["rubro_destino_id"]
             isOneToOne: false
             referencedRelation: "rubros"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_rubro_destino_id_fkey"
+            columns: ["rubro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_flujo_caja_quincenal"
+            referencedColumns: ["rubro_id"]
           },
           {
             foreignKeyName: "movimientos_rubro_destino_id_fkey"
@@ -1395,6 +1682,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "rubros"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_rubro_origen_id_fkey"
+            columns: ["rubro_origen_id"]
+            isOneToOne: false
+            referencedRelation: "vw_flujo_caja_quincenal"
+            referencedColumns: ["rubro_id"]
           },
           {
             foreignKeyName: "movimientos_rubro_origen_id_fkey"
@@ -1462,46 +1756,53 @@ export type Database = {
             referencedRelation: "vw_proyecto_resumen"
             referencedColumns: ["proyecto_id"]
           },
+          {
+            foreignKeyName: "observaciones_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
         ]
       }
       partes_diarios_sst: {
         Row: {
-          id: string
-          empresa_id: string
-          subempresa_id: string | null
-          proyecto_id: string
-          fecha: string
-          total_programado: number
-          presentes: number
-          observaciones: string | null
-          registrado_por: string | null
           created_at: string
+          empresa_id: string
+          fecha: string
+          id: string
+          observaciones: string | null
+          presentes: number
+          proyecto_id: string
+          registrado_por: string | null
+          subempresa_id: string | null
+          total_programado: number
           updated_at: string
         }
         Insert: {
-          id?: string
-          empresa_id: string
-          subempresa_id?: string | null
-          proyecto_id: string
-          fecha: string
-          total_programado?: number
-          presentes?: number
-          observaciones?: string | null
-          registrado_por?: string | null
           created_at?: string
+          empresa_id: string
+          fecha: string
+          id?: string
+          observaciones?: string | null
+          presentes?: number
+          proyecto_id: string
+          registrado_por?: string | null
+          subempresa_id?: string | null
+          total_programado?: number
           updated_at?: string
         }
         Update: {
-          id?: string
-          empresa_id?: string
-          subempresa_id?: string | null
-          proyecto_id?: string
-          fecha?: string
-          total_programado?: number
-          presentes?: number
-          observaciones?: string | null
-          registrado_por?: string | null
           created_at?: string
+          empresa_id?: string
+          fecha?: string
+          id?: string
+          observaciones?: string | null
+          presentes?: number
+          proyecto_id?: string
+          registrado_por?: string | null
+          subempresa_id?: string | null
+          total_programado?: number
           updated_at?: string
         }
         Relationships: [
@@ -1513,18 +1814,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "partes_diarios_sst_subempresa_id_fkey"
-            columns: ["subempresa_id"]
+            foreignKeyName: "partes_diarios_sst_proyecto_id_fkey"
+            columns: ["proyecto_id"]
             isOneToOne: false
-            referencedRelation: "subempresas"
+            referencedRelation: "proyectos"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "partes_diarios_sst_proyecto_id_fkey"
             columns: ["proyecto_id"]
             isOneToOne: false
-            referencedRelation: "proyectos"
-            referencedColumns: ["id"]
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "partes_diarios_sst_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
           },
           {
             foreignKeyName: "partes_diarios_sst_registrado_por_fkey"
@@ -1533,38 +1841,13 @@ export type Database = {
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      proyecto_metas: {
-        Row: {
-          id: string
-          proyecto_id: string
-          fecha: string
-          avance_esperado: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          proyecto_id: string
-          fecha: string
-          avance_esperado: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          proyecto_id?: string
-          fecha?: string
-          avance_esperado?: number
-          created_at?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "proyecto_metas_proyecto_id_fkey"
-            columns: ["proyecto_id"]
+            foreignKeyName: "partes_diarios_sst_subempresa_id_fkey"
+            columns: ["subempresa_id"]
             isOneToOne: false
-            referencedRelation: "proyectos"
+            referencedRelation: "subempresas"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       proyecto_avances: {
@@ -1614,11 +1897,64 @@ export type Database = {
             referencedColumns: ["proyecto_id"]
           },
           {
+            foreignKeyName: "proyecto_avances_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
             foreignKeyName: "proyecto_avances_registrado_por_fkey"
             columns: ["registrado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      proyecto_metas: {
+        Row: {
+          avance_esperado: number
+          created_at: string | null
+          fecha: string
+          id: string
+          proyecto_id: string
+        }
+        Insert: {
+          avance_esperado: number
+          created_at?: string | null
+          fecha: string
+          id?: string
+          proyecto_id: string
+        }
+        Update: {
+          avance_esperado?: number
+          created_at?: string | null
+          fecha?: string
+          id?: string
+          proyecto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proyecto_metas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proyecto_metas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "proyecto_metas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
           },
         ]
       }
@@ -1667,6 +2003,13 @@ export type Database = {
             referencedColumns: ["proyecto_id"]
           },
           {
+            foreignKeyName: "proyecto_usuarios_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
             foreignKeyName: "proyecto_usuarios_usuario_id_fkey"
             columns: ["usuario_id"]
             isOneToOne: false
@@ -1686,14 +2029,15 @@ export type Database = {
           deleted_at: string | null
           descripcion: string | null
           empresa_id: string
+          es_interno: boolean
           estado: Database["public"]["Enums"]["proyecto_estado"]
+          etiqueta_eje_y: string | null
           fecha_fin_proyectada: string | null
           fecha_fin_real: string | null
           fecha_inicio: string | null
           id: string
-          nombre: string
-          etiqueta_eje_y: string | null
           meta_total_cantidad: number | null
+          nombre: string
           notas: string | null
           presupuesto_total: number | null
           subempresa_id: string
@@ -1711,14 +2055,15 @@ export type Database = {
           deleted_at?: string | null
           descripcion?: string | null
           empresa_id: string
+          es_interno?: boolean
           estado?: Database["public"]["Enums"]["proyecto_estado"]
+          etiqueta_eje_y?: string | null
           fecha_fin_proyectada?: string | null
           fecha_fin_real?: string | null
           fecha_inicio?: string | null
           id?: string
-          nombre: string
-          etiqueta_eje_y?: string | null
           meta_total_cantidad?: number | null
+          nombre: string
           notas?: string | null
           presupuesto_total?: number | null
           subempresa_id: string
@@ -1736,14 +2081,15 @@ export type Database = {
           deleted_at?: string | null
           descripcion?: string | null
           empresa_id?: string
+          es_interno?: boolean
           estado?: Database["public"]["Enums"]["proyecto_estado"]
+          etiqueta_eje_y?: string | null
           fecha_fin_proyectada?: string | null
           fecha_fin_real?: string | null
           fecha_inicio?: string | null
           id?: string
-          nombre?: string
-          etiqueta_eje_y?: string | null
           meta_total_cantidad?: number | null
+          nombre?: string
           notas?: string | null
           presupuesto_total?: number | null
           subempresa_id?: string
@@ -1767,13 +2113,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "proyectos_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dashboard_empresa"
-            referencedColumns: ["empresa_id"]
-          },
-          {
             foreignKeyName: "proyectos_subempresa_id_fkey"
             columns: ["subempresa_id"]
             isOneToOne: false
@@ -1785,6 +2124,8 @@ export type Database = {
       rubros: {
         Row: {
           activo: boolean
+          categoria: Database["public"]["Enums"]["categoria_flujo"]
+          codigo: string | null
           created_at: string
           descripcion: string | null
           id: string
@@ -1796,6 +2137,8 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          categoria?: Database["public"]["Enums"]["categoria_flujo"]
+          codigo?: string | null
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -1807,6 +2150,8 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          categoria?: Database["public"]["Enums"]["categoria_flujo"]
+          codigo?: string | null
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -1829,6 +2174,13 @@ export type Database = {
             columns: ["proyecto_id"]
             isOneToOne: false
             referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "rubros_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
             referencedColumns: ["proyecto_id"]
           },
         ]
@@ -1874,13 +2226,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "empresas"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "subempresas_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dashboard_empresa"
-            referencedColumns: ["empresa_id"]
           },
         ]
       }
@@ -1942,13 +2287,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "usuarios_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dashboard_empresa"
-            referencedColumns: ["empresa_id"]
-          },
-          {
             foreignKeyName: "usuarios_subempresa_id_fkey"
             columns: ["subempresa_id"]
             isOneToOne: false
@@ -1959,18 +2297,39 @@ export type Database = {
       }
     }
     Views: {
-      vw_dashboard_empresa: {
+      vw_flujo_caja_quincenal: {
         Row: {
-          empresa_id: string | null
-          incidentes_30d: number | null
-          nombre: string | null
-          presupuesto_ejecutado_empresa: number | null
-          presupuesto_total_empresa: number | null
-          proyectos_completados: number | null
-          proyectos_en_curso: number | null
-          proyectos_total: number | null
+          categoria: Database["public"]["Enums"]["categoria_flujo"] | null
+          proyecto_id: string | null
+          quincena: string | null
+          rubro_codigo: string | null
+          rubro_id: string | null
+          rubro_nombre: string | null
+          total_periodo: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rubros_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rubros_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "rubros_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+        ]
       }
       vw_proyecto_resumen: {
         Row: {
@@ -2001,13 +2360,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "proyectos_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "vw_dashboard_empresa"
-            referencedColumns: ["empresa_id"]
-          },
-          {
             foreignKeyName: "proyectos_subempresa_id_fkey"
             columns: ["subempresa_id"]
             isOneToOne: false
@@ -2016,8 +2368,34 @@ export type Database = {
           },
         ]
       }
+      vw_proyectos_finanzas: {
+        Row: {
+          empresa_id: string | null
+          es_interno: boolean | null
+          estado: Database["public"]["Enums"]["proyecto_estado"] | null
+          porcentaje_ejecutado: number | null
+          presupuesto_comprometido: number | null
+          presupuesto_disponible: number | null
+          presupuesto_ejecutado: number | null
+          presupuesto_fijado: number | null
+          presupuesto_total: number | null
+          proyecto_id: string | null
+          proyecto_nombre: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proyectos_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_rubro_balance: {
         Row: {
+          categoria: Database["public"]["Enums"]["categoria_flujo"] | null
+          codigo: string | null
           comprometido: number | null
           disponible: number | null
           ejecutado: number | null
@@ -2042,10 +2420,25 @@ export type Database = {
             referencedRelation: "vw_proyecto_resumen"
             referencedColumns: ["proyecto_id"]
           },
+          {
+            foreignKeyName: "rubros_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
         ]
       }
     }
     Functions: {
+      ajustar_techo_rubro: {
+        Args: {
+          p_justificacion: string
+          p_nuevo_monto: number
+          p_rubro_id: string
+        }
+        Returns: string
+      }
       aprobar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
@@ -2053,6 +2446,10 @@ export type Database = {
       auth_empresa_id: { Args: never; Returns: string }
       auth_es_admin_o_superior: { Args: never; Returns: boolean }
       auth_es_super_admin: { Args: never; Returns: boolean }
+      auth_puede_ver_proyecto: {
+        Args: { p_proyecto_id: string }
+        Returns: boolean
+      }
       auth_rol: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
@@ -2078,12 +2475,29 @@ export type Database = {
         Args: { p_formulario_id: string }
         Returns: undefined
       }
+      crear_cxc_con_cuotas: {
+        Args: {
+          p_cliente_nit: string
+          p_cliente_nombre: string
+          p_fecha_emision: string
+          p_fecha_primera_cuota: string
+          p_monto_total: number
+          p_notas?: string
+          p_numero_cuotas: number
+          p_numero_factura: string
+          p_periodicidad: Database["public"]["Enums"]["cuota_periodicidad"]
+          p_proyecto_id: string
+          p_rubro_id: string
+        }
+        Returns: string
+      }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
       ejecutar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
       path_empresa_id: { Args: { obj_path: string }; Returns: string }
+      path_subempresa_id: { Args: { obj_path: string }; Returns: string }
       rechazar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
@@ -2096,6 +2510,18 @@ export type Database = {
           p_notas?: string
           p_proyecto_id: string
         }
+        Returns: string
+      }
+      registrar_cobro_cuota_cxc: {
+        Args: { p_cuota_id: string; p_fecha?: string; p_monto: number }
+        Returns: string
+      }
+      registrar_cobro_cxc: {
+        Args: { p_cxc_id: string; p_fecha?: string; p_monto: number }
+        Returns: string
+      }
+      registrar_pago_cxp: {
+        Args: { p_cxp_id: string; p_fecha?: string; p_monto: number }
         Returns: string
       }
       show_limit: { Args: never; Returns: number }
@@ -2119,7 +2545,13 @@ export type Database = {
         | "incapacidad"
         | "vacaciones"
         | "otro"
+      categoria_flujo:
+        | "costos_operativos"
+        | "gastos_administrativos"
+        | "gastos_financieros"
+        | "ingresos"
       chequeo_resultado: "si" | "no" | "na"
+      cuota_periodicidad: "quincenal" | "mensual"
       documento_empleado_tipo:
         | "cedula"
         | "arl"
@@ -2128,6 +2560,7 @@ export type Database = {
         | "certificacion_caliente"
         | "examen_medico"
         | "otro"
+      factura_estado: "pendiente" | "parcial" | "pagada" | "vencida" | "anulada"
       firma_momento: "inicio" | "fin"
       formulario_estado: "borrador" | "completado" | "firmado" | "archivado"
       formulario_tipo: "ats" | "permiso_altura" | "permiso_caliente"
@@ -2150,551 +2583,6 @@ export type Database = {
         | "sst"
         | "operativo"
         | "financiero"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  storage: {
-    Tables: {
-      buckets: {
-        Row: {
-          allowed_mime_types: string[] | null
-          avif_autodetection: boolean | null
-          created_at: string | null
-          file_size_limit: number | null
-          id: string
-          name: string
-          owner: string | null
-          owner_id: string | null
-          public: boolean | null
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string | null
-        }
-        Insert: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id: string
-          name: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Update: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id?: string
-          name?: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      buckets_analytics: {
-        Row: {
-          created_at: string
-          deleted_at: string | null
-          format: string
-          id: string
-          name: string
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name?: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      buckets_vectors: {
-        Row: {
-          created_at: string
-          id: string
-          type: Database["storage"]["Enums"]["buckettype"]
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          type?: Database["storage"]["Enums"]["buckettype"]
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      iceberg_namespaces: {
-        Row: {
-          bucket_name: string
-          catalog_id: string
-          created_at: string
-          id: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_name: string
-          catalog_id: string
-          created_at?: string
-          id?: string
-          metadata?: Json
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_name?: string
-          catalog_id?: string
-          created_at?: string
-          id?: string
-          metadata?: Json
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "iceberg_namespaces_catalog_id_fkey"
-            columns: ["catalog_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_analytics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      iceberg_tables: {
-        Row: {
-          bucket_name: string
-          catalog_id: string
-          created_at: string
-          id: string
-          location: string
-          name: string
-          namespace_id: string
-          remote_table_id: string | null
-          shard_id: string | null
-          shard_key: string | null
-          updated_at: string
-        }
-        Insert: {
-          bucket_name: string
-          catalog_id: string
-          created_at?: string
-          id?: string
-          location: string
-          name: string
-          namespace_id: string
-          remote_table_id?: string | null
-          shard_id?: string | null
-          shard_key?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bucket_name?: string
-          catalog_id?: string
-          created_at?: string
-          id?: string
-          location?: string
-          name?: string
-          namespace_id?: string
-          remote_table_id?: string | null
-          shard_id?: string | null
-          shard_key?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "iceberg_tables_catalog_id_fkey"
-            columns: ["catalog_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_analytics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "iceberg_tables_namespace_id_fkey"
-            columns: ["namespace_id"]
-            isOneToOne: false
-            referencedRelation: "iceberg_namespaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      migrations: {
-        Row: {
-          executed_at: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Insert: {
-          executed_at?: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Update: {
-          executed_at?: string | null
-          hash?: string
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      objects: {
-        Row: {
-          bucket_id: string | null
-          created_at: string | null
-          id: string
-          last_accessed_at: string | null
-          metadata: Json | null
-          name: string | null
-          owner: string | null
-          owner_id: string | null
-          path_tokens: string[] | null
-          updated_at: string | null
-          user_metadata: Json | null
-          version: string | null
-        }
-        Insert: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Update: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "objects_bucketId_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          in_progress_size: number
-          key: string
-          metadata: Json | null
-          owner_id: string | null
-          upload_signature: string
-          user_metadata: Json | null
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id: string
-          in_progress_size?: number
-          key: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature: string
-          user_metadata?: Json | null
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          in_progress_size?: number
-          key?: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature?: string
-          user_metadata?: Json | null
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      s3_multipart_uploads_parts: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          etag: string
-          id: string
-          key: string
-          owner_id: string | null
-          part_number: number
-          size: number
-          upload_id: string
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          etag: string
-          id?: string
-          key: string
-          owner_id?: string | null
-          part_number: number
-          size?: number
-          upload_id: string
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          etag?: string
-          id?: string
-          key?: string
-          owner_id?: string | null
-          part_number?: number
-          size?: number
-          upload_id?: string
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "s3_multipart_uploads_parts_upload_id_fkey"
-            columns: ["upload_id"]
-            isOneToOne: false
-            referencedRelation: "s3_multipart_uploads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vector_indexes: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id: string
-          metadata_configuration: Json | null
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id?: string
-          metadata_configuration?: Json | null
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          data_type?: string
-          dimension?: number
-          distance_metric?: string
-          id?: string
-          metadata_configuration?: Json | null
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vector_indexes_bucket_id_fkey"
-            columns: ["bucket_id"]
-            isOneToOne: false
-            referencedRelation: "buckets_vectors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      allow_any_operation: {
-        Args: { expected_operations: string[] }
-        Returns: boolean
-      }
-      allow_only_operation: {
-        Args: { expected_operation: string }
-        Returns: boolean
-      }
-      can_insert_object: {
-        Args: { bucketid: string; metadata: Json; name: string; owner: string }
-        Returns: undefined
-      }
-      extension: { Args: { name: string }; Returns: string }
-      filename: { Args: { name: string }; Returns: string }
-      foldername: { Args: { name: string }; Returns: string[] }
-      get_common_prefix: {
-        Args: { p_delimiter: string; p_key: string; p_prefix: string }
-        Returns: string
-      }
-      get_size_by_bucket: {
-        Args: never
-        Returns: {
-          bucket_id: string
-          size: number
-        }[]
-      }
-      list_multipart_uploads_with_delimiter: {
-        Args: {
-          bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_key_token?: string
-          next_upload_token?: string
-          prefix_param: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-        }[]
-      }
-      list_objects_with_delimiter: {
-        Args: {
-          _bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_token?: string
-          prefix_param: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      operation: { Args: never; Returns: string }
-      search: {
-        Args: {
-          bucketname: string
-          levels?: number
-          limits?: number
-          offsets?: number
-          prefix: string
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_by_timestamp: {
-        Args: {
-          p_bucket_id: string
-          p_level: number
-          p_limit: number
-          p_prefix: string
-          p_sort_column: string
-          p_sort_column_after: string
-          p_sort_order: string
-          p_start_after: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_v2: {
-        Args: {
-          bucket_name: string
-          levels?: number
-          limits?: number
-          prefix: string
-          sort_column?: string
-          sort_column_after?: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-    }
-    Enums: {
-      buckettype: "STANDARD" | "ANALYTICS" | "VECTOR"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2820,9 +2708,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       ausentismo_tipo: [
@@ -2832,7 +2717,14 @@ export const Constants = {
         "vacaciones",
         "otro",
       ],
+      categoria_flujo: [
+        "costos_operativos",
+        "gastos_administrativos",
+        "gastos_financieros",
+        "ingresos",
+      ],
       chequeo_resultado: ["si", "no", "na"],
+      cuota_periodicidad: ["quincenal", "mensual"],
       documento_empleado_tipo: [
         "cedula",
         "arl",
@@ -2842,6 +2734,7 @@ export const Constants = {
         "examen_medico",
         "otro",
       ],
+      factura_estado: ["pendiente", "parcial", "pagada", "vencida", "anulada"],
       firma_momento: ["inicio", "fin"],
       formulario_estado: ["borrador", "completado", "firmado", "archivado"],
       formulario_tipo: ["ats", "permiso_altura", "permiso_caliente"],
@@ -2868,13 +2761,7 @@ export const Constants = {
       ],
     },
   },
-  storage: {
-    Enums: {
-      buckettype: ["STANDARD", "ANALYTICS", "VECTOR"],
-    },
-  },
 } as const
-
 
 // ─── Convenience aliases ──────────────────────────────────────────────────────
 export type TypedSupabaseClient = import('@supabase/supabase-js').SupabaseClient<Database, any, any>;
@@ -2887,5 +2774,8 @@ export type IncidenteTipo = Enums<'incidente_tipo'>;
 export type IncidenteSeveridad = Enums<'incidente_severidad'>;
 export type MovimientoEstado = Enums<'movimiento_estado'>;
 export type MovimientoTipo = Enums<'movimiento_tipo'>;
-export type AusentismoTipo = Enums<'ausentismo_tipo'>;
+export type CategoriaFlujo = Enums<'categoria_flujo'>;
+export type FacturaEstado = Enums<'factura_estado'>;
 export type DocumentoEmpleadoTipo = Enums<'documento_empleado_tipo'>;
+export type AusentismoTipo = Enums<'ausentismo_tipo'>;
+export type CuotaPeriodicidad = Enums<'cuota_periodicidad'>;

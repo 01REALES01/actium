@@ -93,7 +93,7 @@ export type NavKey =
   | "dashboard"
   | "personal"
   | "sst"
-  | "presupuesto"
+  | "finanzas"
   | "admin";
 
 export type NavItemDef = {
@@ -107,15 +107,17 @@ const ALL_NAV: NavItemDef[] = [
   { key: "dashboard", label: "Proyectos", href: "/proyectos", icon: "FolderKanban" },
   { key: "personal", label: "Personal", href: "/field-workers", icon: "HardHat" },
   { key: "sst", label: "Permisos", href: "/sst", icon: "ShieldAlert" },
-  { key: "presupuesto", label: "Presupuesto", href: "/presupuesto", icon: "Calculator" },
+  { key: "finanzas", label: "Finanzas", href: "/finanzas", icon: "Wallet" },
   { key: "admin", label: "Administración", href: "/admin", icon: "ShieldCheck" },
 ];
 
-// Qué claves de navegación ve cada rol
+// Qué claves de navegación ve cada rol. Finanzas es visible en modo lectura
+// para admin/financiero (ven cifras, no CTAs de escritura — ver
+// puedeGestionarPresupuesto); solo super_admin puede escribir.
 const NAV_BY_ROLE: Record<UserRole, NavKey[]> = {
-  super_admin: ["dashboard", "personal", "sst", "presupuesto", "admin"],
-  admin: ["dashboard", "personal", "sst"],
-  financiero: ["dashboard"],
+  super_admin: ["dashboard", "personal", "sst", "finanzas", "admin"],
+  admin: ["dashboard", "personal", "sst", "finanzas"],
+  financiero: ["dashboard", "finanzas"],
   sst: ["dashboard", "personal", "sst"],
   operativo: ["dashboard", "personal"],
   cliente_principal: ["dashboard", "personal"],

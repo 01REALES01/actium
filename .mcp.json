@@ -15,6 +15,12 @@
         "mcp-remote",
         "https://stitch.googleapis.com/mcp"
       ]
+    },
+    "supabase": {
+      "command": "bash",
+      "args": [
+        "scripts/mcp-supabase.sh"
+      ]
     }
   }
 }
