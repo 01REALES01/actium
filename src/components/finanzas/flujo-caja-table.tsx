@@ -9,7 +9,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { MovimientoDialog } from "@/components/finanzas/movimiento-dialog";
 import { quincenaDe } from "@/lib/data/flujo-caja";
 import { formatCOP, formatMontoContable, formatFechaCorta } from "@/lib/format";
 import type { CategoriaFlujo, Tables } from "@/types/database.types";
@@ -68,7 +67,11 @@ function CeldaValor({
         </span>
       )}
       {tieneProyectado && (
-        <span className="text-xs text-info opacity-80 italic">
+        <span
+          className={
+            "text-xs italic opacity-90 " + (proyectado < 0 ? "text-warning" : "text-info")
+          }
+        >
           {formatMontoContable(proyectado)}
         </span>
       )}
@@ -79,15 +82,9 @@ function CeldaValor({
 export function FlujoCajaTable({
   data,
   movimientos,
-  proyectoId,
-  rubros,
-  puedeEscribir = false,
 }: {
   data: FlujoCajaData;
   movimientos: Tables<"movimientos">[];
-  proyectoId: string;
-  rubros: Pick<Tables<"rubros">, "id" | "nombre" | "codigo">[];
-  puedeEscribir?: boolean;
 }) {
   const [celda, setCelda] = useState<{ rubroId: string; rubroNombre: string; quincena: string } | null>(null);
 
@@ -99,15 +96,16 @@ export function FlujoCajaTable({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4 text-xs text-[--text-secondary]">
-          <p>Mostrando {data.quincenas.length} quincenas. Las categorías inician colapsadas.</p>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-3 rounded-sm bg-info/70" />
-            Proyectado (pendiente)
-          </span>
-        </div>
-        {puedeEscribir ? <MovimientoDialog proyectoId={proyectoId} rubros={rubros} /> : null}
+      <div className="flex items-center gap-4 flex-wrap text-xs text-[--text-secondary]">
+        <p>Mostrando {data.quincenas.length} quincenas. Las categorías inician colapsadas.</p>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded-sm bg-info/70" />
+          Cobro proyectado
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-2 w-3 rounded-sm bg-warning/70" />
+          Pago proyectado
+        </span>
       </div>
 
       <div className="overflow-x-auto rounded-actium border border-[--border-subtle]">
@@ -150,7 +148,9 @@ export function FlujoCajaTable({
                       className={
                         "px-3 py-2.5 text-right " +
                         (tieneProyectado
-                          ? "text-info"
+                          ? proyectado < 0
+                            ? "text-warning"
+                            : "text-info"
                           : total < 0
                           ? "text-danger"
                           : total > 0

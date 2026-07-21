@@ -3,18 +3,36 @@ import { sumarMovimientosPorCategoriaDelMes, CATEGORIAS_EGRESO } from "@/lib/dat
 
 type Client = TypedSupabaseClient;
 
+export type CuotaCxPConVencida = Tables<"cuentas_por_pagar_cuotas"> & { vencida: boolean };
+
 export type CxPConRelaciones = Tables<"cuentas_por_pagar"> & {
   proyectos: Pick<Tables<"proyectos">, "nombre"> | null;
   rubros: Pick<Tables<"rubros">, "nombre"> | null;
+  cuotas: CuotaCxPConVencida[];
   vencida: boolean;
 };
 
-function marcarVencidas(rows: (Tables<"cuentas_por_pagar"> & Record<string, unknown>)[]) {
+function marcarVencidaCuota(hoy: string) {
+  return (cuota: Tables<"cuentas_por_pagar_cuotas">): CuotaCxPConVencida => ({
+    ...cuota,
+    vencida: (cuota.estado === "pendiente" || cuota.estado === "parcial") && cuota.fecha_vencimiento < hoy,
+  });
+}
+
+function marcarVencidas(
+  rows: (Tables<"cuentas_por_pagar"> & { cuotas: Tables<"cuentas_por_pagar_cuotas">[] } & Record<string, unknown>)[],
+): CxPConRelaciones[] {
   const hoy = new Date().toISOString().slice(0, 10);
-  return rows.map((row) => ({
-    ...row,
-    vencida: (row.estado === "pendiente" || row.estado === "parcial") && row.fecha_vencimiento < hoy,
-  })) as CxPConRelaciones[];
+  return rows.map((row) => {
+    const cuotas = [...(row.cuotas ?? [])]
+      .sort((a, b) => a.numero_cuota - b.numero_cuota)
+      .map(marcarVencidaCuota(hoy));
+    return {
+      ...row,
+      cuotas,
+      vencida: (row.estado === "pendiente" || row.estado === "parcial") && row.fecha_vencimiento < hoy,
+    } as CxPConRelaciones;
+  });
 }
 
 export async function listCxP(
@@ -23,7 +41,7 @@ export async function listCxP(
 ): Promise<CxPConRelaciones[]> {
   let query = supabase
     .from("cuentas_por_pagar")
-    .select("*, proyectos:proyecto_id (nombre), rubros:rubro_id (nombre)");
+    .select("*, proyectos:proyecto_id (nombre), rubros:rubro_id (nombre), cuotas:cuentas_por_pagar_cuotas (*)");
 
   if (opts.proyectoId) query = query.eq("proyecto_id", opts.proyectoId);
 

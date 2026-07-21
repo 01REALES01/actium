@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   getPerfilActual,
   esSuperAdmin,
+  puedeGestionarFinanzas,
   puedeCrearFormularioSST,
   type PerfilUsuario,
 } from "@/lib/auth/roles";
@@ -34,6 +35,20 @@ async function resolverPerfil(): Promise<GuardResult> {
 export async function assertSuperAdmin(): Promise<GuardResult> {
   const result = await resolverPerfil();
   if (!esSuperAdmin(result.perfil.rol)) {
+    throw new Error("No tiene permisos para esta acción.");
+  }
+  return result;
+}
+
+/**
+ * Exige permiso para operar transacciones financieras (CxC, CxP, cobros,
+ * pagos, cuotas, comprobantes, sobregiro). Lo cumplen `super_admin` y
+ * `financiero`. NO habilita techos/transferencias/fijar presupuesto —
+ * esas siguen exigiendo `assertSuperAdmin`.
+ */
+export async function assertPuedeFinanzas(): Promise<GuardResult> {
+  const result = await resolverPerfil();
+  if (!puedeGestionarFinanzas(result.perfil.rol)) {
     throw new Error("No tiene permisos para esta acción.");
   }
   return result;

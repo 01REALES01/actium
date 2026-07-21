@@ -2,10 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeGestionarPresupuesto } from "@/lib/auth/roles";
-import { getProyectoFinanzas, getRubrosPorProyecto, listMovimientos } from "@/lib/data/presupuesto";
-import { getFlujoQuincenal } from "@/lib/data/flujo-caja";
+import { getPerfilActual } from "@/lib/auth/roles";
+import { getProyectoFinanzas, listMovimientos } from "@/lib/data/presupuesto";
+import { getFlujoQuincenal, derivarSeriesProyecto } from "@/lib/data/flujo-caja";
 import { FlujoCajaTable } from "@/components/finanzas/flujo-caja-table";
+import { FlujoCajaCharts } from "@/components/finanzas/flujo-caja-charts";
 import { Badge } from "@/components/ui/badge";
 
 export default async function FlujoCajaPage({ params }: { params: { proyectoId: string } }) {
@@ -19,13 +20,12 @@ export default async function FlujoCajaPage({ params }: { params: { proyectoId: 
   const proyecto = await getProyectoFinanzas(supabase, params.proyectoId);
   if (!proyecto) notFound();
 
-  const [flujo, rubros, movimientos] = await Promise.all([
+  const [flujo, movimientos] = await Promise.all([
     getFlujoQuincenal(supabase, params.proyectoId),
-    getRubrosPorProyecto(supabase, params.proyectoId),
     listMovimientos(supabase, params.proyectoId),
   ]);
 
-  const puedeEscribir = puedeGestionarPresupuesto(perfil.rol);
+  const series = derivarSeriesProyecto(flujo);
 
   return (
     <div className="flex flex-col gap-6 pb-12">
@@ -43,13 +43,24 @@ export default async function FlujoCajaPage({ params }: { params: { proyectoId: 
         </div>
       </div>
 
-      <FlujoCajaTable
-        data={flujo}
-        movimientos={movimientos}
-        proyectoId={params.proyectoId}
-        rubros={rubros}
-        puedeEscribir={puedeEscribir}
-      />
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Detalle por rubro</h2>
+          <span className="flex items-center gap-3 text-xs text-[--text-secondary]">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-3 rounded-sm bg-info/70" />
+              Cobro proyectado
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-3 rounded-sm bg-warning/70" />
+              Pago proyectado
+            </span>
+          </span>
+        </div>
+        <FlujoCajaTable data={flujo} movimientos={movimientos} />
+      </div>
+
+      <FlujoCajaCharts series={series} />
     </div>
   );
 }

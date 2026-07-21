@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PlanCuotasEditor, type CuotaCalculada } from "@/components/finanzas/plan-cuotas-editor";
 import { crearCxPAction } from "@/lib/actions/cxp";
 import { hoyLocal } from "@/lib/fecha";
 import type { Tables } from "@/types/database.types";
@@ -36,20 +37,18 @@ export function CxPFormDialog({
   const [proveedorNombre, setProveedorNombre] = useState("");
   const [proveedorNit, setProveedorNit] = useState("");
   const [numeroFactura, setNumeroFactura] = useState("");
-  const [montoTotal, setMontoTotal] = useState("");
   const [fechaEmision, setFechaEmision] = useState(hoyLocal());
-  const [fechaVencimiento, setFechaVencimiento] = useState(hoyLocal());
   const [notas, setNotas] = useState("");
+  const [cuotas, setCuotas] = useState<CuotaCalculada[]>([]);
 
   function resetForm() {
     setRubroId("");
     setProveedorNombre("");
     setProveedorNit("");
     setNumeroFactura("");
-    setMontoTotal("");
     setFechaEmision(hoyLocal());
-    setFechaVencimiento(hoyLocal());
     setNotas("");
+    setCuotas([]);
     setError(null);
   }
 
@@ -62,7 +61,6 @@ export function CxPFormDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const monto = Number(montoTotal);
 
     if (!rubroId) {
       setError("Selecciona el rubro.");
@@ -72,8 +70,8 @@ export function CxPFormDialog({
       setError("Proveedor y número de factura son obligatorios.");
       return;
     }
-    if (!Number.isFinite(monto) || monto <= 0) {
-      setError("Ingresa un monto válido.");
+    if (cuotas.length === 0) {
+      setError("Define al menos una cuota con monto y fecha.");
       return;
     }
 
@@ -85,10 +83,9 @@ export function CxPFormDialog({
         proveedorNombre: proveedorNombre.trim(),
         proveedorNit: proveedorNit.trim() || undefined,
         numeroFactura: numeroFactura.trim(),
-        montoTotal: monto,
         fechaEmision,
-        fechaVencimiento,
         notas: notas.trim() || undefined,
+        cuotas,
       });
       setOpen(false);
       resetForm();
@@ -112,7 +109,7 @@ export function CxPFormDialog({
         <DialogHeader>
           <DialogTitle className="font-sans text-lg font-semibold">Nueva cuenta por pagar</DialogTitle>
           <DialogDescription className="text-[--text-secondary]">
-            Registra una factura recibida de un proveedor.
+            Registra una factura recibida de un proveedor y su plan de pagos.
           </DialogDescription>
         </DialogHeader>
 
@@ -147,18 +144,6 @@ export function CxPFormDialog({
               <Label htmlFor="cxp-factura">N.° de factura</Label>
               <Input id="cxp-factura" value={numeroFactura} onChange={(e) => setNumeroFactura(e.target.value)} required />
             </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="cxp-monto">Monto total (COP)</Label>
-              <Input
-                id="cxp-monto"
-                type="number"
-                min={0}
-                step="1000"
-                value={montoTotal}
-                onChange={(e) => setMontoTotal(e.target.value)}
-                required
-              />
-            </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="cxp-emision">Fecha de emisión</Label>
               <Input
@@ -170,20 +155,12 @@ export function CxPFormDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cxp-vencimiento">Fecha de vencimiento</Label>
-              <Input
-                id="cxp-vencimiento"
-                type="date"
-                value={fechaVencimiento}
-                onChange={(e) => setFechaVencimiento(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
               <Label htmlFor="cxp-notas">Notas (opcional)</Label>
               <Input id="cxp-notas" value={notas} onChange={(e) => setNotas(e.target.value)} />
             </div>
           </div>
+
+          <PlanCuotasEditor onChange={setCuotas} />
 
           {error ? (
             <p className="flex items-center gap-2 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-xs text-danger">

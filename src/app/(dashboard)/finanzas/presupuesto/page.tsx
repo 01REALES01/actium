@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
@@ -33,7 +34,14 @@ export default async function PresupuestoListadoPage({
     <div className="flex flex-col gap-6 pb-12">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl text-[--text-primary]">Presupuesto</h1>
+          <Link
+            href="/finanzas"
+            className="inline-flex items-center gap-1.5 text-sm text-[--text-secondary] hover:text-[--text-primary]"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+            Finanzas
+          </Link>
+          <h1 className="mt-2 font-display text-3xl text-[--text-primary]">Presupuesto</h1>
           <p className="mt-2 text-sm text-[--text-secondary]">
             Selecciona un proyecto para ver sus rubros, movimientos y flujo de caja.
           </p>

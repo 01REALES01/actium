@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, LineChart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeGestionarPresupuesto } from "@/lib/auth/roles";
+import { getPerfilActual, puedeGestionarPresupuesto, puedeGestionarFinanzas } from "@/lib/auth/roles";
 import {
   getRubrosBalance,
   getRubrosPorProyecto,
@@ -16,7 +16,7 @@ import { RubrosDonutChart } from "@/components/finanzas/rubros-donut-chart";
 import { CrearRubroDialog } from "@/components/finanzas/crear-rubro-dialog";
 import { TransferirPresupuestoDialog } from "@/components/finanzas/transferir-presupuesto-dialog";
 import { FijarPresupuestoDialog } from "@/components/finanzas/fijar-presupuesto-dialog";
-import { MovimientoDialog } from "@/components/finanzas/movimiento-dialog";
+import { AutorizarSobregiroButton } from "@/components/finanzas/autorizar-sobregiro-button";
 import { MovimientosTable } from "@/components/finanzas/movimientos-table";
 import { CxCTable } from "@/components/finanzas/cxc-table";
 import { CxCFormDialog } from "@/components/finanzas/cxc-form-dialog";
@@ -51,7 +51,11 @@ export default async function PresupuestoDetallePage({
   const rubrosIngreso = rubros.filter((r) => r.categoria === "ingresos");
   const rubrosEgreso = rubros.filter((r) => r.categoria !== "ingresos");
 
-  const puedeEscribir = puedeGestionarPresupuesto(perfil.rol);
+  // Estructura de presupuesto (rubros, techos, transferencias) = solo super_admin.
+  // Transacciones (CxC, CxP, sobregiro) = super_admin y financiero.
+  const puedePresupuesto = puedeGestionarPresupuesto(perfil.rol);
+  const puedeFinanzas = puedeGestionarFinanzas(perfil.rol);
+  const sobregiro = proyecto.permite_sobregiro ?? false;
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -66,6 +70,9 @@ export default async function PresupuestoDetallePage({
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="font-display text-3xl text-[--text-primary]">{proyecto.proyecto_nombre}</h1>
           {proyecto.es_interno ? <Badge variant="secondary">Interno</Badge> : null}
+          {sobregiro ? (
+            <Badge variant="warning">Extra presupuesto autorizado</Badge>
+          ) : null}
           <Link
             href={`/finanzas/flujo-caja/${params.proyectoId}`}
             className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-actium-orange text-actium-orange px-4 py-2 text-sm font-semibold transition-all hover:bg-actium-orange/10"
@@ -80,15 +87,12 @@ export default async function PresupuestoDetallePage({
           const ejecutado = proyecto.presupuesto_ejecutado ?? 0;
           const techo = proyecto.presupuesto_fijado ?? proyecto.presupuesto_total ?? 0;
           const pct = techo > 0 ? Math.min(100, (ejecutado / techo) * 100) : 0;
-          const color = pct >= 90 ? "#EF4444" : pct >= 80 ? "#F59E0B" : "#F25C05";
+          const color = pct >= 100 ? "#EF4444" : pct >= 90 ? "#F59E0B" : "#22C55E";
           return (
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span className="text-[--text-secondary]">Utilización del presupuesto</span>
-                <span
-                  className="font-semibold"
-                  style={{ color: pct >= 80 ? color : "var(--text-primary)" }}
-                >
+                <span className="font-semibold" style={{ color }}>
                   {pct.toFixed(1)}%
                 </span>
               </div>
@@ -115,21 +119,28 @@ export default async function PresupuestoDetallePage({
         <div className="lg:col-span-2">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Rubros</h2>
-            {puedeEscribir ? (
+            {puedePresupuesto || puedeFinanzas ? (
               <div className="flex flex-wrap items-center gap-2">
-                <FijarPresupuestoDialog
-                  proyectoId={params.proyectoId}
-                  sumaActual={balance
-                    .filter((r) => r.categoria !== "ingresos")
-                    .reduce((s, r) => s + (r.monto_maximo ?? 0), 0)}
-                  presupuestoFijado={proyecto.presupuesto_fijado ?? null}
-                />
-                <TransferirPresupuestoDialog proyectoId={params.proyectoId} rubros={balance} />
-                <CrearRubroDialog proyectoId={params.proyectoId} />
+                {puedeFinanzas ? (
+                  <AutorizarSobregiroButton proyectoId={params.proyectoId} activo={sobregiro} />
+                ) : null}
+                {puedePresupuesto ? (
+                  <>
+                    <FijarPresupuestoDialog
+                      proyectoId={params.proyectoId}
+                      sumaActual={balance
+                        .filter((r) => r.categoria !== "ingresos")
+                        .reduce((s, r) => s + (r.monto_maximo ?? 0), 0)}
+                      presupuestoFijado={proyecto.presupuesto_fijado ?? null}
+                    />
+                    <TransferirPresupuestoDialog proyectoId={params.proyectoId} rubros={balance} />
+                    <CrearRubroDialog proyectoId={params.proyectoId} />
+                  </>
+                ) : null}
               </div>
             ) : null}
           </div>
-          <RubrosTable rubros={balance} puedeEscribir={puedeEscribir} />
+          <RubrosTable rubros={balance} puedeEscribir={puedePresupuesto} />
         </div>
         <RubrosDonutChart rubros={balance} />
       </div>
@@ -137,29 +148,32 @@ export default async function PresupuestoDetallePage({
       <div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Movimientos</h2>
-          {puedeEscribir ? <MovimientoDialog proyectoId={params.proyectoId} rubros={rubros} /> : null}
         </div>
-        <MovimientosTable movimientos={movimientos} puedeEscribir={puedeEscribir} />
+        <p className="mb-3 text-xs text-[--text-secondary]">
+          Los movimientos se generan automáticamente al registrar cobros y pagos. Los débitos se
+          realizan desde Cuentas por pagar.
+        </p>
+        <MovimientosTable movimientos={movimientos} puedeEscribir={puedeFinanzas} />
       </div>
 
       <div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Cuentas por cobrar</h2>
-          {puedeEscribir ? (
+          {puedeFinanzas ? (
             <CxCFormDialog proyectoId={params.proyectoId} rubrosIngreso={rubrosIngreso} />
           ) : null}
         </div>
-        <CxCTable cuentas={cxc} puedeEscribir={puedeEscribir} />
+        <CxCTable cuentas={cxc} puedeEscribir={puedeFinanzas} />
       </div>
 
       <div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Cuentas por pagar</h2>
-          {puedeEscribir ? (
+          {puedeFinanzas ? (
             <CxPFormDialog proyectoId={params.proyectoId} rubrosEgreso={rubrosEgreso} />
           ) : null}
         </div>
-        <CxPTable cuentas={cxp} puedeEscribir={puedeEscribir} />
+        <CxPTable cuentas={cxp} puedeEscribir={puedeFinanzas} />
       </div>
     </div>
   );

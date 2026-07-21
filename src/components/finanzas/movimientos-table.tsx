@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X, Play, Loader2 } from "lucide-react";
+import { Check, X, Play, Loader2, Paperclip } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   aprobarMovimientoAction,
   rechazarMovimientoAction,
   ejecutarMovimientoAction,
+  getComprobanteUrlAction,
 } from "@/lib/actions/presupuesto";
 import { formatCOP, formatFechaCorta } from "@/lib/format";
 import type { MovimientoEstado, MovimientoTipo } from "@/types/database.types";
@@ -45,6 +46,20 @@ export function MovimientosTable({
   const [isPending, startTransition] = useTransition();
   const [activoId, setActivoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [comprobanteId, setComprobanteId] = useState<string | null>(null);
+
+  async function verComprobante(id: string) {
+    setComprobanteId(id);
+    setError(null);
+    try {
+      const url = await getComprobanteUrlAction(id);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No fue posible abrir el comprobante.");
+    } finally {
+      setComprobanteId(null);
+    }
+  }
 
   function ejecutarAccion(id: string, accion: (id: string) => Promise<void>) {
     setActivoId(id);
@@ -84,6 +99,7 @@ export function MovimientosTable({
               <th className="px-4 py-3 text-right">Monto</th>
               <th className="px-4 py-3 text-left">Justificación</th>
               <th className="px-4 py-3 text-left">Solicitó</th>
+              <th className="px-4 py-3">Factura</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3" />
             </tr>
@@ -96,7 +112,9 @@ export function MovimientosTable({
                   <td className="whitespace-nowrap px-4 py-3 text-[--text-secondary]">
                     {formatFechaCorta(m.fecha_efectiva)}
                   </td>
-                  <td className="px-4 py-3 text-[--text-primary]">{TIPO_LABEL[m.tipo]}</td>
+                  <td className="px-4 py-3 text-[--text-primary]">
+                    {m.tipo === "ajuste" && m.rubro_origen_id ? "Transferencia" : TIPO_LABEL[m.tipo]}
+                  </td>
                   <td className="px-4 py-3 text-right font-medium text-[--text-primary]">
                     {formatCOP(m.monto)}
                   </td>
@@ -104,6 +122,26 @@ export function MovimientosTable({
                     {m.justificacion}
                   </td>
                   <td className="px-4 py-3 text-[--text-secondary]">{m.solicitante?.nombre ?? "—"}</td>
+                  <td className="px-4 py-3 text-center">
+                    {m.comprobante_path ? (
+                      <button
+                        type="button"
+                        onClick={() => verComprobante(m.id)}
+                        disabled={comprobanteId === m.id}
+                        className="inline-flex items-center gap-1 text-xs font-medium text-actium-orange transition-colors hover:text-actium-orange-hover disabled:opacity-60"
+                        title={m.comprobante_nombre ?? "Ver comprobante"}
+                      >
+                        {comprobanteId === m.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Paperclip className="h-4 w-4" strokeWidth={1.5} />
+                        )}
+                        Ver
+                      </button>
+                    ) : (
+                      <span className="text-[--text-muted]">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <Badge variant={ESTADO_VARIANT[m.estado]}>{ESTADO_LABEL[m.estado]}</Badge>
                   </td>

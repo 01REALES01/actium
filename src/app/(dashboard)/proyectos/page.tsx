@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { CalendarDays, Plus, FolderKanban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
@@ -25,6 +26,12 @@ export default async function ProyectosPage() {
   let errorMessage: string | null = null;
 
   const perfil = await getPerfilActual(supabase);
+
+  // El rol financiero solo accede a Finanzas.
+  if (perfil?.rol === "financiero") {
+    redirect("/finanzas");
+  }
+
   const puedeCrear = puedeGestionarProyectos(perfil?.rol);
 
   try {

@@ -15,17 +15,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { registrarPagoAction } from "@/lib/actions/cxp";
+import { registrarPagoCuotaCxpAction } from "@/lib/actions/cxp";
 import { formatCOP } from "@/lib/format";
 import { hoyLocal } from "@/lib/fecha";
 
-/** Registrar pago de una CxP. (CxC usa RegistrarCobroCuotaDialog — se paga por cuota, no por factura completa.) */
-export function RegistrarPagoDialog({
-  id,
+export function RegistrarPagoCuotaCxpDialog({
+  cuotaId,
+  numeroCuota,
   numeroFactura,
   saldoPendiente,
 }: {
-  id: string;
+  cuotaId: string;
+  numeroCuota: number;
   numeroFactura: string;
   saldoPendiente: number;
 }) {
@@ -54,14 +55,10 @@ export function RegistrarPagoDialog({
       setError("Ingresa un monto válido.");
       return;
     }
-    if (montoNum > saldoPendiente) {
-      setError(`El monto supera el saldo pendiente (${formatCOP(saldoPendiente)}).`);
-      return;
-    }
 
     setLoading(true);
     try {
-      await registrarPagoAction({ cxpId: id, monto: montoNum, fecha });
+      await registrarPagoCuotaCxpAction({ cuotaId, monto: montoNum, fecha });
       setOpen(false);
       router.refresh();
     } catch (err) {
@@ -81,20 +78,19 @@ export function RegistrarPagoDialog({
       </DialogTrigger>
       <DialogContent className="max-w-sm rounded-actium border-[--border-subtle] bg-[--bg-elevated] text-[--text-primary]">
         <DialogHeader>
-          <DialogTitle className="font-sans text-lg font-semibold">Registrar pago</DialogTitle>
+          <DialogTitle className="font-sans text-lg font-semibold">Registrar pago de cuota</DialogTitle>
           <DialogDescription className="text-[--text-secondary]">
-            Factura {numeroFactura} — saldo pendiente: {formatCOP(saldoPendiente)}
+            Factura {numeroFactura} — cuota {numeroCuota} — saldo pendiente: {formatCOP(saldoPendiente)}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pago-monto">Monto (COP)</Label>
+            <Label htmlFor="pago-cuota-monto">Monto (COP)</Label>
             <Input
-              id="pago-monto"
+              id="pago-cuota-monto"
               type="number"
               min={0}
-              max={saldoPendiente}
               step="1000"
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
@@ -102,8 +98,8 @@ export function RegistrarPagoDialog({
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="pago-fecha">Fecha</Label>
-            <Input id="pago-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
+            <Label htmlFor="pago-cuota-fecha">Fecha</Label>
+            <Input id="pago-cuota-fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} required />
           </div>
 
           {error ? (

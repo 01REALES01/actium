@@ -84,42 +84,42 @@ export function rangoDefault(hoy: Date = new Date()): { desde: Date; hasta: Date
   };
 }
 
-/** Construye el registro de proyectados a partir de CxC cuotas y CxP pendientes. */
+/**
+ * Construye el registro de proyectados por `rubroId|quincena` a partir de las
+ * cuotas pendientes de CxC y CxP. Convención de signo: los cobros proyectados
+ * (CxC, ingresos) suman (positivo) y los pagos proyectados (CxP, egresos) restan
+ * (negativo). Así el flujo proyectado refleja el efecto real sobre la caja.
+ */
 async function getProyectadoMap(
   supabase: Client,
   proyectoId: string,
 ): Promise<Record<string, number>> {
   const proyectado: Record<string, number> = {};
 
-  // CxC cuotas pendientes: rubro viene del header de la CxC
-  const [cuotasResult, cxpResult] = await Promise.all([
+  const [cxcCuotas, cxpCuotas] = await Promise.all([
     supabase
       .from("cuentas_por_cobrar_cuotas")
-      .select("monto, monto_cobrado, fecha_vencimiento, estado, cxc_id")
+      .select("monto, monto_cobrado, fecha_vencimiento, cxc_id")
       .eq("proyecto_id", proyectoId)
       .in("estado", ["pendiente", "parcial"]),
     supabase
-      .from("cuentas_por_pagar")
-      .select("rubro_id, monto_total, monto_pagado, fecha_vencimiento")
+      .from("cuentas_por_pagar_cuotas")
+      .select("monto, monto_pagado, fecha_vencimiento, cxp_id")
       .eq("proyecto_id", proyectoId)
       .in("estado", ["pendiente", "parcial"]),
   ]);
 
-  if (!cuotasResult.error && cuotasResult.data.length > 0) {
-    // Necesitamos el rubro_id del header CxC para cada cuota
-    const cxcIdsSet = new Set(cuotasResult.data.map((c) => c.cxc_id));
-    const cxcIds = Array.from(cxcIdsSet);
-    const { data: cxcHeaders } = await supabase
+  // CxC (ingresos): suma. Rubro viene del header de la CxC.
+  if (!cxcCuotas.error && cxcCuotas.data.length > 0) {
+    const ids = Array.from(new Set(cxcCuotas.data.map((c) => c.cxc_id)));
+    const { data: headers } = await supabase
       .from("cuentas_por_cobrar")
       .select("id, rubro_id")
-      .in("id", cxcIds);
+      .in("id", ids);
+    const rubroPorId = new Map<string, string>((headers ?? []).map((h) => [h.id, h.rubro_id]));
 
-    const ruborPorCxc = new Map<string, string>(
-      (cxcHeaders ?? []).map((h) => [h.id, h.rubro_id]),
-    );
-
-    for (const cuota of cuotasResult.data) {
-      const rubroId = ruborPorCxc.get(cuota.cxc_id);
+    for (const cuota of cxcCuotas.data) {
+      const rubroId = rubroPorId.get(cuota.cxc_id);
       if (!rubroId) continue;
       const saldo = cuota.monto - cuota.monto_cobrado;
       if (saldo <= 0) continue;
@@ -129,13 +129,23 @@ async function getProyectadoMap(
     }
   }
 
-  if (!cxpResult.error) {
-    for (const cxp of cxpResult.data ?? []) {
-      const saldo = cxp.monto_total - cxp.monto_pagado;
+  // CxP (egresos): resta. Rubro viene del header de la CxP.
+  if (!cxpCuotas.error && cxpCuotas.data.length > 0) {
+    const ids = Array.from(new Set(cxpCuotas.data.map((c) => c.cxp_id)));
+    const { data: headers } = await supabase
+      .from("cuentas_por_pagar")
+      .select("id, rubro_id")
+      .in("id", ids);
+    const rubroPorId = new Map<string, string>((headers ?? []).map((h) => [h.id, h.rubro_id]));
+
+    for (const cuota of cxpCuotas.data) {
+      const rubroId = rubroPorId.get(cuota.cxp_id);
+      if (!rubroId) continue;
+      const saldo = cuota.monto - cuota.monto_pagado;
       if (saldo <= 0) continue;
-      const quincena = quincenaDe(parseISODate(cxp.fecha_vencimiento));
-      const key = `${cxp.rubro_id}|${quincena}`;
-      proyectado[key] = (proyectado[key] ?? 0) + saldo;
+      const quincena = quincenaDe(parseISODate(cuota.fecha_vencimiento));
+      const key = `${rubroId}|${quincena}`;
+      proyectado[key] = (proyectado[key] ?? 0) - saldo;
     }
   }
 
@@ -145,6 +155,178 @@ async function getProyectadoMap(
 function parseISODate(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number);
   return new Date(y, m - 1, d);
+}
+
+// ─── Flujo agregado (todos los proyectos) ────────────────────────────────────
+
+export type FlujoCajaAgregadoCategoria = {
+  categoria: CategoriaFlujo;
+  totalPorQuincena: number[];
+  proyectadoPorQuincena: number[];
+};
+
+export type FlujoCajaAgregado = {
+  quincenas: string[];
+  categorias: FlujoCajaAgregadoCategoria[];
+  totalEgresosPorQuincena: number[];
+  ingresosPorQuincena: number[];
+  saldoPorQuincena: number[];
+  flujoAcumulado: number[];
+  totalProyectadoPorQuincena: number[];
+  acumuladoConProyectado: number[];
+};
+
+export async function getFlujoAgregado(
+  supabase: Client,
+  rango: { desde: Date; hasta: Date } = rangoDefault(),
+): Promise<FlujoCajaAgregado> {
+  const quincenas = quincenasEnRango(rango.desde, rango.hasta);
+
+  const [vistaResult, rubrosResult, cuotasResult, cxpCuotasResult] = await Promise.all([
+    supabase
+      .from("vw_flujo_caja_quincenal")
+      .select("categoria, quincena, total_periodo")
+      .gte("quincena", quincenas[0])
+      .lte("quincena", quincenas[quincenas.length - 1]),
+    supabase.from("rubros").select("id, categoria").eq("activo", true),
+    supabase
+      .from("cuentas_por_cobrar_cuotas")
+      .select("monto, monto_cobrado, fecha_vencimiento, cxc_id")
+      .in("estado", ["pendiente", "parcial"]),
+    supabase
+      .from("cuentas_por_pagar_cuotas")
+      .select("monto, monto_pagado, fecha_vencimiento, cxp_id")
+      .in("estado", ["pendiente", "parcial"]),
+  ]);
+
+  const realMap: Record<string, number> = {};
+  for (const row of vistaResult.data ?? []) {
+    if (!row.categoria || !row.quincena) continue;
+    const key = `${row.categoria}|${row.quincena}`;
+    realMap[key] = (realMap[key] ?? 0) + (row.total_periodo ?? 0);
+  }
+
+  const rubroCatMap: Record<string, CategoriaFlujo> = {};
+  for (const r of rubrosResult.data ?? []) {
+    if (r.id && r.categoria) rubroCatMap[r.id] = r.categoria as CategoriaFlujo;
+  }
+
+  const proyMap: Record<string, number> = {};
+  const cxcIds = Array.from(new Set((cuotasResult.data ?? []).map((c) => c.cxc_id)));
+  if (cxcIds.length > 0) {
+    const { data: cxcHeaders } = await supabase
+      .from("cuentas_por_cobrar")
+      .select("id, rubro_id")
+      .in("id", cxcIds);
+    const cxcRubroMap: Record<string, string> = {};
+    for (const h of cxcHeaders ?? []) cxcRubroMap[h.id] = h.rubro_id;
+    for (const cuota of cuotasResult.data ?? []) {
+      const rubroId = cxcRubroMap[cuota.cxc_id];
+      if (!rubroId) continue;
+      const cat = rubroCatMap[rubroId];
+      if (!cat) continue;
+      const saldo = cuota.monto - cuota.monto_cobrado;
+      if (saldo <= 0) continue;
+      const q = quincenaDe(parseISODate(cuota.fecha_vencimiento));
+      const key = `${cat}|${q}`;
+      proyMap[key] = (proyMap[key] ?? 0) + saldo;
+    }
+  }
+  const cxpIds = Array.from(new Set((cxpCuotasResult.data ?? []).map((c) => c.cxp_id)));
+  if (cxpIds.length > 0) {
+    const { data: cxpHeaders } = await supabase
+      .from("cuentas_por_pagar")
+      .select("id, rubro_id")
+      .in("id", cxpIds);
+    const cxpRubroMap: Record<string, string> = {};
+    for (const h of cxpHeaders ?? []) cxpRubroMap[h.id] = h.rubro_id;
+    for (const cuota of cxpCuotasResult.data ?? []) {
+      const rubroId = cxpRubroMap[cuota.cxp_id];
+      if (!rubroId) continue;
+      const cat = rubroCatMap[rubroId];
+      if (!cat) continue;
+      const saldo = cuota.monto - cuota.monto_pagado;
+      if (saldo <= 0) continue;
+      const q = quincenaDe(parseISODate(cuota.fecha_vencimiento));
+      const key = `${cat}|${q}`;
+      // Egresos proyectados restan del flujo
+      proyMap[key] = (proyMap[key] ?? 0) - saldo;
+    }
+  }
+
+  const categorias: FlujoCajaAgregadoCategoria[] = ORDEN_CATEGORIAS.map((cat) => ({
+    categoria: cat,
+    totalPorQuincena: quincenas.map((q) => realMap[`${cat}|${q}`] ?? 0),
+    proyectadoPorQuincena: quincenas.map((q) => proyMap[`${cat}|${q}`] ?? 0),
+  }));
+
+  const ingresosCat = categorias.find((c) => c.categoria === "ingresos")!;
+  const ingresosPorQuincena = ingresosCat.totalPorQuincena;
+  const totalEgresosPorQuincena = quincenas.map((_, i) =>
+    categorias.filter((c) => c.categoria !== "ingresos").reduce((s, c) => s + c.totalPorQuincena[i], 0),
+  );
+  const saldoPorQuincena = quincenas.map((_, i) => ingresosPorQuincena[i] + totalEgresosPorQuincena[i]);
+
+  const flujoAcumulado: number[] = [];
+  saldoPorQuincena.reduce((acc, s, i) => { flujoAcumulado[i] = acc + s; return acc + s; }, 0);
+
+  const totalProyectadoPorQuincena = quincenas.map((_, i) =>
+    categorias.reduce((s, c) => s + c.proyectadoPorQuincena[i], 0),
+  );
+  const saldoConProyectado = quincenas.map((_, i) => saldoPorQuincena[i] + totalProyectadoPorQuincena[i]);
+  const acumuladoConProyectado: number[] = [];
+  saldoConProyectado.reduce((acc, s, i) => { acumuladoConProyectado[i] = acc + s; return acc + s; }, 0);
+
+  return {
+    quincenas,
+    categorias,
+    totalEgresosPorQuincena,
+    ingresosPorQuincena,
+    saldoPorQuincena,
+    flujoAcumulado,
+    totalProyectadoPorQuincena,
+    acumuladoConProyectado,
+  };
+}
+
+/** Series listas para graficar (línea) a partir del flujo agregado. */
+export function derivarSeriesAgregado(data: FlujoCajaAgregado) {
+  return {
+    quincenas: data.quincenas,
+    acumulado: data.acumuladoConProyectado,
+    ingresos: data.ingresosPorQuincena,
+    egresos: data.totalEgresosPorQuincena.map((v) => Math.abs(v)),
+  };
+}
+
+// ─── Flujo por proyecto ───────────────────────────────────────────────────────
+
+/** Series listas para graficar (línea) a partir del flujo de un proyecto. */
+export function derivarSeriesProyecto(data: FlujoCajaData) {
+  const proyectadoPorQuincena = data.quincenas.map((q) => {
+    let suma = 0;
+    for (const cat of data.categorias) {
+      for (const r of cat.rubros) suma += data.proyectado[`${r.id}|${q}`] ?? 0;
+    }
+    return suma;
+  });
+
+  const saldoCombinado = data.quincenas.map(
+    (_, i) => data.saldoPorQuincena[i] + proyectadoPorQuincena[i],
+  );
+
+  const acumulado: number[] = [];
+  saldoCombinado.reduce((acc, s, i) => {
+    acumulado[i] = acc + s;
+    return acc + s;
+  }, 0);
+
+  return {
+    quincenas: data.quincenas,
+    acumulado,
+    ingresos: data.ingresosPorQuincena,
+    egresos: data.totalEgresosPorQuincena.map((v) => Math.abs(v)),
+  };
 }
 
 export async function getFlujoQuincenal(

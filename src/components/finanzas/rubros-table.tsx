@@ -11,9 +11,9 @@ const CATEGORIA_LABEL: Record<CategoriaFlujo, string> = {
 };
 
 function colorBarra(porcentaje: number): string {
-  if (porcentaje >= 90) return "bg-danger";
-  if (porcentaje >= 80) return "bg-warning";
-  return "bg-actium-orange";
+  if (porcentaje >= 100) return "bg-danger";
+  if (porcentaje >= 90) return "bg-warning";
+  return "bg-success";
 }
 
 function BarraProgreso({ porcentaje }: { porcentaje: number }) {

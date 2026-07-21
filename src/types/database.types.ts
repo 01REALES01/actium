@@ -984,6 +984,60 @@ export type Database = {
           },
         ]
       }
+      cuentas_por_pagar_cuotas: {
+        Row: {
+          created_at: string
+          cxp_id: string
+          estado: Database["public"]["Enums"]["factura_estado"]
+          fecha_vencimiento: string
+          id: string
+          monto: number
+          monto_pagado: number
+          numero_cuota: number
+          proyecto_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cxp_id: string
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_vencimiento: string
+          id?: string
+          monto: number
+          monto_pagado?: number
+          numero_cuota: number
+          proyecto_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cxp_id?: string
+          estado?: Database["public"]["Enums"]["factura_estado"]
+          fecha_vencimiento?: string
+          id?: string
+          monto?: number
+          monto_pagado?: number
+          numero_cuota?: number
+          proyecto_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cuentas_por_pagar_cuotas_cxp_id_fkey"
+            columns: ["cxp_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas_por_pagar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_cuotas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empleado_documentos: {
         Row: {
           empleado_id: string
@@ -1578,6 +1632,8 @@ export type Database = {
         Row: {
           aprobado_at: string | null
           aprobado_por: string | null
+          comprobante_nombre: string | null
+          comprobante_path: string | null
           created_at: string
           ejecutado_at: string | null
           estado: Database["public"]["Enums"]["movimiento_estado"]
@@ -1595,6 +1651,8 @@ export type Database = {
         Insert: {
           aprobado_at?: string | null
           aprobado_por?: string | null
+          comprobante_nombre?: string | null
+          comprobante_path?: string | null
           created_at?: string
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
@@ -1612,6 +1670,8 @@ export type Database = {
         Update: {
           aprobado_at?: string | null
           aprobado_por?: string | null
+          comprobante_nombre?: string | null
+          comprobante_path?: string | null
           created_at?: string
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
@@ -2039,6 +2099,8 @@ export type Database = {
           meta_total_cantidad: number | null
           nombre: string
           notas: string | null
+          permite_sobregiro: boolean
+          presupuesto_fijado: number | null
           presupuesto_total: number | null
           subempresa_id: string
           ubicacion: string | null
@@ -2065,6 +2127,8 @@ export type Database = {
           meta_total_cantidad?: number | null
           nombre: string
           notas?: string | null
+          permite_sobregiro?: boolean
+          presupuesto_fijado?: number | null
           presupuesto_total?: number | null
           subempresa_id: string
           ubicacion?: string | null
@@ -2091,6 +2155,8 @@ export type Database = {
           meta_total_cantidad?: number | null
           nombre?: string
           notas?: string | null
+          permite_sobregiro?: boolean
+          presupuesto_fijado?: number | null
           presupuesto_total?: number | null
           subempresa_id?: string
           ubicacion?: string | null
@@ -2373,6 +2439,7 @@ export type Database = {
           empresa_id: string | null
           es_interno: boolean | null
           estado: Database["public"]["Enums"]["proyecto_estado"] | null
+          permite_sobregiro: boolean | null
           porcentaje_ejecutado: number | null
           presupuesto_comprometido: number | null
           presupuesto_disponible: number | null

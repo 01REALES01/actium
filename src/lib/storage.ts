@@ -86,6 +86,31 @@ export async function uploadPdfFormulario(
   return storagePath;
 }
 
+export async function uploadComprobanteMovimiento(
+  supabase: Client,
+  file: File | { bytes: Uint8Array; nombre: string; tipo: string },
+  opts: {
+    empresaId: string;
+    subempresaId: string | null;
+    proyectoId: string;
+  },
+): Promise<string> {
+  const nombre = file instanceof File ? file.name : file.nombre;
+  const tipo = file instanceof File ? file.type : file.tipo;
+  const cuerpo = file instanceof File ? file : file.bytes;
+
+  const ext = (nombre.split(".").pop() || "pdf").toLowerCase();
+  const subseg = opts.subempresaId ?? opts.proyectoId;
+  const storagePath = `${opts.empresaId}/${subseg}/${opts.proyectoId}/${crypto.randomUUID()}.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("comprobantes-finanzas")
+    .upload(storagePath, cuerpo, { contentType: tipo || "application/octet-stream" });
+
+  if (error) throw error;
+  return storagePath;
+}
+
 export async function getSignedUrl(
   supabase: Client,
   bucket: string,

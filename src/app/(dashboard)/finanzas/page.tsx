@@ -18,17 +18,11 @@ export default async function FinanzasPage() {
     redirect("/proyectos");
   }
 
-  const [proyectos, cxcResumen, cxpResumen, proyectosInternos] = await Promise.all([
+  const [proyectos, cxcResumen, cxpResumen] = await Promise.all([
     listProyectosFinanzas(supabase),
     getCxCResumen(supabase),
     getCxPResumen(supabase),
-    perfil.rol === "super_admin" ? listProyectosFinanzas(supabase, { soloInternos: true }) : Promise.resolve([]),
   ]);
-
-  const flujoCajaHref =
-    proyectosInternos.length === 1
-      ? `/finanzas/flujo-caja/${proyectosInternos[0].proyecto_id}`
-      : "/finanzas/presupuesto?interno=1";
 
   const accesos = [
     {
@@ -50,13 +44,10 @@ export default async function FinanzasPage() {
       descripcion: `${formatCOP(cxpResumen.pendiente)} pendientes, ${formatCOP(cxpResumen.vencido)} vencidas.`,
     },
     {
-      href: flujoCajaHref,
+      href: "/finanzas/flujo-caja",
       icon: LineChart,
       titulo: "Flujo de caja",
-      descripcion:
-        proyectosInternos.length === 1
-          ? "Del presupuesto propio, por quincena."
-          : "Configura o selecciona el presupuesto propio.",
+      descripcion: "Ingresos, egresos y saldo acumulado de todos los proyectos.",
     },
   ];
 

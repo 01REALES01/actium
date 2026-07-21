@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Ban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RegistrarPagoDialog } from "@/components/finanzas/registrar-pago-dialog";
+import { RegistrarPagoCuotaCxpDialog } from "@/components/finanzas/registrar-pago-cuota-cxp-dialog";
 import { anularCxPAction } from "@/lib/actions/cxp";
 import { formatCOP, formatFechaCorta } from "@/lib/format";
 import type { FacturaEstado } from "@/types/database.types";
@@ -59,61 +59,84 @@ export function CxPTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-actium border border-[--border-subtle]">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-actium-espresso text-xs font-semibold uppercase tracking-wider text-white">
-            {mostrarProyecto ? <th className="px-4 py-3 text-left">Proyecto</th> : null}
-            <th className="px-4 py-3 text-left">Proveedor</th>
-            <th className="px-4 py-3 text-left">Factura</th>
-            <th className="px-4 py-3 text-right">Total</th>
-            <th className="px-4 py-3 text-right">Pagado</th>
-            <th className="px-4 py-3 text-left">Vence</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3" />
-          </tr>
-        </thead>
-        <tbody>
-          {cuentas.map((c) => {
-            const estadoEfectivo: FacturaEstado = c.vencida ? "vencida" : c.estado;
-            const saldo = c.monto_total - c.monto_pagado;
-            const activa = c.estado === "pendiente" || c.estado === "parcial";
-            return (
-              <tr key={c.id} className="border-b border-[--border-subtle] hover:bg-[--bg-hover]">
-                {mostrarProyecto ? (
-                  <td className="px-4 py-3 text-[--text-secondary]">{c.proyectos?.nombre ?? "—"}</td>
-                ) : null}
-                <td className="px-4 py-3 font-medium text-[--text-primary]">{c.proveedor_nombre}</td>
-                <td className="px-4 py-3 text-[--text-secondary]">{c.numero_factura}</td>
-                <td className="px-4 py-3 text-right text-[--text-primary]">{formatCOP(c.monto_total)}</td>
-                <td className="px-4 py-3 text-right text-[--text-primary]">{formatCOP(c.monto_pagado)}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-[--text-secondary]">
-                  {formatFechaCorta(c.fecha_vencimiento)}
-                </td>
-                <td className="px-4 py-3">
+    <div className="flex flex-col gap-4">
+      {cuentas.map((c) => {
+        const estadoEfectivo: FacturaEstado = c.vencida ? "vencida" : c.estado;
+        const activa = c.estado === "pendiente" || c.estado === "parcial";
+
+        return (
+          <div key={c.id} className="rounded-actium border border-[--border-subtle] bg-[--bg-elevated]">
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <p className="font-sans text-sm font-semibold text-[--text-primary]">{c.proveedor_nombre}</p>
+                <p className="text-xs text-[--text-secondary]">
+                  Factura {c.numero_factura}
+                  {mostrarProyecto && c.proyectos?.nombre ? ` · ${c.proyectos.nombre}` : ""}
+                  {c.cuotas.length > 1 ? ` · ${c.cuotas.length} cuotas` : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-[--text-primary]">
+                    {formatCOP(c.monto_pagado)} / {formatCOP(c.monto_total)}
+                  </p>
                   <Badge variant={ESTADO_VARIANT[estadoEfectivo]}>{ESTADO_LABEL[estadoEfectivo]}</Badge>
-                </td>
-                <td className="px-4 py-3">
-                  {puedeEscribir && activa ? (
-                    <div className="flex justify-end gap-1.5">
-                      <RegistrarPagoDialog id={c.id} numeroFactura={c.numero_factura} saldoPendiente={saldo} />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isPending}
-                        onClick={() => anular(c.id)}
-                        title="Anular"
-                      >
-                        <Ban className="h-4 w-4" strokeWidth={1.5} />
-                      </Button>
-                    </div>
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                </div>
+                {puedeEscribir && activa ? (
+                  <Button variant="ghost" size="sm" disabled={isPending} onClick={() => anular(c.id)} title="Anular">
+                    <Ban className="h-4 w-4" strokeWidth={1.5} />
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="overflow-x-auto border-t border-[--border-subtle]">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-actium-espresso text-xs font-semibold uppercase tracking-wider text-white">
+                    <th className="px-4 py-2 text-left">Cuota</th>
+                    <th className="px-4 py-2 text-right">Monto</th>
+                    <th className="px-4 py-2 text-right">Pagado</th>
+                    <th className="px-4 py-2 text-left">Vence</th>
+                    <th className="px-4 py-2">Estado</th>
+                    <th className="px-4 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {c.cuotas.map((cuota) => {
+                    const cuotaEstadoEfectivo: FacturaEstado = cuota.vencida ? "vencida" : cuota.estado;
+                    const cuotaActiva = cuota.estado === "pendiente" || cuota.estado === "parcial";
+                    const saldoCuota = cuota.monto - cuota.monto_pagado;
+                    return (
+                      <tr key={cuota.id} className="border-b border-[--border-subtle] last:border-b-0 hover:bg-[--bg-hover]">
+                        <td className="px-4 py-2 text-[--text-primary]">#{cuota.numero_cuota}</td>
+                        <td className="px-4 py-2 text-right text-[--text-primary]">{formatCOP(cuota.monto)}</td>
+                        <td className="px-4 py-2 text-right text-[--text-secondary]">{formatCOP(cuota.monto_pagado)}</td>
+                        <td className="px-4 py-2 whitespace-nowrap text-[--text-secondary]">
+                          {formatFechaCorta(cuota.fecha_vencimiento)}
+                        </td>
+                        <td className="px-4 py-2">
+                          <Badge variant={ESTADO_VARIANT[cuotaEstadoEfectivo]}>{ESTADO_LABEL[cuotaEstadoEfectivo]}</Badge>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          {puedeEscribir && cuotaActiva ? (
+                            <RegistrarPagoCuotaCxpDialog
+                              cuotaId={cuota.id}
+                              numeroCuota={cuota.numero_cuota}
+                              numeroFactura={c.numero_factura}
+                              saldoPendiente={saldoCuota}
+                            />
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

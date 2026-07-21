@@ -44,9 +44,21 @@ export function puedeGestionarProyectos(rol: UserRole | null | undefined): boole
   return esSuperAdmin(rol);
 }
 
-/** Puede operar el módulo de presupuesto (solicitar/aprobar/ejecutar). */
+/**
+ * Puede operar la ESTRUCTURA de presupuesto: crear/editar rubros, ajustar
+ * techos, transferir y fijar presupuesto. Solo `super_admin`.
+ */
 export function puedeGestionarPresupuesto(rol: UserRole | null | undefined): boolean {
   return esSuperAdmin(rol);
+}
+
+/**
+ * Puede operar TRANSACCIONES financieras: CxC, CxP, cobros, pagos, cuotas,
+ * comprobantes y autorización de extra presupuesto (sobregiro). Lo cumplen
+ * `super_admin` y `financiero`. No incluye techos/transferencias/fijar.
+ */
+export function puedeGestionarFinanzas(rol: UserRole | null | undefined): boolean {
+  return rol === "super_admin" || rol === "financiero";
 }
 
 /** Puede registrar y firmar formularios SST. */
@@ -117,7 +129,8 @@ const ALL_NAV: NavItemDef[] = [
 const NAV_BY_ROLE: Record<UserRole, NavKey[]> = {
   super_admin: ["dashboard", "personal", "sst", "finanzas", "admin"],
   admin: ["dashboard", "personal", "sst", "finanzas"],
-  financiero: ["dashboard", "finanzas"],
+  // El rol financiero solo opera Finanzas — no accede a ninguna otra sección.
+  financiero: ["finanzas"],
   sst: ["dashboard", "personal", "sst"],
   operativo: ["dashboard", "personal"],
   cliente_principal: ["dashboard", "personal"],

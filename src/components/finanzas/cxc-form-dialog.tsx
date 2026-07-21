@@ -16,10 +16,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PlanCuotasEditor, type CuotaCalculada } from "@/components/finanzas/plan-cuotas-editor";
 import { crearCxCAction } from "@/lib/actions/cxc";
 import { hoyLocal } from "@/lib/fecha";
-import { formatCOP } from "@/lib/format";
-import type { CuotaPeriodicidad, Tables } from "@/types/database.types";
+import type { Tables } from "@/types/database.types";
 
 export function CxCFormDialog({
   proyectoId,
@@ -37,27 +37,18 @@ export function CxCFormDialog({
   const [clienteNombre, setClienteNombre] = useState("");
   const [clienteNit, setClienteNit] = useState("");
   const [numeroFactura, setNumeroFactura] = useState("");
-  const [montoTotal, setMontoTotal] = useState("");
   const [fechaEmision, setFechaEmision] = useState(hoyLocal());
-  const [numeroCuotas, setNumeroCuotas] = useState("1");
-  const [periodicidad, setPeriodicidad] = useState<CuotaPeriodicidad>("mensual");
-  const [fechaPrimeraCuota, setFechaPrimeraCuota] = useState(hoyLocal());
   const [notas, setNotas] = useState("");
-
-  const numCuotasNum = Math.max(1, Number(numeroCuotas) || 1);
-  const montoPorCuota = Number(montoTotal) > 0 ? Number(montoTotal) / numCuotasNum : 0;
+  const [cuotas, setCuotas] = useState<CuotaCalculada[]>([]);
 
   function resetForm() {
     setRubroId("");
     setClienteNombre("");
     setClienteNit("");
     setNumeroFactura("");
-    setMontoTotal("");
     setFechaEmision(hoyLocal());
-    setNumeroCuotas("1");
-    setPeriodicidad("mensual");
-    setFechaPrimeraCuota(hoyLocal());
     setNotas("");
+    setCuotas([]);
     setError(null);
   }
 
@@ -70,7 +61,6 @@ export function CxCFormDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const monto = Number(montoTotal);
 
     if (!rubroId) {
       setError("Selecciona el rubro de ingresos.");
@@ -80,12 +70,8 @@ export function CxCFormDialog({
       setError("Cliente y número de factura son obligatorios.");
       return;
     }
-    if (!Number.isFinite(monto) || monto <= 0) {
-      setError("Ingresa un monto válido.");
-      return;
-    }
-    if (numCuotasNum < 1) {
-      setError("El número de cuotas debe ser al menos 1.");
+    if (cuotas.length === 0) {
+      setError("Define al menos una cuota con monto y fecha.");
       return;
     }
 
@@ -97,12 +83,9 @@ export function CxCFormDialog({
         clienteNombre: clienteNombre.trim(),
         clienteNit: clienteNit.trim() || undefined,
         numeroFactura: numeroFactura.trim(),
-        montoTotal: monto,
         fechaEmision,
-        numeroCuotas: numCuotasNum,
-        periodicidad,
-        fechaPrimeraCuota,
         notas: notas.trim() || undefined,
+        cuotas,
       });
       setOpen(false);
       resetForm();
@@ -166,18 +149,6 @@ export function CxCFormDialog({
               <Label htmlFor="cxc-factura">N.° de factura</Label>
               <Input id="cxc-factura" value={numeroFactura} onChange={(e) => setNumeroFactura(e.target.value)} required />
             </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="cxc-monto">Monto total (COP)</Label>
-              <Input
-                id="cxc-monto"
-                type="number"
-                min={0}
-                step="1000"
-                value={montoTotal}
-                onChange={(e) => setMontoTotal(e.target.value)}
-                required
-              />
-            </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="cxc-emision">Fecha de emisión</Label>
               <Input
@@ -188,64 +159,13 @@ export function CxCFormDialog({
                 required
               />
             </div>
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor="cxc-notas">Notas (opcional)</Label>
               <Input id="cxc-notas" value={notas} onChange={(e) => setNotas(e.target.value)} />
             </div>
           </div>
 
-          <div className="rounded-lg border border-[--border-subtle] p-3">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[--text-secondary]">
-              Plan de pagos
-            </p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="cxc-num-cuotas">Número de cuotas</Label>
-                <Input
-                  id="cxc-num-cuotas"
-                  type="number"
-                  min={1}
-                  max={60}
-                  step="1"
-                  value={numeroCuotas}
-                  onChange={(e) => setNumeroCuotas(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Periodicidad</Label>
-                <Select
-                  value={periodicidad}
-                  onValueChange={(v) => setPeriodicidad(v as CuotaPeriodicidad)}
-                  disabled={numCuotasNum <= 1}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="quincenal">Quincenal</SelectItem>
-                    <SelectItem value="mensual">Mensual</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor="cxc-primera-cuota">Fecha de la primera cuota</Label>
-                <Input
-                  id="cxc-primera-cuota"
-                  type="date"
-                  value={fechaPrimeraCuota}
-                  onChange={(e) => setFechaPrimeraCuota(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            {numCuotasNum > 1 && montoPorCuota > 0 ? (
-              <p className="mt-3 text-xs text-[--text-secondary]">
-                {numCuotasNum} cuotas de aprox. {formatCOP(montoPorCuota)}, cada{" "}
-                {periodicidad === "quincenal" ? "15 días" : "mes"}.
-              </p>
-            ) : null}
-          </div>
+          <PlanCuotasEditor onChange={setCuotas} />
 
           {error ? (
             <p className="flex items-center gap-2 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-xs text-danger">

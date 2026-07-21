@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeGestionarPresupuesto } from "@/lib/auth/roles";
+import { getPerfilActual, puedeGestionarFinanzas } from "@/lib/auth/roles";
 import { listCxP, getCxPResumen } from "@/lib/data/cxp";
 import { CxPTable } from "@/components/finanzas/cxp-table";
 import { formatCOP } from "@/lib/format";
@@ -15,7 +17,7 @@ export default async function CxPPage() {
   }
 
   const [cuentas, resumen] = await Promise.all([listCxP(supabase), getCxPResumen(supabase)]);
-  const puedeEscribir = puedeGestionarPresupuesto(perfil.rol);
+  const puedeEscribir = puedeGestionarFinanzas(perfil.rol);
 
   const kpis = [
     { label: "Pendiente", valor: formatCOP(resumen.pendiente) },
@@ -26,7 +28,14 @@ export default async function CxPPage() {
   return (
     <div className="flex flex-col gap-6 pb-12">
       <div>
-        <h1 className="font-display text-3xl text-[--text-primary]">Cuentas por pagar</h1>
+        <Link
+          href="/finanzas"
+          className="inline-flex items-center gap-1.5 text-sm text-[--text-secondary] hover:text-[--text-primary]"
+        >
+          <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
+          Finanzas
+        </Link>
+        <h1 className="mt-2 font-display text-3xl text-[--text-primary]">Cuentas por pagar</h1>
         <p className="mt-2 text-sm text-[--text-secondary]">Facturas recibidas de proveedores.</p>
       </div>
 

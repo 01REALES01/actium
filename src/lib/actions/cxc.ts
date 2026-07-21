@@ -2,29 +2,25 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertSuperAdmin } from "@/lib/auth/guards";
+import { assertPuedeFinanzas } from "@/lib/auth/guards";
 
 const FechaSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida");
-const PeriodicidadSchema = z.enum(["quincenal", "mensual"]);
 
-const CrearCxCSchema = z
-  .object({
-    proyectoId: z.string().uuid(),
-    rubroId: z.string().uuid(),
-    clienteNombre: z.string().min(1).max(200),
-    clienteNit: z.string().max(40).optional(),
-    numeroFactura: z.string().min(1).max(60),
-    montoTotal: z.number().positive(),
-    fechaEmision: FechaSchema,
-    numeroCuotas: z.number().int().min(1).max(60),
-    periodicidad: PeriodicidadSchema,
-    fechaPrimeraCuota: FechaSchema,
-    notas: z.string().max(500).optional(),
-  })
-  .refine((v) => v.fechaPrimeraCuota >= v.fechaEmision, {
-    message: "La fecha de la primera cuota no puede ser anterior a la de emisión",
-    path: ["fechaPrimeraCuota"],
-  });
+const CuotaSchema = z.object({
+  monto: z.number().positive(),
+  fecha: FechaSchema,
+});
+
+const CrearCxCSchema = z.object({
+  proyectoId: z.string().uuid(),
+  rubroId: z.string().uuid(),
+  clienteNombre: z.string().min(1).max(200),
+  clienteNit: z.string().max(40).optional(),
+  numeroFactura: z.string().min(1).max(60),
+  fechaEmision: FechaSchema,
+  notas: z.string().max(500).optional(),
+  cuotas: z.array(CuotaSchema).min(1).max(60),
+});
 
 export async function crearCxCAction(
   input: z.infer<typeof CrearCxCSchema>,
@@ -32,19 +28,16 @@ export async function crearCxCAction(
   const parsed = CrearCxCSchema.safeParse(input);
   if (!parsed.success) throw new Error(`Datos inválidos: ${parsed.error.message}`);
 
-  const { supabase } = await assertSuperAdmin();
+  const { supabase } = await assertPuedeFinanzas();
   const { data, error } = await supabase.rpc("crear_cxc_con_cuotas", {
     p_proyecto_id: parsed.data.proyectoId,
     p_rubro_id: parsed.data.rubroId,
     p_cliente_nombre: parsed.data.clienteNombre,
     p_cliente_nit: parsed.data.clienteNit ?? null,
     p_numero_factura: parsed.data.numeroFactura,
-    p_monto_total: parsed.data.montoTotal,
     p_fecha_emision: parsed.data.fechaEmision,
-    p_numero_cuotas: parsed.data.numeroCuotas,
-    p_periodicidad: parsed.data.periodicidad,
-    p_fecha_primera_cuota: parsed.data.fechaPrimeraCuota,
     p_notas: parsed.data.notas ?? null,
+    p_cuotas: parsed.data.cuotas,
   });
 
   if (error) {
@@ -70,7 +63,7 @@ export async function registrarCobroCuotaAction(
   const parsed = RegistrarCobroCuotaSchema.safeParse(input);
   if (!parsed.success) throw new Error(`Datos inválidos: ${parsed.error.message}`);
 
-  const { supabase } = await assertSuperAdmin();
+  const { supabase } = await assertPuedeFinanzas();
   const { data, error } = await supabase.rpc("registrar_cobro_cuota_cxc", {
     p_cuota_id: parsed.data.cuotaId,
     p_monto: parsed.data.monto,
@@ -86,7 +79,7 @@ export async function registrarCobroCuotaAction(
 }
 
 export async function anularCxCAction(cxcId: string): Promise<void> {
-  const { supabase } = await assertSuperAdmin();
+  const { supabase } = await assertPuedeFinanzas();
   const { error } = await supabase
     .from("cuentas_por_cobrar")
     .update({ estado: "anulada" })
