@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { CalendarDays, Plus, FolderKanban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
-import { listProyectos } from "@/lib/data/proyectos";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { listProyectos, listProyectosArchivados } from "@/lib/data/proyectos";
 import { getPerfilActual, puedeGestionarProyectos } from "@/lib/auth/roles";
+import { ProyectosArchivadosSection } from "@/components/projects/proyectos-archivados-section";
 import type { ProyectoEstado } from "@/types/database.types";
 
 function formatDate(value?: string | null) {
@@ -38,6 +40,16 @@ export default async function ProyectosPage() {
     proyectos = await listProyectos(supabase);
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los proyectos.";
+  }
+
+  // Proyectos archivados (solo super_admin; requiere service role para saltar la RLS)
+  let archivados: { id: string; nombre: string; codigo: string; deleted_at: string | null }[] = [];
+  if (puedeCrear) {
+    try {
+      archivados = await listProyectosArchivados(createAdminClient());
+    } catch {
+      // Sin service role configurada no se listan archivados; no bloquea la página.
+    }
   }
 
   return (
@@ -120,6 +132,10 @@ export default async function ProyectosPage() {
           </div>
           <p className="text-sm font-medium text-white/40 uppercase tracking-widest">Aún no hay proyectos</p>
         </div>
+      ) : null}
+
+      {puedeCrear && archivados.length > 0 ? (
+        <ProyectosArchivadosSection archivados={archivados} />
       ) : null}
     </div>
   );

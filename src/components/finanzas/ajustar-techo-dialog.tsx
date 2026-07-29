@@ -98,7 +98,7 @@ export function AjustarTechoDialog({
               id="nuevo-monto"
               type="number"
               min={0}
-              step="1000"
+              step="any"
               value={nuevoMonto}
               onChange={(e) => setNuevoMonto(e.target.value)}
               required

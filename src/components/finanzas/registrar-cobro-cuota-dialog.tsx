@@ -91,7 +91,7 @@ export function RegistrarCobroCuotaDialog({
               id="cuota-monto"
               type="number"
               min={0}
-              step="1000"
+              step="any"
               value={monto}
               onChange={(e) => setMonto(e.target.value)}
               required

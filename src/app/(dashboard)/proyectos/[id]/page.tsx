@@ -23,6 +23,7 @@ import { RegistrosAvanceTable } from "@/components/projects/registros-avance-tab
 import { PhotoGallery } from "@/components/projects/photo-gallery";
 import { ObservationsSection } from "@/components/projects/observations-section";
 import { PlanificadorCurvaModal } from "@/components/projects/planificador-curva-modal";
+import { ArchivarProyectoButton } from "@/components/projects/archivar-proyecto-button";
 
 type ProjectPageProps = {
   params: { id: string };
@@ -190,6 +191,9 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
               <Calendar className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Bitácora</span>
             </Link>
+            {puedeEditar && (
+              <ArchivarProyectoButton proyectoId={proyecto.id} proyectoNombre={proyecto.nombre} />
+            )}
           </div>
           {puedeRegistrarParte && (
             <Link

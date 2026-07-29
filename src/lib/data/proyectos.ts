@@ -21,6 +21,22 @@ export async function listProyectos(supabase: Client): Promise<Tables<"proyectos
   return data ?? [];
 }
 
+/**
+ * Lista los proyectos archivados (deleted_at NO nulo). La política RLS de SELECT
+ * oculta los archivados, por lo que el llamador debe pasar un cliente admin
+ * (service role). Úsese solo en contextos ya restringidos a super_admin.
+ */
+export async function listProyectosArchivados(supabase: Client): Promise<Tables<"proyectos">[]> {
+  const { data, error } = await supabase
+    .from("proyectos")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getProyecto(
   supabase: Client,
   id: string,

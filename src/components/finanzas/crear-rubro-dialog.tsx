@@ -146,7 +146,7 @@ export function CrearRubroDialog({ proyectoId }: { proyectoId: string }) {
                 id="rubro-monto"
                 type="number"
                 min={0}
-                step="1000"
+                step="any"
                 value={montoMaximo}
                 onChange={(e) => setMontoMaximo(e.target.value)}
                 required

@@ -113,7 +113,7 @@ export function PlanCuotasEditor({
             id="plan-total"
             type="number"
             min={0}
-            step="1000"
+            step="any"
             value={montoTotal}
             onChange={(e) => {
               setMontoTotal(e.target.value);
@@ -180,7 +180,7 @@ export function PlanCuotasEditor({
               <Input
                 type="number"
                 min={0}
-                step="1000"
+                step="any"
                 value={f.monto}
                 onChange={(e) => editarFila(i, "monto", e.target.value)}
                 placeholder="Monto"

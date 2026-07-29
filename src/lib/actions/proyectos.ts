@@ -359,3 +359,91 @@ export async function eliminarAvanceAction(
   revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
 }
 
+// ─── Archivar / restaurar / eliminar proyecto (solo super_admin) ─────────────
+
+const ProyectoIdSchema = z.object({ proyectoId: z.string().uuid() });
+
+/** Archiva un proyecto (borrado lógico reversible: marca deleted_at). */
+export async function archivarProyectoAction(
+  input: z.infer<typeof ProyectoIdSchema>,
+): Promise<void> {
+  const parsed = ProyectoIdSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  await assertSuperAdmin();
+  const db = createAdminClient();
+  const { error } = await db
+    .from("proyectos")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", parsed.data.proyectoId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/proyectos");
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
+}
+
+/** Restaura un proyecto archivado (deleted_at = null). */
+export async function restaurarProyectoAction(
+  input: z.infer<typeof ProyectoIdSchema>,
+): Promise<void> {
+  const parsed = ProyectoIdSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  await assertSuperAdmin();
+  const db = createAdminClient();
+  const { error } = await db
+    .from("proyectos")
+    .update({ deleted_at: null })
+    .eq("id", parsed.data.proyectoId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/proyectos");
+}
+
+/**
+ * Elimina definitivamente un proyecto y TODO su historial (finanzas, SST,
+ * avances, fotos). Irreversible. El borrado en BD es atómico (RPC); la limpieza
+ * de archivos en storage es best-effort.
+ */
+export async function eliminarProyectoDefinitivoAction(
+  input: z.infer<typeof ProyectoIdSchema>,
+): Promise<void> {
+  const parsed = ProyectoIdSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  // El RPC es SECURITY DEFINER con guard interno de super_admin: se llama con el
+  // cliente del usuario (su JWT) para que la verificación de rol funcione.
+  const { supabase } = await assertSuperAdmin();
+  const db = createAdminClient();
+
+  // Rutas de storage a limpiar (se recolectan antes de borrar las filas)
+  const [{ data: fotos }, { data: forms }] = await Promise.all([
+    db.from("fotos").select("storage_path").eq("proyecto_id", parsed.data.proyectoId),
+    db
+      .from("formularios")
+      .select("pdf_generado_path")
+      .eq("proyecto_id", parsed.data.proyectoId)
+      .not("pdf_generado_path", "is", null),
+  ]);
+
+  const { error } = await supabase.rpc("eliminar_proyecto_definitivo", {
+    p_proyecto_id: parsed.data.proyectoId,
+  });
+  if (error) throw new Error(error.message);
+
+  const fotoPaths = (fotos ?? []).map((f) => f.storage_path).filter(Boolean);
+  if (fotoPaths.length > 0) {
+    await db.storage.from("fotos-proyectos").remove(fotoPaths);
+  }
+  const pdfPaths = (forms ?? [])
+    .map((f) => f.pdf_generado_path)
+    .filter((p): p is string => Boolean(p));
+  if (pdfPaths.length > 0) {
+    await db.storage.from("pdfs-formularios").remove(pdfPaths);
+  }
+
+  revalidatePath("/proyectos");
+}
+
