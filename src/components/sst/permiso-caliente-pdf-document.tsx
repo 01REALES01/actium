@@ -290,6 +290,7 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
               <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Emisor del Permiso</Text>
             </View>
             <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
               {data.emisorFirma ? <Image src={data.emisorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
             </View>
             <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
@@ -308,6 +309,7 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
               <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Coordinador SISO</Text>
             </View>
             <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
               {data.coordinadorFirma ? <Image src={data.coordinadorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
             </View>
             <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
