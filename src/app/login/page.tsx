@@ -12,12 +12,23 @@ async function signIn(formData: FormData): Promise<void> {
 
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const supabase = createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  let errorMessage: string | null = null;
+  try {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    errorMessage = error?.message ?? null;
+  } catch (error) {
+    console.error("signIn: fallo de conexión con Supabase", error);
+    errorMessage = "network";
+  }
 
-  if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  if (errorMessage) {
+    const isNetworkError = errorMessage === "network" || errorMessage.toLowerCase().includes("fetch");
+    const displayMessage = isNetworkError
+      ? "No fue posible conectar con el servidor. Intenta de nuevo en unos minutos."
+      : errorMessage;
+    redirect(`/login?error=${encodeURIComponent(displayMessage)}`);
   }
 
   redirect("/proyectos");
