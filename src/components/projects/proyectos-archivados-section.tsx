@@ -11,8 +11,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { restaurarProyectoAction, eliminarProyectoDefinitivoAction } from "@/lib/actions/proyectos";
 
@@ -145,29 +143,25 @@ function EliminarDefinitivoDialog({
   onClose: () => void;
   onDeleted: () => void;
 }) {
-  const [confirmacion, setConfirmacion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const abierto = proyecto !== null;
-  const coincide = proyecto !== null && confirmacion.trim() === proyecto.nombre;
 
   function handleOpenChange(next: boolean) {
     if (loading) return;
     if (!next) {
-      setConfirmacion("");
       setError(null);
       onClose();
     }
   }
 
   async function onEliminar() {
-    if (!proyecto || !coincide) return;
+    if (!proyecto) return;
     setLoading(true);
     setError(null);
     try {
       await eliminarProyectoDefinitivoAction({ proyectoId: proyecto.id });
-      setConfirmacion("");
       onDeleted();
     } catch (err) {
       setError(err instanceof Error ? err.message : "No fue posible eliminar el proyecto.");
@@ -192,19 +186,6 @@ function EliminarDefinitivoDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="confirmar-nombre">
-            Escribe el nombre del proyecto para confirmar
-          </Label>
-          <Input
-            id="confirmar-nombre"
-            value={confirmacion}
-            onChange={(e) => setConfirmacion(e.target.value)}
-            placeholder={proyecto?.nombre}
-            autoComplete="off"
-          />
-        </div>
-
         {error ? (
           <p className="flex items-center gap-2 rounded-lg border border-danger/20 bg-danger/10 px-3 py-2 text-xs text-danger">
             <AlertCircle className="h-4 w-4 shrink-0" strokeWidth={1.5} />
@@ -220,7 +201,7 @@ function EliminarDefinitivoDialog({
             type="button"
             variant="destructive"
             onClick={onEliminar}
-            disabled={loading || !coincide}
+            disabled={loading}
             className="gap-1.5"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" strokeWidth={1.5} />}
