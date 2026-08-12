@@ -123,6 +123,27 @@ export function FlujoCajaGlobalTable({ data }: { data: FlujoCajaAgregado }) {
           })}
         </div>
 
+        {/* Saldo en banco (sin proyectados) */}
+        <div
+          className="grid border-t-2 border-actium-amber bg-[--bg-elevated] py-1"
+          style={colSpan(data.quincenas.length)}
+        >
+          <div className="sticky left-0 z-10 bg-[--bg-elevated] px-4 py-2 font-display text-base text-actium-amber">
+            Saldo en banco
+          </div>
+          {data.flujoAcumulado.map((v, i) => (
+            <div
+              key={data.quincenas[i]}
+              className={
+                "px-3 py-2 text-right font-display text-base " +
+                (v < 0 ? "text-danger" : "text-actium-amber")
+              }
+            >
+              {formatMontoContable(v)}
+            </div>
+          ))}
+        </div>
+
         {/* Flujo acumulado */}
         <div
           className="sticky bottom-0 grid border-t-2 border-actium-orange bg-[--bg-elevated] py-1"

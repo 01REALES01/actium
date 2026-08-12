@@ -293,6 +293,7 @@ export async function getFlujoAgregado(
 export function derivarSeriesAgregado(data: FlujoCajaAgregado) {
   return {
     quincenas: data.quincenas,
+    saldoBanco: data.flujoAcumulado,
     acumulado: data.acumuladoConProyectado,
     ingresos: data.ingresosPorQuincena,
     egresos: data.totalEgresosPorQuincena.map((v) => Math.abs(v)),
@@ -323,6 +324,7 @@ export function derivarSeriesProyecto(data: FlujoCajaData) {
 
   return {
     quincenas: data.quincenas,
+    saldoBanco: data.flujoAcumulado,
     acumulado,
     ingresos: data.ingresosPorQuincena,
     egresos: data.totalEgresosPorQuincena.map((v) => Math.abs(v)),

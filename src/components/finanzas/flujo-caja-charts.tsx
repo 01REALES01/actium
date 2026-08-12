@@ -15,6 +15,7 @@ import { formatCOP, formatFechaCorta } from "@/lib/format";
 
 export type FlujoCajaSeries = {
   quincenas: string[];
+  saldoBanco: number[];
   acumulado: number[];
   ingresos: number[];
   egresos: number[];
@@ -158,6 +159,13 @@ function ChartSection({
 export function FlujoCajaCharts({ series }: { series: FlujoCajaSeries }) {
   return (
     <div className="flex flex-col gap-3">
+      <ChartSection
+        titulo="Saldo en banco"
+        descripcion="Saldo acumulado por quincena, sin considerar lo proyectado a pagar/cobrar."
+        quincenas={series.quincenas}
+        valores={series.saldoBanco}
+        color="#8C470B"
+      />
       <ChartSection
         titulo="Flujo de caja acumulado"
         descripcion="Saldo acumulado por quincena, incluyendo proyectados."
