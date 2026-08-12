@@ -3,6 +3,7 @@ import { ClipboardList, Plus, List, UserCheck, UserMinus, AlertTriangle, ShieldA
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listPartes } from "@/lib/data/partes-sst";
+import { listProyectos } from "@/lib/data/proyectos";
 import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
 import { BitacoraViewToggle } from "@/components/sst/bitacora-view-toggle";
 import { BitacoraActionsDropdown } from "@/components/sst/bitacora-actions-dropdown";
@@ -19,7 +20,8 @@ export default async function BitacoraPage() {
 
   // Lectura por admin: tablas SST con RLS activo y auth_rol() rota.
   const db = createAdminClient();
-  const partes = await listPartes(db);
+  const [partes, proyectos] = await Promise.all([listPartes(db), listProyectos(db)]);
+  const proyectosOpt = proyectos.map((p) => ({ id: p.id, nombre: p.nombre }));
   const { data: formulariosRaw, error } = await db
     .from("formularios")
     .select("id, tipo, fecha_inicio, pdf_generado_path, proyecto_id, proyectos(nombre)")
@@ -56,7 +58,7 @@ export default async function BitacoraPage() {
           </p>
         </div>
         {puedeRegistrar && (
-          <BitacoraActionsDropdown />
+          <BitacoraActionsDropdown proyectos={proyectosOpt} />
         )}
       </div>
 

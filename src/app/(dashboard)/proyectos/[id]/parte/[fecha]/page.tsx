@@ -50,8 +50,10 @@ function addDays(fecha: string, delta: number): string {
 
 export default async function ParteDiaProyectoPage({
   params,
+  searchParams,
 }: {
   params: { id: string; fecha: string };
+  searchParams?: { abrir?: string };
 }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(params.fecha)) notFound();
 
@@ -238,6 +240,7 @@ export default async function ParteDiaProyectoPage({
               estadoInicial={estadoInicialCheckin}
               observacionInicial={d.parte?.observaciones ?? ""}
               parteExiste={Boolean(d.parte)}
+              defaultOpen={searchParams?.abrir === "asistencia"}
               customTrigger={
                 <div className="group flex h-full flex-col justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 transition-all hover:bg-emerald-500/10 hover:-translate-y-0.5">
                   <div className="flex items-center justify-between">
