@@ -165,6 +165,72 @@ export async function getEmpleadosAsignados(
   }));
 }
 
+// ─── Todos los empleados visibles, con proyectos asignados y documentos ──────
+
+export type EmpleadoConProyectos = EmpleadoConDocumentos & {
+  proyectos: { id: string; nombre: string }[];
+};
+
+/**
+ * Trae todos los empleados visibles para el usuario (la RLS ya filtra por
+ * deleted_at IS NULL y por alcance de empresa/subempresa), incluyendo a los
+ * que no tienen ninguna asignación activa a proyecto ("banco de personal").
+ * A diferencia de getEmpleadosAsignados, no filtra por proyecto ni por activo.
+ */
+export async function listEmpleados(supabase: Client): Promise<EmpleadoConProyectos[]> {
+  const { data: empleados, error: errEmp } = await supabase
+    .from("empleados")
+    .select("*")
+    .order("nombre", { ascending: true });
+
+  if (errEmp) throw errEmp;
+  if (!empleados || empleados.length === 0) return [];
+
+  const ids = empleados.map((e) => e.id);
+
+  const [documentosRes, asignacionesRes] = await Promise.all([
+    supabase.from("empleado_documentos").select("*").in("empleado_id", ids),
+    supabase
+      .from("empleado_proyectos")
+      .select(`empleado_id, proyectos:proyecto_id ( id, nombre )`)
+      .in("empleado_id", ids)
+      .is("retirado_at", null),
+  ]);
+
+  if (documentosRes.error) throw documentosRes.error;
+  if (asignacionesRes.error) throw asignacionesRes.error;
+
+  const documentos = documentosRes.data ?? [];
+  const asignaciones = (asignacionesRes.data ?? []) as unknown as {
+    empleado_id: string;
+    proyectos: { id: string; nombre: string } | null;
+  }[];
+
+  return empleados.map((emp) => ({
+    ...emp,
+    documentos: documentos.filter((d) => d.empleado_id === emp.id),
+    proyectos: asignaciones
+      .filter((a) => a.empleado_id === emp.id && a.proyectos)
+      .map((a) => a.proyectos as { id: string; nombre: string }),
+  }));
+}
+
+/**
+ * Lista los empleados archivados (deleted_at NO nulo). La política RLS de
+ * SELECT oculta los archivados, por lo que el llamador debe pasar un cliente
+ * admin (service role). Úsese solo en contextos ya restringidos a super_admin.
+ */
+export async function listEmpleadosArchivados(supabase: Client): Promise<Tables<"empleados">[]> {
+  const { data, error } = await supabase
+    .from("empleados")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 // ─── Ausentismos activos con info del empleado ────────────────────────────────
 
 export async function getAusentismosActivos(

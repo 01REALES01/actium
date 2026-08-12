@@ -18,8 +18,11 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getEmpleadoPerfil } from "@/lib/data/sst";
+import { listProyectos } from "@/lib/data/proyectos";
+import { listEmpresas, listSubempresas } from "@/lib/data/organizacion";
 import { getPerfilActual, esSuperAdmin } from "@/lib/auth/roles";
 import { SubirDocumentoButton } from "@/components/workers/subir-documento-button";
+import { WorkerProfileActions } from "@/components/workers/worker-profile-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -69,9 +72,12 @@ function fmtFecha(fecha: string | null): string {
 
 export default async function EmpleadoPerfilPage({ params }: Props) {
   const supabase = createClient();
-  const [perfil, usuarioActual] = await Promise.all([
+  const [perfil, usuarioActual, todosLosProyectos, empresas, subempresas] = await Promise.all([
     getEmpleadoPerfil(supabase, params.id),
     getPerfilActual(supabase),
+    listProyectos(supabase),
+    listEmpresas(supabase),
+    listSubempresas(supabase),
   ]);
 
   if (!perfil) notFound();
@@ -127,6 +133,14 @@ export default async function EmpleadoPerfilPage({ params }: Props) {
               )}
             </div>
           </div>
+          {puedeEditar && (
+            <WorkerProfileActions
+              empleado={{ ...empleado, documentos, proyectos }}
+              proyectos={todosLosProyectos}
+              empresas={empresas.map((e) => ({ id: e.id, nombre: e.nombre }))}
+              subempresas={subempresas.map((s) => ({ id: s.id, nombre: s.nombre, empresa_id: s.empresa_id }))}
+            />
+          )}
         </div>
 
         {/* Datos de afiliación */}

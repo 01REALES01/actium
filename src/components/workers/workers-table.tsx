@@ -1,17 +1,25 @@
 "use client";
 
 import Image from "next/image";
-import { Upload, MapPin } from "lucide-react";
+import { MoreVertical, Upload, Pencil, Archive, UserCheck, UserX, MapPin } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import type { EmpleadoConDocumentos } from "@/lib/data/sst";
+import type { EmpleadoConProyectos } from "@/lib/data/sst";
 import type { Tables } from "@/types/database.types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { WorkerDetailsModal } from "./worker-details-modal";
+import { WorkerFormModal } from "./worker-form-modal";
+import { ArchivarTrabajadorDialog } from "./archivar-trabajador-dialog";
+import { toggleTrabajadorActivoAction } from "@/lib/actions/sst-actions";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getDocStatus(emp: EmpleadoConDocumentos) {
+function getDocStatus(emp: EmpleadoConProyectos) {
   const hoy = new Date();
   let hasExpired = false;
   let hasWarning = false;
@@ -72,25 +80,53 @@ function DocChip({ tipo, vigencia_hasta }: { tipo: string; vigencia_hasta: strin
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-type EmpleadoConProyecto = EmpleadoConDocumentos & { proyecto_nombre: string };
-
 interface WorkersTableProps {
-  empleados: EmpleadoConProyecto[];
+  empleados: EmpleadoConProyectos[];
   proyectos: Tables<"proyectos">[];
+  empresas: { id: string; nombre: string }[];
+  subempresas: { id: string; nombre: string; empresa_id: string }[];
   puedeEditar?: boolean;
 }
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
-export function WorkersTable({ empleados, puedeEditar = false }: WorkersTableProps) {
+export function WorkersTable({
+  empleados,
+  proyectos,
+  empresas,
+  subempresas,
+  puedeEditar = false,
+}: WorkersTableProps) {
   const router = useRouter();
-  const [selectedWorker, setSelectedWorker] = useState<EmpleadoConProyecto | null>(null);
+  const [selectedWorker, setSelectedWorker] = useState<EmpleadoConProyectos | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingWorker, setEditingWorker] = useState<EmpleadoConProyectos | null>(null);
+  const [archivingWorker, setArchivingWorker] = useState<{ id: string; nombre: string } | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const proyectosOpcion = proyectos.map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    empresa_id: p.empresa_id,
+    subempresa_id: p.subempresa_id,
+  }));
+
+  async function handleToggleActivo(emp: EmpleadoConProyectos) {
+    setTogglingId(emp.id);
+    try {
+      await toggleTrabajadorActivoAction({ empleadoId: emp.id, activo: !emp.activo });
+      router.refresh();
+    } catch (err) {
+      console.error("Error al cambiar el estado del trabajador:", err);
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   if (empleados.length === 0) {
     return (
       <div className="w-full rounded-xl border border-white/5 bg-[#1A1A1A] p-12 text-center">
-        <p className="text-sm text-white/20 italic">No hay personal asignado a ningún proyecto activo.</p>
+        <p className="text-sm text-white/20 italic">No hay personal registrado con estos filtros.</p>
       </div>
     );
   }
@@ -132,7 +168,14 @@ export function WorkersTable({ empleados, puedeEditar = false }: WorkersTablePro
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white leading-tight">{emp.nombre}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-white leading-tight">{emp.nombre}</p>
+                        {!emp.activo && (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white/40">
+                            Inactivo
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] font-medium text-white/20 uppercase tracking-wider">CC {emp.cedula}</p>
                     </div>
                   </div>
@@ -145,10 +188,16 @@ export function WorkersTable({ empleados, puedeEditar = false }: WorkersTablePro
 
                 {/* Proyecto */}
                 <td className="px-6 py-5">
-                  <div className="flex items-center gap-2 text-white/60">
-                    <MapPin className="h-4 w-4 text-[#ff4500]/50 shrink-0" />
-                    <span className="text-sm truncate max-w-[180px]">{emp.proyecto_nombre}</span>
-                  </div>
+                  {emp.proyectos.length === 0 ? (
+                    <span className="text-sm italic text-white/20">Sin asignar</span>
+                  ) : (
+                    <div className="flex items-center gap-2 text-white/60">
+                      <MapPin className="h-4 w-4 text-[#ff4500]/50 shrink-0" />
+                      <span className="text-sm truncate max-w-[180px]">
+                        {emp.proyectos.map((p) => p.nombre).join(", ")}
+                      </span>
+                    </div>
+                  )}
                 </td>
 
                 {/* ARL / EPS */}
@@ -178,20 +227,62 @@ export function WorkersTable({ empleados, puedeEditar = false }: WorkersTablePro
                 </td>
 
                 {/* Acciones */}
-                <td className="px-6 py-5 text-right">
-                  <button
-                    type="button"
-                    title="Subir documentos"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedWorker(emp);
-                      setModalOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
-                  >
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden sm:inline">Documentos</span>
-                  </button>
+                <td className="px-6 py-5 text-right" onClick={(e) => e.stopPropagation()}>
+                  {puedeEditar ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 text-white/50 transition-all hover:bg-white/5 hover:text-white focus:outline-none">
+                        <MoreVertical className="h-4 w-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48 bg-[#1A1A1A] border-white/10 text-white">
+                        <DropdownMenuItem
+                          className="flex items-center gap-2.5 py-2.5 text-xs font-semibold hover:bg-white/5 focus:bg-white/5 cursor-pointer"
+                          onSelect={() => setEditingWorker(emp)}
+                        >
+                          <Pencil className="h-4 w-4 text-white/50" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2.5 py-2.5 text-xs font-semibold hover:bg-white/5 focus:bg-white/5 cursor-pointer"
+                          onSelect={() => {
+                            setSelectedWorker(emp);
+                            setModalOpen(true);
+                          }}
+                        >
+                          <Upload className="h-4 w-4 text-white/50" /> Documentos
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={togglingId === emp.id}
+                          className="flex items-center gap-2.5 py-2.5 text-xs font-semibold hover:bg-white/5 focus:bg-white/5 cursor-pointer"
+                          onSelect={() => handleToggleActivo(emp)}
+                        >
+                          {emp.activo ? (
+                            <UserX className="h-4 w-4 text-white/50" />
+                          ) : (
+                            <UserCheck className="h-4 w-4 text-white/50" />
+                          )}
+                          {emp.activo ? "Inactivar" : "Reactivar"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="flex items-center gap-2.5 py-2.5 text-xs font-semibold text-red-400 hover:bg-red-500/10 focus:bg-red-500/10 cursor-pointer"
+                          onSelect={() => setArchivingWorker({ id: emp.id, nombre: emp.nombre })}
+                        >
+                          <Archive className="h-4 w-4" /> Archivar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <button
+                      type="button"
+                      title="Subir documentos"
+                      onClick={() => {
+                        setSelectedWorker(emp);
+                        setModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span className="hidden sm:inline">Documentos</span>
+                    </button>
+                  )}
                 </td>
               </tr>
             );
@@ -212,6 +303,24 @@ export function WorkersTable({ empleados, puedeEditar = false }: WorkersTablePro
         empleado={selectedWorker}
         empresaId={selectedWorker?.empresa_id}
         puedeEditar={puedeEditar}
+      />
+
+      {editingWorker && (
+        <WorkerFormModal
+          modo="editar"
+          empleado={editingWorker}
+          proyectos={proyectosOpcion}
+          empresas={empresas}
+          subempresas={subempresas}
+          empresaFija={null}
+          open={!!editingWorker}
+          onOpenChange={(next) => !next && setEditingWorker(null)}
+        />
+      )}
+
+      <ArchivarTrabajadorDialog
+        empleado={archivingWorker}
+        onClose={() => setArchivingWorker(null)}
       />
     </div>
   );
