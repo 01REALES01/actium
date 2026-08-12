@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Pencil, ClipboardList, Calendar, Plus } from "lucide-react";
+import { Pencil, ClipboardList, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPerfilActual, puedeGestionarProyectos, puedeEditarParteDiario } from "@/lib/auth/roles";
@@ -24,6 +24,7 @@ import { PhotoGallery } from "@/components/projects/photo-gallery";
 import { ObservationsSection } from "@/components/projects/observations-section";
 import { PlanificadorCurvaModal } from "@/components/projects/planificador-curva-modal";
 import { ArchivarProyectoButton } from "@/components/projects/archivar-proyecto-button";
+import { NuevoRegistroModal } from "@/components/projects/nuevo-registro-modal";
 
 type ProjectPageProps = {
   params: { id: string };
@@ -196,14 +197,13 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
             )}
           </div>
           {puedeRegistrarParte && (
-            <Link
-              href={`/proyectos/${proyecto.id}/parte/${hoy}`}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-[#F25C05] px-4 md:px-6 py-3 text-[10px] md:text-xs font-bold text-white transition-all hover:bg-[#F25C05]/90"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Nuevo Registro</span>
-              <span className="sm:hidden">Registro</span>
-            </Link>
+            <NuevoRegistroModal
+              proyectoId={proyecto.id}
+              unidad={proyecto.unidad_medida}
+              metaTotal={proyecto.meta_total_cantidad ? Number(proyecto.meta_total_cantidad) : null}
+              fechaInicio={proyecto.fecha_inicio ?? null}
+              metas={metasData.map((m) => ({ fecha: m.fecha, avance_esperado: Number(m.avance_esperado) }))}
+            />
           )}
         </div>
       </div>
