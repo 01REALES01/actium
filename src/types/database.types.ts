@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       altura_detalles: {
@@ -1036,6 +1061,20 @@ export type Database = {
             referencedRelation: "proyectos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cuentas_por_pagar_cuotas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "cuentas_por_pagar_cuotas_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
         ]
       }
       empleado_documentos: {
@@ -1538,6 +1577,7 @@ export type Database = {
           acciones_tomadas: string | null
           causas: string | null
           created_at: string
+          deleted_at: string | null
           descripcion: string
           empleado_id: string
           fecha: string
@@ -1557,6 +1597,7 @@ export type Database = {
           acciones_tomadas?: string | null
           causas?: string | null
           created_at?: string
+          deleted_at?: string | null
           descripcion: string
           empleado_id: string
           fecha: string
@@ -1576,6 +1617,7 @@ export type Database = {
           acciones_tomadas?: string | null
           causas?: string | null
           created_at?: string
+          deleted_at?: string | null
           descripcion?: string
           empleado_id?: string
           fecha?: string
@@ -2484,13 +2526,6 @@ export type Database = {
             foreignKeyName: "rubros_proyecto_id_fkey"
             columns: ["proyecto_id"]
             isOneToOne: false
-            referencedRelation: "vw_proyecto_resumen"
-            referencedColumns: ["proyecto_id"]
-          },
-          {
-            foreignKeyName: "rubros_proyecto_id_fkey"
-            columns: ["proyecto_id"]
-            isOneToOne: false
             referencedRelation: "vw_proyectos_finanzas"
             referencedColumns: ["proyecto_id"]
           },
@@ -2512,7 +2547,9 @@ export type Database = {
       }
       auth_empresa_id: { Args: never; Returns: string }
       auth_es_admin_o_superior: { Args: never; Returns: boolean }
+      auth_es_financiero: { Args: never; Returns: boolean }
       auth_es_super_admin: { Args: never; Returns: boolean }
+      auth_puede_finanzas: { Args: never; Returns: boolean }
       auth_puede_ver_proyecto: {
         Args: { p_proyecto_id: string }
         Returns: boolean
@@ -2546,13 +2583,23 @@ export type Database = {
         Args: {
           p_cliente_nit: string
           p_cliente_nombre: string
+          p_cuotas: Json
           p_fecha_emision: string
-          p_fecha_primera_cuota: string
-          p_monto_total: number
-          p_notas?: string
-          p_numero_cuotas: number
+          p_notas: string
           p_numero_factura: string
-          p_periodicidad: Database["public"]["Enums"]["cuota_periodicidad"]
+          p_proyecto_id: string
+          p_rubro_id: string
+        }
+        Returns: string
+      }
+      crear_cxp_con_cuotas: {
+        Args: {
+          p_cuotas: Json
+          p_fecha_emision: string
+          p_notas: string
+          p_numero_factura: string
+          p_proveedor_nit: string
+          p_proveedor_nombre: string
           p_proyecto_id: string
           p_rubro_id: string
         }
@@ -2562,6 +2609,22 @@ export type Database = {
       ejecutar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
+      }
+      eliminar_empleado_definitivo: {
+        Args: { p_empleado_id: string }
+        Returns: undefined
+      }
+      eliminar_incidente_definitivo: {
+        Args: { p_incidente_id: string }
+        Returns: undefined
+      }
+      eliminar_proyecto_definitivo: {
+        Args: { p_proyecto_id: string }
+        Returns: undefined
+      }
+      fijar_presupuesto_proyecto: {
+        Args: { p_monto?: number; p_proyecto_id: string }
+        Returns: number
       }
       path_empresa_id: { Args: { obj_path: string }; Returns: string }
       path_subempresa_id: { Args: { obj_path: string }; Returns: string }
@@ -2587,9 +2650,17 @@ export type Database = {
         Args: { p_cxc_id: string; p_fecha?: string; p_monto: number }
         Returns: string
       }
+      registrar_pago_cuota_cxp: {
+        Args: { p_cuota_id: string; p_fecha?: string; p_monto: number }
+        Returns: string
+      }
       registrar_pago_cxp: {
         Args: { p_cxp_id: string; p_fecha?: string; p_monto: number }
         Returns: string
+      }
+      set_sobregiro_proyecto: {
+        Args: { p_activo: boolean; p_proyecto_id: string }
+        Returns: boolean
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
@@ -2603,6 +2674,15 @@ export type Database = {
           p_tipo: Database["public"]["Enums"]["movimiento_tipo"]
         }
         Returns: string
+      }
+      transferir_presupuesto_rubros: {
+        Args: {
+          p_monto: number
+          p_proyecto_id: string
+          p_rubro_destino_id: string
+          p_rubro_origen_id: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
@@ -2775,6 +2855,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       ausentismo_tipo: [
