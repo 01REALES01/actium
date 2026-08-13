@@ -1,5 +1,5 @@
 import type { TypedSupabaseClient, Tables, FormularioTipo, FormularioEstado, AusentismoTipo, DocumentoEmpleadoTipo } from "@/types/database.types";
-import { hoyLocal, rangoDiaLocal } from "@/lib/fecha";
+import { hoyLocal, rangoDiaLocal, sumarDias } from "@/lib/fecha";
 
 type Client = TypedSupabaseClient;
 
@@ -78,13 +78,15 @@ export async function getSSTStats(
   const { count: incidentesTotales } = await supabase
     .from("incidentes")
     .select("*", { count: "exact", head: true })
-    .eq("proyecto_id", proyectoId);
+    .eq("proyecto_id", proyectoId)
+    .is("deleted_at", null);
 
   // 4. Incidentes hoy (cualquier tipo)
   const { count: incidentesHoy } = await supabase
     .from("incidentes")
     .select("*", { count: "exact", head: true })
     .eq("proyecto_id", proyectoId)
+    .is("deleted_at", null)
     .gte("fecha", diaStart)
     .lte("fecha", diaEnd);
 
@@ -93,6 +95,7 @@ export async function getSSTStats(
     .from("incidentes")
     .select("*", { count: "exact", head: true })
     .eq("proyecto_id", proyectoId)
+    .is("deleted_at", null)
     .eq("tipo", "accidente")
     .in("severidad", ["grave", "critico"]);
 
@@ -101,6 +104,7 @@ export async function getSSTStats(
     .from("incidentes")
     .select("*", { count: "exact", head: true })
     .eq("proyecto_id", proyectoId)
+    .is("deleted_at", null)
     .eq("tipo", "accidente")
     .in("severidad", ["grave", "critico"])
     .gte("fecha", diaStart)
@@ -351,6 +355,7 @@ export async function getIncidentesPorProyecto(
       empleados:empleado_id ( nombre, cargo )
     `)
     .eq("proyecto_id", proyectoId)
+    .is("deleted_at", null)
     .order("fecha", { ascending: false });
 
   if (tipo) query = query.eq("tipo", tipo);
@@ -490,13 +495,14 @@ export async function getAvancesSemanaActual(
   return result;
 }
 
-// ─── Avance del día actual para la barra diaria ──────────────────────────────
+// ─── Avance de un día concreto para la barra diaria ──────────────────────────
 
-export async function getAvanceHoy(
+export async function getAvanceDelDia(
   supabase: Client,
   proyectoId: string,
+  fecha: string, // YYYY-MM-DD
 ): Promise<{ real: number; proyectado: number } | null> {
-  const today = hoyLocal();
+  const today = fecha;
 
   const { data, error } = await supabase
     .from("proyecto_avances")
@@ -577,6 +583,42 @@ export async function getAvanceHoy(
   };
 }
 
+// ─── Avance de la última jornada con registro (para la vista del proyecto) ───
+
+/**
+ * Busca hacia atrás (hasta `maxDias`, por defecto 14) desde `hasta` la última
+ * fecha con avance registrado, y devuelve real/proyectado de esa fecha junto
+ * con la fecha misma. Se usa para mostrar en la mañana el avance de la
+ * jornada de la noche anterior, con su fecha real, en vez del de "hoy".
+ */
+export async function getAvanceUltimaJornada(
+  supabase: Client,
+  proyectoId: string,
+  hasta: string, // YYYY-MM-DD, normalmente ayerLocal()
+  maxDias = 14,
+): Promise<{ fecha: string; real: number; proyectado: number } | null> {
+  const desde = sumarDias(hasta, -maxDias);
+
+  const { data: ultimoAvance, error } = await supabase
+    .from("proyecto_avances")
+    .select("fecha")
+    .eq("proyecto_id", proyectoId)
+    .lte("fecha", hasta)
+    .gte("fecha", desde)
+    .order("fecha", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!ultimoAvance) return null;
+
+  const fecha = (ultimoAvance as { fecha: string }).fecha;
+  const avance = await getAvanceDelDia(supabase, proyectoId, fecha);
+  if (!avance) return null;
+
+  return { fecha, ...avance };
+}
+
 // ─── Funciones existentes ─────────────────────────────────────────────────────
 
 export async function listIncidentes(
@@ -587,6 +629,7 @@ export async function listIncidentes(
     .from("incidentes")
     .select("*")
     .eq("proyecto_id", proyectoId)
+    .is("deleted_at", null)
     .order("fecha", { ascending: false });
 
   if (error) throw error;

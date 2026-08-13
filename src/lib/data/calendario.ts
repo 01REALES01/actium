@@ -44,6 +44,7 @@ export async function getCalendarEvents(
     supabase
       .from("incidentes")
       .select("id, tipo, severidad, fecha, descripcion, proyecto_id")
+      .is("deleted_at", null)
       .gte("fecha", `${desde}T00:00:00`)
       .lte("fecha", `${hasta}T23:59:59`),
     supabase

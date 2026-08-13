@@ -1,20 +1,29 @@
 "use client";
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from "recharts";
+import { hoyLocal, etiquetaFechaCorta } from "@/lib/fecha";
 
 interface DailyProgressChartProps {
   real: number;
   proyectado: number;
   title?: string;
   unidad?: string;
+  /** Fecha (YYYY-MM-DD) de los datos mostrados. Sin esto, el badge asume hoy en el navegador. */
+  fecha?: string;
 }
 
-export function DailyProgressChart({ real, proyectado, title, unidad = "MT" }: DailyProgressChartProps) {
+export function DailyProgressChart({ real, proyectado, title, unidad = "MT", fecha }: DailyProgressChartProps) {
   const displayTitle = title || `AVANCE DIARIO (${unidad})`;
   const data = [
     { name: "PROYECTADO", valor: proyectado, color: "rgba(255, 255, 255, 0.1)" },
     { name: "REAL", valor: real, color: "#F25C05" },
   ];
+  const cumplimiento = proyectado > 0 ? `${((real / proyectado) * 100).toFixed(1)}%` : "—";
+  const etiquetaBadge = fecha
+    ? fecha === hoyLocal()
+      ? `HOY · ${etiquetaFechaCorta(fecha).toUpperCase()}`
+      : etiquetaFechaCorta(fecha).toUpperCase()
+    : `HOY: ${new Date().toLocaleDateString("es-ES", { weekday: "long" }).toUpperCase()}`;
 
   return (
     <div className="flex h-full flex-col gap-6 rounded-3xl border-0 bg-white/[0.02] p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl group">
@@ -24,7 +33,7 @@ export function DailyProgressChart({ real, proyectado, title, unidad = "MT" }: D
           {displayTitle}
         </h3>
         <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">
-          HOY: {new Date().toLocaleDateString('es-ES', { weekday: 'long' }).toUpperCase()}
+          {etiquetaBadge}
         </span>
       </div>
       
@@ -75,7 +84,7 @@ export function DailyProgressChart({ real, proyectado, title, unidad = "MT" }: D
       <div className="relative z-10 mt-auto flex items-center justify-between border-t border-white/5 pt-6">
         <div className="flex flex-col">
           <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Cumplimiento</p>
-          <p className="text-lg font-bold text-white">{((real / proyectado) * 100).toFixed(1)}%</p>
+          <p className="text-lg font-bold text-white">{cumplimiento}</p>
         </div>
         <div className="flex flex-col text-right">
           <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Desviación</p>

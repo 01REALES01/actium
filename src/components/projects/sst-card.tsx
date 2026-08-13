@@ -5,6 +5,7 @@ import { ShieldCheck, UserCheck, Users, ArrowRight, Pencil } from "lucide-react"
 import { Badge } from "@/components/ui/badge";
 import { WorkerDrillDown } from "./worker-drilldown";
 import { useState } from "react";
+import { etiquetaFechaCorta, etiquetaFechaLarga } from "@/lib/fecha";
 import type { SSTStats, EmpleadoConDocumentos, AusentismoConEmpleado, IncidenteConEmpleado } from "@/lib/data/sst";
 
 interface SSTCardProps {
@@ -19,8 +20,9 @@ interface SSTCardProps {
   fecha: string; // hoy YYYY-MM-DD
   parteExiste: boolean;
   presentesHoy: number;
-  incidentesHoyCount: number;
-  accidentesHoyCount: number;
+  fechaEventos: string | null; // fecha de la última jornada con parte registrado
+  incidentesJornadaCount: number;
+  accidentesJornadaCount: number;
   puedeEditarParte: boolean;
 }
 
@@ -38,8 +40,9 @@ export function SSTCard({
   fecha,
   parteExiste,
   presentesHoy,
-  incidentesHoyCount,
-  accidentesHoyCount,
+  fechaEventos,
+  incidentesJornadaCount,
+  accidentesJornadaCount,
   puedeEditarParte,
 }: SSTCardProps) {
   const [open, setOpen] = useState(false);
@@ -50,11 +53,11 @@ export function SSTCard({
     setOpen(true);
   };
 
-  const fechaCorta = new Date(`${fecha}T12:00:00`).toLocaleDateString("es-CO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const fechaCorta = etiquetaFechaLarga(fecha);
+  const etiquetaEventos = fechaEventos ? etiquetaFechaCorta(fechaEventos).toUpperCase() : null;
+  const fechaJornadaAnterior = fechaEventos
+    ? new Date(`${fechaEventos}T12:00:00`).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })
+    : null;
 
   return (
     <div className="flex h-full flex-col gap-5 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
@@ -107,6 +110,7 @@ export function SSTCard({
             <span className="text-3xl font-bold text-emerald-400">{presentesHoy}</span>
             <span className="text-xs text-white/40">/ {stats.personalAsignado}</span>
           </div>
+          <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-white/20">Hoy</p>
         </button>
       </div>
 
@@ -116,12 +120,16 @@ export function SSTCard({
           className="group flex w-full items-center justify-between rounded-lg border border-white/5 bg-white/5 p-4 transition-all hover:border-white/10 hover:bg-white/10"
         >
           <div className="text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 transition-colors group-hover:text-amber-500">Incidentes hoy</p>
-            <p className="text-2xl font-bold text-white">{incidentesHoyCount.toString().padStart(2, "0")}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 transition-colors group-hover:text-amber-500">
+              Incidentes
+            </p>
+            <p className="text-2xl font-bold text-white">
+              {etiquetaEventos ? incidentesJornadaCount.toString().padStart(2, "0") : "—"}
+            </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Total</p>
-            <p className="text-2xl font-bold text-white/60">{stats.incidentesTotales}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Jornada anterior</p>
+            <p className="text-sm font-bold text-white/60">{fechaJornadaAnterior ?? "—"}</p>
           </div>
         </button>
 
@@ -130,12 +138,16 @@ export function SSTCard({
           className="group flex w-full items-center justify-between rounded-lg border border-white/5 bg-white/5 p-4 transition-all hover:border-white/10 hover:bg-white/10"
         >
           <div className="text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-red-400/80 transition-colors group-hover:text-red-500">Accidentes hoy</p>
-            <p className="text-2xl font-bold text-white">{accidentesHoyCount.toString().padStart(2, "0")}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-red-400/80 transition-colors group-hover:text-red-500">
+              Accidentes
+            </p>
+            <p className="text-2xl font-bold text-white">
+              {etiquetaEventos ? accidentesJornadaCount.toString().padStart(2, "0") : "—"}
+            </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Graves total</p>
-            <p className="text-2xl font-bold text-white/60">{stats.accidentesGraves}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">Jornada anterior</p>
+            <p className="text-sm font-bold text-white/60">{fechaJornadaAnterior ?? "—"}</p>
           </div>
         </button>
 
@@ -144,7 +156,7 @@ export function SSTCard({
           className="group flex w-full items-center justify-between rounded-lg border border-white/5 bg-white/5 p-4 transition-all hover:border-white/10 hover:bg-white/10"
         >
           <div className="text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 transition-colors group-hover:text-[#ff4500]">Inasistencias hoy</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 transition-colors group-hover:text-[#ff4500]">Inasistencias · Hoy</p>
             <p className="text-2xl font-bold text-white">{stats.ausentismos.toString().padStart(2, "0")}</p>
           </div>
           <div className="text-right">
@@ -153,6 +165,9 @@ export function SSTCard({
           </div>
         </button>
       </div>
+      {!etiquetaEventos && (
+        <p className="-mt-2 text-[10px] text-white/30">Sin jornada registrada en los últimos 14 días.</p>
+      )}
 
       {/* CTA principal */}
       <Link

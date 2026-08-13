@@ -1,5 +1,5 @@
 import type { TypedSupabaseClient, Tables, AusentismoTipo, IncidenteTipo, IncidenteSeveridad } from "@/types/database.types";
-import { rangoDiaLocal } from "@/lib/fecha";
+import { rangoDiaLocal, sumarDias } from "@/lib/fecha";
 
 type Client = TypedSupabaseClient;
 
@@ -43,6 +43,7 @@ export type EventoDia = {
   acciones_tomadas: string | null;
   nombre: string | null;
   cargo: string | null;
+  deleted_at: string | null;
 };
 
 export type ParteDelDia = {
@@ -156,7 +157,7 @@ export async function getParteDelDia(
       .gte("fecha_fin", fecha),
     supabase
       .from("incidentes")
-      .select(`id, empleado_id, tipo, severidad, descripcion, acciones_tomadas, empleados:empleado_id ( nombre, cargo )`)
+      .select(`id, empleado_id, tipo, severidad, descripcion, acciones_tomadas, deleted_at, empleados:empleado_id ( nombre, cargo )`)
       .eq("proyecto_id", proyectoId)
       .gte("fecha", rangoDiaLocal(fecha).start)
       .lte("fecha", rangoDiaLocal(fecha).end),
@@ -183,6 +184,7 @@ export async function getParteDelDia(
     acciones_tomadas: i.acciones_tomadas,
     nombre: i.empleados?.nombre ?? null,
     cargo: i.empleados?.cargo ?? null,
+    deleted_at: i.deleted_at,
   }));
 
   const programado = parte?.total_programado ?? roster.length;
@@ -201,6 +203,59 @@ export async function getParteDelDia(
     presentes,
     programado,
   };
+}
+
+// ─── Incidentes/accidentes de la última jornada con eventos registrados ──────
+
+export type EventosUltimaJornada = {
+  fecha: string;
+  incidentes: number;
+  accidentes: number;
+};
+
+/**
+ * Busca hacia atrás (hasta `maxDias`, por defecto 14) desde `hasta` la fecha
+ * del incidente/accidente más reciente, y cuenta los eventos de ese mismo día.
+ * Se basa directamente en la tabla `incidentes` (no en si se registró un
+ * parte diario ese día), porque un incidente puede registrarse sin que se
+ * haya diligenciado el parte de esa jornada. Se usa para mostrar en la
+ * mañana los eventos de la jornada anterior, con su fecha real.
+ */
+export async function getEventosUltimaJornada(
+  supabase: Client,
+  proyectoId: string,
+  hasta: string, // YYYY-MM-DD, normalmente ayerLocal()
+  maxDias = 14,
+): Promise<EventosUltimaJornada | null> {
+  const desde = sumarDias(hasta, -maxDias);
+  const { start } = rangoDiaLocal(desde);
+  const { end } = rangoDiaLocal(hasta);
+
+  const { data: eventos, error: errEventos } = await supabase
+    .from("incidentes")
+    .select("fecha, tipo")
+    .eq("proyecto_id", proyectoId)
+    .is("deleted_at", null)
+    .gte("fecha", start)
+    .lte("fecha", end)
+    .order("fecha", { ascending: false });
+
+  if (errEventos) throw errEventos;
+
+  const lista = (eventos ?? []) as { fecha: string; tipo: IncidenteTipo }[];
+  if (lista.length === 0) return null;
+
+  // `fecha` es TIMESTAMPTZ: agrupamos por el día calendario en hora de Colombia.
+  const fechaLocal = (iso: string) =>
+    new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Bogota" });
+
+  const fecha = fechaLocal(lista[0].fecha);
+  const eventosDelDia = lista.filter((e) => fechaLocal(e.fecha) === fecha);
+
+  const accidentes = eventosDelDia.filter((e) => e.tipo === "accidente").length;
+  const incidentes = eventosDelDia.length - accidentes;
+
+  return { fecha, incidentes, accidentes };
 }
 
 // ─── Parte del día + contexto completo (cockpit del proyecto) ─────────────────
@@ -316,6 +371,7 @@ export async function listPartes(
       .from("incidentes")
       .select("proyecto_id, tipo, fecha")
       .in("proyecto_id", proyectoIds)
+      .is("deleted_at", null)
       .gte("fecha", `${minFecha}T00:00:00`)
       .lte("fecha", `${maxFecha}T23:59:59`),
   ]);

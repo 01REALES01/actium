@@ -356,6 +356,75 @@ export async function eliminarTrabajadorDefinitivoAction(
   revalidatePath("/field-workers");
 }
 
+// ─── Archivar / restaurar / eliminar incidente (solo super_admin) ────────────
+
+const IncidenteIdSchema = z.object({
+  incidenteId: z.string().uuid(),
+  proyectoId: z.string().min(1),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+/** Archiva un incidente/accidente (borrado lógico reversible: marca deleted_at). */
+export async function archivarIncidenteAction(
+  input: z.infer<typeof IncidenteIdSchema>,
+): Promise<void> {
+  const parsed = IncidenteIdSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  await assertSuperAdmin();
+  const db = createAdminClient();
+  const { error } = await db
+    .from("incidentes")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", parsed.data.incidenteId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}/parte/${parsed.data.fecha}`);
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
+  revalidatePath("/sst");
+}
+
+/** Restaura un incidente/accidente archivado (deleted_at = null). */
+export async function restaurarIncidenteAction(
+  input: z.infer<typeof IncidenteIdSchema>,
+): Promise<void> {
+  const parsed = IncidenteIdSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  await assertSuperAdmin();
+  const db = createAdminClient();
+  const { error } = await db
+    .from("incidentes")
+    .update({ deleted_at: null })
+    .eq("id", parsed.data.incidenteId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}/parte/${parsed.data.fecha}`);
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
+  revalidatePath("/sst");
+}
+
+/** Elimina definitivamente un incidente/accidente y sus evidencias. Irreversible. */
+export async function eliminarIncidenteDefinitivoAction(
+  input: z.infer<typeof IncidenteIdSchema>,
+): Promise<void> {
+  const parsed = IncidenteIdSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  const { supabase } = await assertSuperAdmin();
+
+  const { error } = await supabase.rpc("eliminar_incidente_definitivo", {
+    p_incidente_id: parsed.data.incidenteId,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}/parte/${parsed.data.fecha}`);
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
+  revalidatePath("/sst");
+}
+
 // ─── Asignación de trabajador a proyecto ──────────────────────────────────────
 
 const AsignarProyectoSchema = z.object({

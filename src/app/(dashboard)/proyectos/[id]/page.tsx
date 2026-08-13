@@ -11,10 +11,10 @@ import {
   getAusentismosHistorial,
   getIncidentesPorProyecto,
   getAvancesSemanaActual,
-  getAvanceHoy,
+  getAvanceUltimaJornada,
 } from "@/lib/data/sst";
-import { getParteDelDia, listPartes } from "@/lib/data/partes-sst";
-import { hoyLocal } from "@/lib/fecha";
+import { getParteDelDia, listPartes, getEventosUltimaJornada } from "@/lib/data/partes-sst";
+import { hoyLocal, sumarDias } from "@/lib/fecha";
 import { SSTCard } from "@/components/projects/sst-card";
 import { ProjectProgressChart } from "@/components/projects/project-progress-chart";
 import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
@@ -48,6 +48,7 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
   const weekOffset = parseInt(searchParams.weekOffset || "0", 10);
 
   const hoy = hoyLocal();
+  const ayer = sumarDias(hoy, -1);
 
   // Las LECTURAS de SST/avances/fotos/observaciones van por el cliente admin:
   // esas tablas tienen RLS activo y la función auth_rol() del proyecto está rota,
@@ -65,7 +66,8 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
     incidentes,
     accidentes,
     avancesSemana,
-    avanceHoy,
+    avanceJornada,
+    eventosJornada,
     observaciones,
     fotos,
     perfil,
@@ -81,7 +83,8 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
     getIncidentesPorProyecto(db, params.id, "incidente"),
     getIncidentesPorProyecto(db, params.id, "accidente"),
     getAvancesSemanaActual(db, params.id, weekOffset),
-    getAvanceHoy(db, params.id),
+    getAvanceUltimaJornada(db, params.id, ayer),
+    getEventosUltimaJornada(db, params.id, ayer),
     getObservaciones(db, params.id),
     getFotos(db, params.id),
     getPerfilActual(supabase),
@@ -125,7 +128,7 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
       const shouldShowAvance = hasAvances && currentMs <= maxFechaRealMs;
 
       return {
-        fecha: new Date(fecha).toLocaleDateString("es-CO", {
+        fecha: new Date(fecha + "T12:00:00").toLocaleDateString("es-CO", {
           day: "2-digit",
           month: "short",
         }),
@@ -133,9 +136,6 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
         proyectado: values.proyectado,
       };
     });
-
-  const accidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo === "accidente").length : 0;
-  const incidentesHoy = parteHoy ? parteHoy.incidentes.filter((e) => e.tipo !== "accidente").length : 0;
 
   // Presentes hoy = asignados que NO tienen inasistencia registrada hoy.
   const ausentesHoyIds = new Set((parteHoy?.inasistencias ?? []).map((i) => i.empleado_id));
@@ -217,8 +217,9 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
             fecha={hoy}
             parteExiste={Boolean(parteHoy?.parte)}
             presentesHoy={parteHoy?.presentes ?? sstStats.enOperacion}
-            incidentesHoyCount={incidentesHoy}
-            accidentesHoyCount={accidentesHoy}
+            fechaEventos={eventosJornada?.fecha ?? null}
+            incidentesJornadaCount={eventosJornada?.incidentes ?? 0}
+            accidentesJornadaCount={eventosJornada?.accidentes ?? 0}
             proyectoNombre={proyecto.nombre}
             empleados={empleados}
             empleadosEnOperacion={empleadosEnOperacion}
@@ -243,12 +244,17 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
       {/* Avance diario + Semana */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-5">
-          {avanceHoy ? (
-            <DailyProgressChart real={avanceHoy.real} proyectado={avanceHoy.proyectado} unidad={proyecto.unidad_medida} />
+          {avanceJornada ? (
+            <DailyProgressChart
+              real={avanceJornada.real}
+              proyectado={avanceJornada.proyectado}
+              unidad={proyecto.unidad_medida}
+              fecha={avanceJornada.fecha}
+            />
           ) : (
             <EmptyPanel
               titulo="Avance diario"
-              mensaje="Aún no se registra el avance de hoy."
+              mensaje="Sin avance registrado en los últimos 14 días."
             />
           )}
         </div>

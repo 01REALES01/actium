@@ -25,6 +25,7 @@ import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { ParteDescargarPDF, type PartePDFData } from "@/components/sst/parte-pdf";
 import { NuevoRegistroModal } from "@/components/projects/nuevo-registro-modal";
 import { NuevoIncidenteModal } from "@/components/projects/nuevo-incidente-modal";
+import { IncidenteCard } from "@/components/projects/incidente-card";
 import { NuevoAusentismoModal } from "@/components/projects/nuevo-ausentismo-modal";
 import { PasarAsistenciaModal } from "@/components/projects/pasar-asistencia-modal";
 
@@ -34,12 +35,6 @@ const TIPO_AUSENCIA_LABEL: Record<string, string> = {
   personal: "Personal",
   vacaciones: "Vacaciones",
   otro: "Otra",
-};
-
-const TIPO_EVENTO_LABEL: Record<string, string> = {
-  incidente: "Incidente",
-  accidente: "Accidente",
-  casi_accidente: "Casi accidente",
 };
 
 function addDays(fecha: string, delta: number): string {
@@ -73,8 +68,9 @@ export default async function ParteDiaProyectoPage({
   ]);
   if (!d || !proyecto) notFound();
 
-  const accidentes = d.incidentes.filter((e) => e.tipo === "accidente");
-  const otrosIncidentes = d.incidentes.filter((e) => e.tipo !== "accidente");
+  const eventosActivos = d.incidentes.filter((e) => !e.deleted_at);
+  const accidentes = eventosActivos.filter((e) => e.tipo === "accidente");
+  const otrosIncidentes = eventosActivos.filter((e) => e.tipo !== "accidente");
   const ausentes = d.programado - d.presentes;
 
   // Datos para el check-in de asistencia (modal "Pasar asistencia").
@@ -324,7 +320,7 @@ export default async function ParteDiaProyectoPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <GraficaAsistencia presentes={d.presentes} ausentes={ausentes} />
         {d.avance ? (
-          <DailyProgressChart real={d.avance.real} proyectado={d.avance.proyectado} unidad={proyecto.unidad_medida} />
+          <DailyProgressChart real={d.avance.real} proyectado={d.avance.proyectado} unidad={proyecto.unidad_medida} fecha={params.fecha} />
         ) : (
           <GraficaEventos incidentes={otrosIncidentes.length} accidentes={accidentes.length} />
         )}
@@ -377,29 +373,17 @@ export default async function ParteDiaProyectoPage({
           <p className="py-6 text-center text-sm text-white/40">Sin incidentes ni accidentes registrados.</p>
         ) : (
           <div className="flex flex-col gap-3">
-            {[...accidentes, ...otrosIncidentes].map((e) => (
-              <div
+            {[
+              ...d.incidentes.filter((e) => e.tipo === "accidente"),
+              ...d.incidentes.filter((e) => e.tipo !== "accidente"),
+            ].map((e) => (
+              <IncidenteCard
                 key={e.id}
-                className={`flex flex-col gap-2 rounded-xl border p-4 ${
-                  e.tipo === "accidente" ? "border-red-500/20 bg-red-500/5" : "border-amber-500/20 bg-amber-500/5"
-                }`}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  {e.tipo === "accidente" ? (
-                    <ShieldAlert className="h-4 w-4 text-red-500" />
-                  ) : (
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  )}
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-white">
-                    {TIPO_EVENTO_LABEL[e.tipo] ?? e.tipo}
-                  </span>
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white/60">
-                    {e.severidad}
-                  </span>
-                  {e.nombre && <span className="ml-auto text-[11px] text-white/50">{e.nombre}</span>}
-                </div>
-                <p className="text-xs text-white/80">{e.descripcion}</p>
-              </div>
+                evento={e}
+                proyectoId={params.id}
+                fecha={params.fecha}
+                puedeEditar={puedeEditar}
+              />
             ))}
           </div>
         )}

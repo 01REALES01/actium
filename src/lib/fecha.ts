@@ -34,3 +34,37 @@ export function ahoraLocalInput(): string {
   const s = new Date().toLocaleString("sv-SE", { timeZone: ZONA_HORARIA });
   return s.slice(0, 16).replace(" ", "T");
 }
+
+/** Ancla mediodía UTC para un YYYY-MM-DD: evita que la aritmética de días cruce a otra fecha. */
+function anclaMediodiaMs(fecha: string): number {
+  return new Date(`${fecha}T12:00:00Z`).getTime();
+}
+
+/** Suma (o resta, con negativo) días a un YYYY-MM-DD sin desfase de zona horaria. */
+export function sumarDias(fecha: string, dias: number): string {
+  const ms = anclaMediodiaMs(fecha) + dias * 24 * 60 * 60 * 1000;
+  return new Date(ms).toISOString().split("T")[0];
+}
+
+/** Fecha de AYER en hora de Colombia, como YYYY-MM-DD. */
+export function ayerLocal(): string {
+  return sumarDias(hoyLocal(), -1);
+}
+
+/** "mar, 12 ago" a partir de un YYYY-MM-DD, sin desfase de zona horaria. */
+export function etiquetaFechaCorta(fecha: string): string {
+  return new Date(`${fecha}T12:00:00`).toLocaleDateString("es-CO", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+/** "martes, 12 de agosto" a partir de un YYYY-MM-DD, sin desfase de zona horaria. */
+export function etiquetaFechaLarga(fecha: string): string {
+  return new Date(`${fecha}T12:00:00`).toLocaleDateString("es-CO", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}

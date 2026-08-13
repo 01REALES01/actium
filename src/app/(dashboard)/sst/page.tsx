@@ -47,10 +47,11 @@ export default async function SstDashboardPage({
     { count: totalAccidentesGraves },
     { count: totalAusentismosActivos },
   ] = await Promise.all([
-    supabase.from("incidentes").select("*", { count: "exact", head: true }),
+    supabase.from("incidentes").select("*", { count: "exact", head: true }).is("deleted_at", null),
     supabase
       .from("incidentes")
       .select("*", { count: "exact", head: true })
+      .is("deleted_at", null)
       .eq("tipo", "accidente")
       .in("severidad", ["grave", "critico"]),
     supabase
