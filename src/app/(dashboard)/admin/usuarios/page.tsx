@@ -6,6 +6,7 @@ import { UsuarioEmpresaSelect } from "@/components/admin/usuario-empresa-select"
 import { UsuarioSubempresaSelect } from "@/components/admin/usuario-subempresa-select";
 import { UsuarioActivoToggle } from "@/components/admin/usuario-activo-toggle";
 import { CrearUsuarioModal } from "@/components/admin/crear-usuario-modal";
+import { UsuariosTableAcciones } from "@/components/admin/usuarios-table-acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,7 @@ export default async function AdminUsuariosPage() {
                 <th className="px-4 py-3 font-medium">Empresa</th>
                 <th className="px-4 py-3 font-medium">Subempresa</th>
                 <th className="px-4 py-3 font-medium">Acceso</th>
+                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody>
@@ -111,6 +113,12 @@ export default async function AdminUsuariosPage() {
                       <UsuarioActivoToggle
                         usuarioId={usuario.id}
                         activo={usuario.activo}
+                        disabled={esYoMismo}
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <UsuariosTableAcciones
+                        usuario={{ id: usuario.id, nombre: usuario.nombre, email: usuario.email }}
                         disabled={esYoMismo}
                       />
                     </td>

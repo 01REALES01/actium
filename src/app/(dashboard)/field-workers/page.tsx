@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { getEmpleadosAsignados } from "@/lib/data/sst";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { listEmpleados, listEmpleadosArchivados } from "@/lib/data/sst";
 import { listProyectos } from "@/lib/data/proyectos";
 import { listEmpresas, listSubempresas } from "@/lib/data/organizacion";
 import { getPerfilActual, esSuperAdmin } from "@/lib/auth/roles";
 import { WorkersTable } from "@/components/workers/workers-table";
 import { AlertCircle, Plus, Download } from "lucide-react";
-import { WorkerRegistrationModal } from "@/components/workers/worker-registration-modal";
-import type { EmpleadoConDocumentos } from "@/lib/data/sst";
+import { WorkerFormModal } from "@/components/workers/worker-form-modal";
+import { EmpleadosArchivadosSection } from "@/components/workers/empleados-archivados-section";
 
 import { FieldWorkersFilters } from "@/components/workers/field-workers-filters";
 
@@ -17,8 +18,8 @@ export default async function FieldWorkersPage({
 }) {
   const supabase = createClient();
 
-  // Cargar todos los proyectos accesibles para el usuario
-  const [proyectos, perfil, empresas, subempresas] = await Promise.all([
+  const [todosLosEmpleados, proyectos, perfil, empresas, subempresas] = await Promise.all([
+    listEmpleados(supabase),
     listProyectos(supabase),
     getPerfilActual(supabase),
     listEmpresas(supabase),
@@ -28,35 +29,15 @@ export default async function FieldWorkersPage({
   const empresaFija = perfil?.rol === "super_admin" ? null : perfil?.empresa_id ?? null;
   const puedeEditar = esSuperAdmin(perfil?.rol);
 
-  // Cargar empleados de todos los proyectos activos en paralelo
-  const empleadosPorProyecto = await Promise.all(
-    proyectos.map(async (p) => ({
-      proyecto: p,
-      empleados: await getEmpleadosAsignados(supabase, p.id),
-    }))
-  );
+  const archivados = puedeEditar ? await listEmpleadosArchivados(createAdminClient()) : [];
 
-  // Aplanar con info del proyecto adjunta
-  type EmpleadoConProyecto = EmpleadoConDocumentos & { proyecto_nombre: string };
-  const todosLosEmpleados: EmpleadoConProyecto[] = empleadosPorProyecto.flatMap(
-    ({ proyecto, empleados }) =>
-      empleados.map((e) => ({ ...e, proyecto_nombre: proyecto.nombre }))
-  );
+  // KPIs (sobre personal activo, como antes)
+  const empleadosActivos = todosLosEmpleados.filter((e) => e.activo);
+  const totalActivos = empleadosActivos.length;
 
-  // Deduplicar por empleado_id (un empleado puede estar en varios proyectos)
-  const seen = new Set<string>();
-  const empleadosUnicos = todosLosEmpleados.filter((e) => {
-    if (seen.has(e.id)) return false;
-    seen.add(e.id);
-    return true;
-  });
-
-  // KPIs
-  const totalActivos = empleadosUnicos.filter((e) => e.activo).length;
-
-  // Alertas: empleados con algún doc expirado o por vencer en 30 días
+  // Alertas: empleados activos con algún doc expirado o por vencer en 30 días
   const hoy = new Date();
-  const alertasVencimiento = empleadosUnicos.filter((e) =>
+  const alertasVencimiento = empleadosActivos.filter((e) =>
     e.documentos.some((d) => {
       if (!d.vigencia_hasta) return false;
       const diff = (new Date(d.vigencia_hasta).getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24);
@@ -65,19 +46,26 @@ export default async function FieldWorkersPage({
   );
 
   // Filtrado
-  let empleadosFiltrados = empleadosUnicos;
+  let empleadosFiltrados = todosLosEmpleados;
   const proyectoFilter = searchParams.proyecto as string | undefined;
   const cargoFilter = searchParams.cargo as string | undefined;
   const statusFilter = searchParams.status as string | undefined;
+  const laboralFilter = (searchParams.laboral as string | undefined) ?? "activos";
+
+  if (laboralFilter === "activos") {
+    empleadosFiltrados = empleadosFiltrados.filter((e) => e.activo);
+  } else if (laboralFilter === "inactivos") {
+    empleadosFiltrados = empleadosFiltrados.filter((e) => !e.activo);
+  }
 
   if (proyectoFilter && proyectoFilter !== "all") {
-    const empEnProy = empleadosPorProyecto.find(p => p.proyecto.id === proyectoFilter)?.empleados || [];
-    const empIds = new Set(empEnProy.map(e => e.id));
-    empleadosFiltrados = empleadosFiltrados.filter(e => empIds.has(e.id));
+    empleadosFiltrados = empleadosFiltrados.filter((e) =>
+      e.proyectos.some((p) => p.id === proyectoFilter)
+    );
   }
 
   if (cargoFilter && cargoFilter !== "all") {
-    empleadosFiltrados = empleadosFiltrados.filter(e => e.cargo === cargoFilter);
+    empleadosFiltrados = empleadosFiltrados.filter((e) => e.cargo === cargoFilter);
   }
 
   if (statusFilter && statusFilter !== "all") {
@@ -95,7 +83,16 @@ export default async function FieldWorkersPage({
     });
   }
 
-  const cargosDisponibles = Array.from(new Set(empleadosUnicos.map((e) => e.cargo).filter(Boolean))) as string[];
+  const cargosDisponibles = Array.from(new Set(todosLosEmpleados.map((e) => e.cargo).filter(Boolean))) as string[];
+
+  // Asignación por proyecto (para la tarjeta inferior), sobre personal activo
+  const asignacionPorProyecto = proyectos
+    .map((p) => ({
+      proyecto: p,
+      cantidad: empleadosActivos.filter((e) => e.proyectos.some((ep) => ep.id === p.id)).length,
+    }))
+    .filter((p) => p.cantidad > 0)
+    .sort((a, b) => b.cantidad - a.cantidad);
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -126,7 +123,8 @@ export default async function FieldWorkersPage({
             </div>
           </div>
           {puedeEditar && (
-            <WorkerRegistrationModal
+            <WorkerFormModal
+              modo="crear"
               proyectos={proyectos}
               empresas={empresas.map((e) => ({ id: e.id, nombre: e.nombre }))}
               subempresas={subempresas.map((s) => ({
@@ -144,7 +142,24 @@ export default async function FieldWorkersPage({
       <FieldWorkersFilters proyectos={proyectos} cargos={cargosDisponibles} />
 
       {/* Table Section */}
-      <WorkersTable empleados={empleadosFiltrados} proyectos={proyectos} puedeEditar={puedeEditar} />
+      <WorkersTable
+        empleados={empleadosFiltrados}
+        proyectos={proyectos}
+        empresas={empresas.map((e) => ({ id: e.id, nombre: e.nombre }))}
+        subempresas={subempresas.map((s) => ({ id: s.id, nombre: s.nombre, empresa_id: s.empresa_id }))}
+        puedeEditar={puedeEditar}
+      />
+
+      {puedeEditar && (
+        <EmpleadosArchivadosSection
+          archivados={archivados.map((e) => ({
+            id: e.id,
+            nombre: e.nombre,
+            cedula: e.cedula,
+            deleted_at: e.deleted_at,
+          }))}
+        />
+      )}
 
       {/* Bottom Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -185,15 +200,15 @@ export default async function FieldWorkersPage({
           <div className="absolute inset-0 bg-gradient-to-bl from-white/[0.01] to-transparent pointer-events-none" />
           <h3 className="relative z-10 text-xs font-bold tracking-widest text-white/50 uppercase">Asignación por Proyecto</h3>
           <div className="relative z-10 space-y-5">
-            {empleadosPorProyecto.slice(0, 3).map(({ proyecto, empleados }) => {
-              const pct = totalActivos > 0 ? Math.round((empleados.length / totalActivos) * 100) : 0;
+            {asignacionPorProyecto.slice(0, 3).map(({ proyecto, cantidad }) => {
+              const pct = totalActivos > 0 ? Math.round((cantidad / totalActivos) * 100) : 0;
               return (
                 <div key={proyecto.id}>
                   <div className="flex justify-between items-end mb-2">
                     <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate max-w-[180px]">
                       {proyecto.nombre}
                     </p>
-                    <p className="text-sm font-bold text-white ml-2 shrink-0">{empleados.length} pax</p>
+                    <p className="text-sm font-bold text-white ml-2 shrink-0">{cantidad} pax</p>
                   </div>
                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                     <div
@@ -204,7 +219,7 @@ export default async function FieldWorkersPage({
                 </div>
               );
             })}
-            {empleadosPorProyecto.length === 0 && (
+            {asignacionPorProyecto.length === 0 && (
               <p className="text-sm text-white/20 italic">Sin proyectos activos.</p>
             )}
           </div>

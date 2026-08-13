@@ -12,12 +12,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { restaurarProyectoAction, eliminarProyectoDefinitivoAction } from "@/lib/actions/proyectos";
+import { restaurarTrabajadorAction, eliminarTrabajadorDefinitivoAction } from "@/lib/actions/sst-actions";
 
-type ProyectoArchivado = {
+type EmpleadoArchivado = {
   id: string;
   nombre: string;
-  codigo: string;
+  cedula: string;
   deleted_at: string | null;
 };
 
@@ -28,12 +28,12 @@ function formatFecha(value: string | null) {
   );
 }
 
-export function ProyectosArchivadosSection({ archivados }: { archivados: ProyectoArchivado[] }) {
+export function EmpleadosArchivadosSection({ archivados }: { archivados: EmpleadoArchivado[] }) {
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [restaurandoId, setRestaurandoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [aEliminar, setAEliminar] = useState<ProyectoArchivado | null>(null);
+  const [aEliminar, setAEliminar] = useState<EmpleadoArchivado | null>(null);
 
   if (archivados.length === 0) return null;
 
@@ -41,10 +41,10 @@ export function ProyectosArchivadosSection({ archivados }: { archivados: Proyect
     setRestaurandoId(id);
     setError(null);
     try {
-      await restaurarProyectoAction({ proyectoId: id });
+      await restaurarTrabajadorAction({ empleadoId: id });
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No fue posible restaurar el proyecto.");
+      setError(err instanceof Error ? err.message : "No fue posible restaurar al trabajador.");
     } finally {
       setRestaurandoId(null);
     }
@@ -63,7 +63,7 @@ export function ProyectosArchivadosSection({ archivados }: { archivados: Proyect
         />
         <Archive className="h-4 w-4 text-white/40" strokeWidth={1.5} />
         <span className="text-xs font-bold uppercase tracking-widest text-white/60">
-          Proyectos archivados ({archivados.length})
+          Trabajadores archivados ({archivados.length})
         </span>
       </button>
 
@@ -77,15 +77,15 @@ export function ProyectosArchivadosSection({ archivados }: { archivados: Proyect
           ) : null}
 
           <div className="flex flex-col gap-2">
-            {archivados.map((p) => (
+            {archivados.map((e) => (
               <div
-                key={p.id}
+                key={e.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">{p.nombre}</p>
+                  <p className="truncate text-sm font-semibold text-white">{e.nombre}</p>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">
-                    #{p.codigo} · Archivado {formatFecha(p.deleted_at)}
+                    CC {e.cedula} · Archivado {formatFecha(e.deleted_at)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -94,10 +94,10 @@ export function ProyectosArchivadosSection({ archivados }: { archivados: Proyect
                     variant="outline"
                     size="sm"
                     className="gap-1.5"
-                    disabled={restaurandoId === p.id}
-                    onClick={() => restaurar(p.id)}
+                    disabled={restaurandoId === e.id}
+                    onClick={() => restaurar(e.id)}
                   >
-                    {restaurandoId === p.id ? (
+                    {restaurandoId === e.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <RotateCcw className="h-4 w-4" strokeWidth={1.5} />
@@ -109,7 +109,7 @@ export function ProyectosArchivadosSection({ archivados }: { archivados: Proyect
                     variant="ghost"
                     size="sm"
                     className="gap-1.5 text-danger hover:bg-danger/10 hover:text-danger"
-                    onClick={() => setAEliminar(p)}
+                    onClick={() => setAEliminar(e)}
                     title="Eliminar definitivamente"
                   >
                     <Trash2 className="h-4 w-4" strokeWidth={1.5} />
@@ -123,7 +123,7 @@ export function ProyectosArchivadosSection({ archivados }: { archivados: Proyect
       ) : null}
 
       <EliminarDefinitivoDialog
-        proyecto={aEliminar}
+        empleado={aEliminar}
         onClose={() => setAEliminar(null)}
         onDeleted={() => {
           setAEliminar(null);
@@ -135,18 +135,18 @@ export function ProyectosArchivadosSection({ archivados }: { archivados: Proyect
 }
 
 function EliminarDefinitivoDialog({
-  proyecto,
+  empleado,
   onClose,
   onDeleted,
 }: {
-  proyecto: ProyectoArchivado | null;
+  empleado: EmpleadoArchivado | null;
   onClose: () => void;
   onDeleted: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const abierto = proyecto !== null;
+  const abierto = empleado !== null;
 
   function handleOpenChange(next: boolean) {
     if (loading) return;
@@ -157,14 +157,14 @@ function EliminarDefinitivoDialog({
   }
 
   async function onEliminar() {
-    if (!proyecto) return;
+    if (!empleado) return;
     setLoading(true);
     setError(null);
     try {
-      await eliminarProyectoDefinitivoAction({ proyectoId: proyecto.id });
+      await eliminarTrabajadorDefinitivoAction({ empleadoId: empleado.id });
       onDeleted();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No fue posible eliminar el proyecto.");
+      setError(err instanceof Error ? err.message : "No fue posible eliminar al trabajador.");
     } finally {
       setLoading(false);
     }
@@ -180,9 +180,8 @@ function EliminarDefinitivoDialog({
           <DialogDescription className="text-[--text-secondary]">
             Esta acción es <span className="font-semibold text-danger">irreversible</span>. Se borrará
             {" "}
-            <span className="font-semibold text-[--text-primary]">{proyecto?.nombre}</span> y todo su
-            historial: rubros, movimientos, cuentas por cobrar y pagar, formularios SST, incidentes,
-            avances y fotos.
+            <span className="font-semibold text-[--text-primary]">{empleado?.nombre}</span> y todo su
+            historial: documentos, asignaciones a proyectos, ausentismos e incidentes.
           </DialogDescription>
         </DialogHeader>
 

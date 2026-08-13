@@ -29,6 +29,7 @@ export function PasarAsistenciaModal({
   parteExiste = false,
   variant = "cluster",
   customTrigger,
+  defaultOpen = false,
 }: {
   proyectoId: string;
   proyectoNombre: string;
@@ -40,9 +41,11 @@ export function PasarAsistenciaModal({
   /** "cluster" = botón verde junto a los otros registros; "header" = botón prominente del encabezado. */
   variant?: "cluster" | "header";
   customTrigger?: React.ReactNode;
+  /** Abre el modal automáticamente al montar (p. ej. al llegar desde la Bitácora). */
+  defaultOpen?: boolean;
 }) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   function handleSaved() {
     setOpen(false);

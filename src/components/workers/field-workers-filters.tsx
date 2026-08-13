@@ -24,10 +24,11 @@ export function FieldWorkersFilters({
   const currentProyecto = searchParams.get("proyecto") || "all";
   const currentCargo = searchParams.get("cargo") || "all";
   const currentStatus = searchParams.get("status") || "all";
+  const currentLaboral = searchParams.get("laboral") || "activos";
 
-  const updateFilter = (key: string, value: string) => {
+  const updateFilter = (key: string, value: string, defaultValue: string = "all") => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
+    if (value === defaultValue) {
       params.delete(key);
     } else {
       params.set(key, value);
@@ -78,6 +79,19 @@ export function FieldWorkersFilters({
               <SelectItem value="ok">Al Día</SelectItem>
               <SelectItem value="warning">Por Vencer</SelectItem>
               <SelectItem value="expired">Vencido</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-1 flex-col gap-1.5">
+          <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Estado laboral:</label>
+          <Select value={currentLaboral} onValueChange={(v) => updateFilter("laboral", v, "activos")}>
+            <SelectTrigger className="h-10 border-white/10 bg-white/5 text-white">
+              <SelectValue placeholder="Activos" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1A1A1A] border-white/10 text-white">
+              <SelectItem value="activos">Activos</SelectItem>
+              <SelectItem value="inactivos">Inactivos</SelectItem>
+              <SelectItem value="todos">Todos</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -239,6 +239,37 @@ export async function asignarSubempresaUsuarioAction(
   revalidatePath("/admin/usuarios");
 }
 
+const EliminarUsuarioSchema = z.object({
+  usuarioId: z.string().min(1),
+});
+
+/**
+ * Elimina definitivamente un usuario (cuenta de auth.users). La fila de
+ * public.usuarios se borra en cascada (FK ON DELETE CASCADE); las referencias
+ * en otras tablas (creado_por, aprobado_por, etc.) quedan en NULL. Irreversible.
+ */
+export async function eliminarUsuarioDefinitivoAction(
+  input: z.infer<typeof EliminarUsuarioSchema>,
+): Promise<void> {
+  const parsed = EliminarUsuarioSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  const supabase = await assertSuperAdmin();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.id === parsed.data.usuarioId) {
+    throw new Error("No puede eliminar su propia cuenta.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(parsed.data.usuarioId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/admin");
+}
+
 // ─── Crear usuario nuevo (requiere service_role) ──────────────────────────────
 // Crea la cuenta en auth.users vía Admin API. El trigger handle_new_user lee
 // estos metadatos y crea automáticamente la fila en public.usuarios.
