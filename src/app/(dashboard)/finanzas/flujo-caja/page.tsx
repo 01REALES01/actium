@@ -3,11 +3,16 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/auth/roles";
-import { getFlujoAgregado, derivarSeriesAgregado } from "@/lib/data/flujo-caja";
+import { getFlujoAgregado, derivarSeriesAgregado, resolverRango } from "@/lib/data/flujo-caja";
 import { FlujoCajaCharts } from "@/components/finanzas/flujo-caja-charts";
 import { FlujoCajaGlobalTable } from "@/components/finanzas/flujo-caja-global-table";
+import { QuincenaRangoSelector } from "@/components/finanzas/quincena-rango-selector";
 
-export default async function FlujoCajaGlobalPage() {
+export default async function FlujoCajaGlobalPage({
+  searchParams,
+}: {
+  searchParams: { desde?: string; hasta?: string };
+}) {
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
 
@@ -15,7 +20,9 @@ export default async function FlujoCajaGlobalPage() {
     redirect("/proyectos");
   }
 
-  const flujoAgregado = await getFlujoAgregado(supabase);
+  const { rango, desdeQuincena, hastaQuincena, opciones } = resolverRango(searchParams);
+
+  const flujoAgregado = await getFlujoAgregado(supabase, rango);
   const series = derivarSeriesAgregado(flujoAgregado);
 
   return (
@@ -34,6 +41,14 @@ export default async function FlujoCajaGlobalPage() {
         <p className="mt-2 text-sm text-[--text-secondary]">
           Ingresos, egresos y saldo acumulado consolidados por quincena.
         </p>
+        <div className="mt-4">
+          <QuincenaRangoSelector
+            opciones={opciones}
+            desde={desdeQuincena}
+            hasta={hastaQuincena}
+            basePath="/finanzas/flujo-caja"
+          />
+        </div>
       </div>
 
       <div>

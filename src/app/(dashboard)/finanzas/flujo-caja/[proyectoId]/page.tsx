@@ -4,12 +4,19 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/auth/roles";
 import { getProyectoFinanzas, listMovimientos } from "@/lib/data/presupuesto";
-import { getFlujoQuincenal, derivarSeriesProyecto } from "@/lib/data/flujo-caja";
+import { getFlujoQuincenal, derivarSeriesProyecto, resolverRango } from "@/lib/data/flujo-caja";
 import { FlujoCajaTable } from "@/components/finanzas/flujo-caja-table";
 import { FlujoCajaCharts } from "@/components/finanzas/flujo-caja-charts";
+import { QuincenaRangoSelector } from "@/components/finanzas/quincena-rango-selector";
 import { Badge } from "@/components/ui/badge";
 
-export default async function FlujoCajaPage({ params }: { params: { proyectoId: string } }) {
+export default async function FlujoCajaPage({
+  params,
+  searchParams,
+}: {
+  params: { proyectoId: string };
+  searchParams: { desde?: string; hasta?: string };
+}) {
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
 
@@ -20,8 +27,10 @@ export default async function FlujoCajaPage({ params }: { params: { proyectoId: 
   const proyecto = await getProyectoFinanzas(supabase, params.proyectoId);
   if (!proyecto) notFound();
 
+  const { rango, desdeQuincena, hastaQuincena, opciones } = resolverRango(searchParams);
+
   const [flujo, movimientos] = await Promise.all([
-    getFlujoQuincenal(supabase, params.proyectoId),
+    getFlujoQuincenal(supabase, params.proyectoId, rango),
     listMovimientos(supabase, params.proyectoId),
   ]);
 
@@ -40,6 +49,14 @@ export default async function FlujoCajaPage({ params }: { params: { proyectoId: 
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="font-display text-3xl text-[--text-primary]">Flujo de caja</h1>
           {proyecto.es_interno ? <Badge variant="secondary">Interno</Badge> : null}
+        </div>
+        <div className="mt-4">
+          <QuincenaRangoSelector
+            opciones={opciones}
+            desde={desdeQuincena}
+            hasta={hastaQuincena}
+            basePath={`/finanzas/flujo-caja/${params.proyectoId}`}
+          />
         </div>
       </div>
 

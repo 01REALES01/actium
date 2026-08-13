@@ -76,12 +76,49 @@ export function quincenasEnRango(desde: Date, hasta: Date): string[] {
   return quincenas;
 }
 
-/** Rango default: mes actual +- 1 (mes anterior, actual y siguiente). */
+/** Rango default: desde el 15 del mes anterior hasta el cierre del mes actual + 4 (ventana semestral). */
 export function rangoDefault(hoy: Date = new Date()): { desde: Date; hasta: Date } {
   return {
     desde: new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1),
-    hasta: new Date(hoy.getFullYear(), hoy.getMonth() + 1, 28),
+    hasta: new Date(hoy.getFullYear(), hoy.getMonth() + 4, 28),
   };
+}
+
+/** Quincenas seleccionables en los selectores de rango: 12 meses atrás a 24 meses adelante de hoy. */
+export function opcionesQuincena(hoy: Date = new Date()): string[] {
+  const desde = new Date(hoy.getFullYear(), hoy.getMonth() - 12, 1);
+  const hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 24, 1);
+  return quincenasEnRango(desde, hasta);
+}
+
+/**
+ * Resuelve el rango desde/hasta a partir de los query params `desde`/`hasta` (quincenas
+ * ISO, p.ej. "2026-07-15"). Si faltan o no son válidos, usa el default semestral. También
+ * devuelve las quincenas seleccionadas y las opciones disponibles, listas para el selector.
+ */
+export function resolverRango(
+  params: { desde?: string; hasta?: string },
+  hoy: Date = new Date(),
+): {
+  rango: { desde: Date; hasta: Date };
+  desdeQuincena: string;
+  hastaQuincena: string;
+  opciones: string[];
+} {
+  const opciones = opcionesQuincena(hoy);
+  const defecto = rangoDefault(hoy);
+  const quincenasDefault = quincenasEnRango(defecto.desde, defecto.hasta);
+  const desdeDefault = quincenasDefault[0];
+  const hastaDefault = quincenasDefault[quincenasDefault.length - 1];
+
+  const desdeQuincena = params.desde && opciones.includes(params.desde) ? params.desde : desdeDefault;
+  const hastaQuincena = params.hasta && opciones.includes(params.hasta) ? params.hasta : hastaDefault;
+
+  let desde = parseISODate(desdeQuincena);
+  let hasta = parseISODate(hastaQuincena);
+  if (desde > hasta) [desde, hasta] = [hasta, desde];
+
+  return { rango: { desde, hasta }, desdeQuincena, hastaQuincena, opciones };
 }
 
 /**
