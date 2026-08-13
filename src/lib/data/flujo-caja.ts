@@ -159,10 +159,21 @@ function parseISODate(iso: string): Date {
 
 // ─── Flujo agregado (todos los proyectos) ────────────────────────────────────
 
+/** Aporte de un rubro (de un proyecto puntual) a una celda del flujo agregado. */
+export type RubroDesglose = {
+  nombre: string;
+  codigo: string | null;
+  proyectoNombre: string;
+  real: number;
+  proyectado: number;
+};
+
 export type FlujoCajaAgregadoCategoria = {
   categoria: CategoriaFlujo;
   totalPorQuincena: number[];
   proyectadoPorQuincena: number[];
+  /** Desglose por rubro, alineado por índice con `quincenas`. */
+  rubrosPorQuincena: RubroDesglose[][];
 };
 
 export type FlujoCajaAgregado = {
@@ -182,13 +193,14 @@ export async function getFlujoAgregado(
 ): Promise<FlujoCajaAgregado> {
   const quincenas = quincenasEnRango(rango.desde, rango.hasta);
 
-  const [vistaResult, rubrosResult, cuotasResult, cxpCuotasResult] = await Promise.all([
+  const [vistaResult, rubrosResult, proyectosResult, cuotasResult, cxpCuotasResult] = await Promise.all([
     supabase
       .from("vw_flujo_caja_quincenal")
-      .select("categoria, quincena, total_periodo")
+      .select("categoria, quincena, total_periodo, rubro_id, rubro_nombre, rubro_codigo, proyecto_id")
       .gte("quincena", quincenas[0])
       .lte("quincena", quincenas[quincenas.length - 1]),
-    supabase.from("rubros").select("id, categoria").eq("activo", true),
+    supabase.from("rubros").select("id, categoria, nombre, codigo, proyecto_id").eq("activo", true),
+    supabase.from("proyectos").select("id, nombre"),
     supabase
       .from("cuentas_por_cobrar_cuotas")
       .select("monto, monto_cobrado, fecha_vencimiento, cxc_id")
@@ -199,16 +211,68 @@ export async function getFlujoAgregado(
       .in("estado", ["pendiente", "parcial"]),
   ]);
 
+  const proyectoNombreMap: Record<string, string> = {};
+  for (const p of proyectosResult.data ?? []) {
+    if (p.id) proyectoNombreMap[p.id] = p.nombre;
+  }
+
   const realMap: Record<string, number> = {};
+  // Desglose por rubro (rubro_id es único por proyecto): clave `categoria|quincena|rubro_id`.
+  const desgloseMap: Record<string, RubroDesglose> = {};
   for (const row of vistaResult.data ?? []) {
     if (!row.categoria || !row.quincena) continue;
     const key = `${row.categoria}|${row.quincena}`;
     realMap[key] = (realMap[key] ?? 0) + (row.total_periodo ?? 0);
+
+    if (row.rubro_id && row.rubro_nombre) {
+      const dKey = `${row.categoria}|${row.quincena}|${row.rubro_id}`;
+      const entry = desgloseMap[dKey] ?? {
+        nombre: row.rubro_nombre,
+        codigo: row.rubro_codigo ?? null,
+        proyectoNombre: (row.proyecto_id && proyectoNombreMap[row.proyecto_id]) || "Proyecto sin nombre",
+        real: 0,
+        proyectado: 0,
+      };
+      entry.real += row.total_periodo ?? 0;
+      desgloseMap[dKey] = entry;
+    }
   }
 
   const rubroCatMap: Record<string, CategoriaFlujo> = {};
+  const rubroInfoMap: Record<
+    string,
+    { nombre: string; codigo: string | null; proyectoNombre: string }
+  > = {};
   for (const r of rubrosResult.data ?? []) {
     if (r.id && r.categoria) rubroCatMap[r.id] = r.categoria as CategoriaFlujo;
+    if (r.id) {
+      rubroInfoMap[r.id] = {
+        nombre: r.nombre,
+        codigo: r.codigo ?? null,
+        proyectoNombre: (r.proyecto_id && proyectoNombreMap[r.proyecto_id]) || "Proyecto sin nombre",
+      };
+    }
+  }
+
+  /** Suma un monto proyectado al desglose por rubro, agrupando por rubro_id. */
+  function sumarProyectadoDesglose(
+    rubroId: string,
+    cat: CategoriaFlujo,
+    quincena: string,
+    monto: number,
+  ) {
+    const info = rubroInfoMap[rubroId];
+    if (!info) return;
+    const dKey = `${cat}|${quincena}|${rubroId}`;
+    const entry = desgloseMap[dKey] ?? {
+      nombre: info.nombre,
+      codigo: info.codigo,
+      proyectoNombre: info.proyectoNombre,
+      real: 0,
+      proyectado: 0,
+    };
+    entry.proyectado += monto;
+    desgloseMap[dKey] = entry;
   }
 
   const proyMap: Record<string, number> = {};
@@ -230,6 +294,7 @@ export async function getFlujoAgregado(
       const q = quincenaDe(parseISODate(cuota.fecha_vencimiento));
       const key = `${cat}|${q}`;
       proyMap[key] = (proyMap[key] ?? 0) + saldo;
+      sumarProyectadoDesglose(rubroId, cat, q, saldo);
     }
   }
   const cxpIds = Array.from(new Set((cxpCuotasResult.data ?? []).map((c) => c.cxp_id)));
@@ -251,13 +316,27 @@ export async function getFlujoAgregado(
       const key = `${cat}|${q}`;
       // Egresos proyectados restan del flujo
       proyMap[key] = (proyMap[key] ?? 0) - saldo;
+      sumarProyectadoDesglose(rubroId, cat, q, -saldo);
     }
+  }
+
+  // Agrupa el desglose por `categoria|quincena` para poblar `rubrosPorQuincena`.
+  const desglosePorCelda: Record<string, RubroDesglose[]> = {};
+  for (const [dKey, entry] of Object.entries(desgloseMap)) {
+    if (entry.real === 0 && entry.proyectado === 0) continue;
+    const [cat, quincena] = dKey.split("|");
+    const cKey = `${cat}|${quincena}`;
+    (desglosePorCelda[cKey] ??= []).push(entry);
+  }
+  for (const rubros of Object.values(desglosePorCelda)) {
+    rubros.sort((a, b) => Math.abs(b.real + b.proyectado) - Math.abs(a.real + a.proyectado));
   }
 
   const categorias: FlujoCajaAgregadoCategoria[] = ORDEN_CATEGORIAS.map((cat) => ({
     categoria: cat,
     totalPorQuincena: quincenas.map((q) => realMap[`${cat}|${q}`] ?? 0),
     proyectadoPorQuincena: quincenas.map((q) => proyMap[`${cat}|${q}`] ?? 0),
+    rubrosPorQuincena: quincenas.map((q) => desglosePorCelda[`${cat}|${q}`] ?? []),
   }));
 
   const ingresosCat = categorias.find((c) => c.categoria === "ingresos")!;
