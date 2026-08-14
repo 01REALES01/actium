@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronLeft, ShieldAlert, FileText, MapPin, User, CalendarDays, Pencil } from "lucide-react";
+import { ChevronLeft, ShieldAlert, FileText, MapPin, User, CalendarDays, Pencil, PenLine } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
 import { PersonalEjecutor, type TrabajadorItem } from "@/components/sst/personal-ejecutor";
@@ -39,6 +39,15 @@ export default async function FormularioDetallePage({ params }: Props) {
   const puedeEliminar = puedeGestionarSST(perfil?.rol);
   const formAbierto = form.estado !== "firmado" && form.estado !== "archivado";
   const puedeEditar = form.tipo === "ats" && formAbierto && puedeGestionar;
+
+  const cierreUrl =
+    form.tipo === "permiso_caliente"
+      ? `/sst/permiso-caliente?cierreId=${form.id}`
+      : form.tipo === "permiso_altura"
+      ? `/sst/permiso-altura?cierreId=${form.id}`
+      : form.tipo === "ats"
+      ? `/sst/nuevo-ats?cierreId=${form.id}`
+      : null;
 
   // Obtener proyecto asociado
   const { data: proyectoData } = await supabase
@@ -137,6 +146,15 @@ export default async function FormularioDetallePage({ params }: Props) {
             >
               {form.estado}
             </Badge>
+            {puedeGestionar && cierreUrl && (
+              <Link
+                href={cierreUrl}
+                className="flex h-9 items-center gap-2 rounded-lg border border-[#F25C05] bg-[#F25C05]/10 px-4 text-[10px] font-bold uppercase tracking-widest text-[#F25C05] transition-all hover:bg-[#F25C05]/20 shadow-sm"
+              >
+                <PenLine className="h-4 w-4" />
+                Firmas de Cierre
+              </Link>
+            )}
             {pdfSignedUrl && (
               <a
                 href={pdfSignedUrl}

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,7 +46,9 @@ export default async function AtsFormatoPage() {
         </div>
       </div>
 
-      <AtsFormatoForm proyectos={proyectos} />
+      <Suspense fallback={<div className="text-white/50 text-xs py-8">Cargando formulario...</div>}>
+        <AtsFormatoForm proyectos={proyectos} />
+      </Suspense>
     </div>
   );
 }

@@ -28,6 +28,8 @@ registerActiumFonts();
 export type TrabajadorCaliente = {
   nombre: string;
   cedula: string;
+  firma?: string;
+  firmaCierre?: string;
 };
 
 export type PermisoCalientePDFData = {
@@ -55,8 +57,10 @@ export type PermisoCalientePDFData = {
   trabajadores: TrabajadorCaliente[];
   emisorNombre: string;
   emisorFirma: string;
+  emisorFirmaCierre?: string;
   coordinadorNombre: string;
   coordinadorFirma: string;
+  coordinadorFirmaCierre?: string;
 };
 
 const ORANGE = ACTIUM_PDF.orange;
@@ -270,14 +274,16 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
                   <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {t.cedula || "—"}</Text>
                 </View>
                 <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
-                  <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  {t.firma ? <Image src={t.firma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
                 </View>
                 <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
                   <Text>{t.nombre || "—"}</Text>
                   <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {t.cedula || "—"}</Text>
                 </View>
                 <View style={[s.sigTdSign, { width: "25%" }]}>
-                  <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  {t.firmaCierre ? <Image src={t.firmaCierre} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>}
                 </View>
               </View>
             ))
@@ -298,7 +304,8 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
               <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Emisor del Permiso</Text>
             </View>
             <View style={[s.sigTdSign, { width: "25%" }]}>
-              <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              {data.emisorFirmaCierre ? <Image src={data.emisorFirmaCierre} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>}
             </View>
           </View>
 
@@ -317,7 +324,8 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
               <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Coordinador SISO</Text>
             </View>
             <View style={[s.sigTdSign, { width: "25%" }]}>
-              <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              {data.coordinadorFirmaCierre ? <Image src={data.coordinadorFirmaCierre} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>}
             </View>
           </View>
         </View>

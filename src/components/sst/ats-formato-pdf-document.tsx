@@ -26,6 +26,8 @@ registerActiumFonts();
 export type EjecutorAts = {
   cedula: string;
   nombre: string;
+  firma?: string;
+  firmaCierre?: string;
 };
 
 export type PasoAts = {
@@ -56,6 +58,7 @@ export type AtsFormatoPDFData = {
   emisorNombre: string;
   emisorCedula: string;
   firmaDataUrl: string;
+  emisorFirmaCierre?: string;
 };
 
 const ORANGE = ACTIUM_PDF.orange;
@@ -100,10 +103,17 @@ const s = StyleSheet.create({
   firmaCol: { width: "48%" },
   firmaSlot: { height: 70, justifyContent: "flex-end", alignItems: "center" },
   firmaImg: { width: 150, height: 64, objectFit: "contain" },
-  firmaLinea: { borderTopWidth: 1, borderTopColor: "#282828", marginTop: 4, paddingTop: 3 },
   disclaimer: { fontSize: 6.5, color: GRAY, fontStyle: "italic", marginTop: 8, lineHeight: 1.3 },
   footer: { position: "absolute", bottom: 22, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#E5E0DA", paddingTop: 6 },
   footerText: { fontSize: 7, color: GRAY },
+  // signatures table (Apertura / Cierre)
+  legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginBottom: 10, textAlign: "justify" },
+  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 10 },
+  sigThText: { color: ESPRESSO, fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, textAlign: "center" },
+  sigTr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 40 },
+  sigTdName: { fontSize: 7.5, padding: 5, color: "#3A3A3A", justifyContent: "center" },
+  sigTdSign: { padding: 2, justifyContent: "flex-end", alignItems: "center" },
+  sigImg: { width: 80, height: 35, objectFit: "contain" },
 });
 
 function Campo({ label, value, full }: { label: string; value: string; full?: boolean }) {
@@ -205,18 +215,16 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
         <Text style={s.sectionTitle}>Personal ejecutor</Text>
         <View style={s.table}>
           <View style={s.trHead}>
-            <Text style={[s.thText, { width: "22%" }]}>Cédula</Text>
-            <Text style={[s.thText, { width: "58%" }]}>Nombres y apellidos</Text>
-            <Text style={[s.thText, { width: "20%", textAlign: "center" }]}>Firma</Text>
+            <Text style={[s.thText, { width: "30%" }]}>Cédula</Text>
+            <Text style={[s.thText, { width: "70%" }]}>Nombres y apellidos</Text>
           </View>
           {data.ejecutores.length === 0 ? (
             <Text style={s.empty}>Sin personal ejecutor registrado.</Text>
           ) : (
             data.ejecutores.map((e, i) => (
               <View key={i} style={s.tr}>
-                <Text style={[s.td, { width: "22%" }]}>{e.cedula || "—"}</Text>
-                <Text style={[s.td, { width: "58%" }]}>{e.nombre || "—"}</Text>
-                <View style={{ width: "20%", borderLeftWidth: 1, borderLeftColor: "#F0EBE5" }}></View>
+                <Text style={[s.td, { width: "30%" }]}>{e.cedula || "—"}</Text>
+                <Text style={[s.td, { width: "70%" }]}>{e.nombre || "—"}</Text>
               </View>
             ))
           )}
@@ -275,29 +283,67 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
           textoNo={EVALUACION_RIESGO.seguridad.no}
         />
 
-        {/* Autorización y firma */}
-        <Text style={s.sectionTitle}>Autorización (Emisor)</Text>
-        <View style={s.firmaBox} wrap={false}>
-          <View style={s.firmaCol}>
-            <View style={s.firmaSlot}>
-              {data.firmaDataUrl ? (
-                // eslint-disable-next-line jsx-a11y/alt-text
-                <Image src={data.firmaDataUrl} style={s.firmaImg} />
-              ) : null}
-            </View>
-            <View style={s.firmaLinea}>
-              <Text style={s.fieldValue}>{data.emisorNombre || "—"}</Text>
-              <Text style={s.fieldLabel}>Nombre de quien autoriza</Text>
-            </View>
+        {/* Firmas y Compromiso */}
+        <Text style={s.sectionTitle} break>Firmas y Compromiso</Text>
+        <Text style={s.legalText}>
+          Personalmente hemos analizado y evaluado los pasos del trabajo, peligros y controles requeridos, y consideramos seguro realizar la labor.
+          Como trabajadores nos comprometemos a cumplir con las medidas de control establecidas, suspender el trabajo si surgen nuevos riesgos y reportar el cierre de la actividad al finalizar.
+        </Text>
+
+        <View style={s.sigTable}>
+          {/* Main header */}
+          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
+            <Text style={[s.sigThText, { width: "50%", borderRightWidth: 1, borderRightColor: "#D1CFC9" }]}>INICIO DEL TRABAJO (APERTURA)</Text>
+            <Text style={[s.sigThText, { width: "50%" }]}>FIN DEL TRABAJO (CIERRE)</Text>
           </View>
-          <View style={s.firmaCol}>
-            <View style={s.firmaSlot} />
-            <View style={s.firmaLinea}>
-              <Text style={s.fieldValue}>C.C. {data.emisorCedula || "—"}</Text>
-              <Text style={s.fieldLabel}>Cédula</Text>
+          
+          {data.ejecutores.length === 0 ? (
+            <Text style={s.empty}>Sin ejecutores registrados.</Text>
+          ) : (
+            data.ejecutores.map((e, i) => (
+              <View key={`ej-${i}`} style={s.sigTr}>
+                <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                  <Text>{e.nombre || "—"}</Text>
+                  <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {e.cedula || "—"}</Text>
+                </View>
+                <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  {e.firma ? <Image src={e.firma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
+                </View>
+                <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                  <Text>{e.nombre || "—"}</Text>
+                  <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {e.cedula || "—"}</Text>
+                </View>
+                <View style={[s.sigTdSign, { width: "25%" }]}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  {e.firmaCierre ? <Image src={e.firmaCierre} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>}
+                </View>
+              </View>
+            ))
+          )}
+
+          {/* Emisor / Responsable */}
+          <View style={[s.sigTr, { borderBottomWidth: 0 }]}>
+            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              <Text>{data.emisorNombre || "—"}</Text>
+              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Emisor / Responsable</Text>
+              {data.emisorCedula ? <Text style={{ fontSize: 6, color: GRAY }}>C.C. {data.emisorCedula}</Text> : null}
+            </View>
+            <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              {data.firmaDataUrl ? <Image src={data.firmaDataUrl} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
+            </View>
+            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+              <Text>{data.emisorNombre || "—"}</Text>
+              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>Emisor / Responsable</Text>
+            </View>
+            <View style={[s.sigTdSign, { width: "25%" }]}>
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              {data.emisorFirmaCierre ? <Image src={data.emisorFirmaCierre} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma (Cierre):</Text>}
             </View>
           </View>
         </View>
+
         <Text style={s.disclaimer}>
           Esta firma tiene carácter informativo y NO constituye firma electrónica certificada
           según la Ley 527 de 1999.
