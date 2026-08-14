@@ -28,6 +28,7 @@ import { NuevoIncidenteModal } from "@/components/projects/nuevo-incidente-modal
 import { IncidenteCard } from "@/components/projects/incidente-card";
 import { NuevoAusentismoModal } from "@/components/projects/nuevo-ausentismo-modal";
 import { PasarAsistenciaModal } from "@/components/projects/pasar-asistencia-modal";
+import { ParteDiaFotos } from "@/components/projects/parte-dia-fotos";
 
 const TIPO_AUSENCIA_LABEL: Record<string, string> = {
   medico: "Médica",
@@ -390,31 +391,7 @@ export default async function ParteDiaProyectoPage({
       </div>
 
       {/* Fotos del día */}
-      <div className="flex flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
-        <div className="flex items-center gap-2">
-          <Camera className="h-4 w-4 text-[#F25C05]" />
-          <h3 className="text-xs font-bold uppercase tracking-widest text-white/50">Registro fotográfico</h3>
-        </div>
-        {d.fotos.length === 0 ? (
-          <p className="py-6 text-center text-sm text-white/40">Sin fotos registradas este día.</p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {d.fotos.map((f) => (
-              <div key={f.id} className="overflow-hidden rounded-xl border border-white/10 bg-black/20">
-                {f.signedUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={f.signedUrl} alt={f.descripcion ?? "Foto de obra"} className="h-32 w-full object-cover" />
-                ) : (
-                  <div className="flex h-32 w-full items-center justify-center text-white/20">
-                    <Camera className="h-6 w-6" />
-                  </div>
-                )}
-                {f.descripcion && <p className="truncate p-2 text-[10px] text-white/50">{f.descripcion}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <ParteDiaFotos fotos={d.fotos} />
 
       {/* Observaciones de campo del día */}
       <div className="flex flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
