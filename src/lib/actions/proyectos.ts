@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertSuperAdmin } from "@/lib/auth/guards";
+import type { ObservacionConAutor } from "@/lib/data/proyectos";
+import type { Tables } from "@/types/database.types";
 
 const RegistrarAvanceSchema = z.object({
   proyectoId: z.string(),
@@ -273,7 +275,7 @@ const AddObservacionSchema = z.object({
 
 export async function addObservacionAction(
   input: z.infer<typeof AddObservacionSchema>,
-): Promise<void> {
+): Promise<ObservacionConAutor> {
   const parsed = AddObservacionSchema.safeParse(input);
   if (!parsed.success) {
     throw new Error(`Datos inválidos: ${parsed.error.message}`);
@@ -282,14 +284,60 @@ export async function addObservacionAction(
   const { perfil } = await assertSuperAdmin();
 
   const db = createAdminClient();
-  const { error } = await (db.from("observaciones") as any).insert({
-    proyecto_id: parsed.data.proyectoId,
-    contenido: parsed.data.contenido,
-    importante: parsed.data.importante ?? false,
-    autor_id: perfil.id,
-  });
+  const { data, error } = await (db.from("observaciones") as any)
+    .insert({
+      proyecto_id: parsed.data.proyectoId,
+      contenido: parsed.data.contenido,
+      importante: parsed.data.importante ?? false,
+      autor_id: perfil.id,
+    })
+    .select("*")
+    .single();
 
   if (error) throw new Error(error.message);
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
+
+  // Se devuelve la fila real para que el cliente reemplace la optimista y quede
+  // con el id de base de datos (necesario para poder editarla enseguida).
+  return {
+    ...(data as Tables<"observaciones">),
+    usuarios: { nombre: perfil.nombre, cargo: perfil.cargo },
+  };
+}
+
+const UpdateObservacionSchema = z.object({
+  observacionId: z.string().uuid(),
+  proyectoId: z.string(),
+  contenido: z.string().min(1).max(2000),
+  importante: z.boolean().optional(),
+});
+
+/** Edita una observación ya publicada. Reservado a `super_admin`. */
+export async function updateObservacionAction(
+  input: z.infer<typeof UpdateObservacionSchema>,
+): Promise<void> {
+  const parsed = UpdateObservacionSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error(`Datos inválidos: ${parsed.error.message}`);
+  }
+
+  await assertSuperAdmin();
+
+  const db = createAdminClient();
+  const { data, error } = await (db.from("observaciones") as any)
+    .update({
+      contenido: parsed.data.contenido,
+      importante: parsed.data.importante ?? false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", parsed.data.observacionId)
+    .eq("proyecto_id", parsed.data.proyectoId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("La observación ya no existe.");
+
   revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
 }
 

@@ -356,7 +356,7 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
         <ObservationsSection
           observaciones={observaciones}
           proyectoId={proyecto.id}
-          puedeAgregar={perfil?.rol === "super_admin"}
+          puedeGestionar={perfil?.rol === "super_admin"}
         />
       </div>
 
