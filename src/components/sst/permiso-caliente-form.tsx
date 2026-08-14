@@ -177,7 +177,7 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
               <select
                 value={proyectoId}
                 onChange={(e) => setProyectoId(e.target.value)}
-                className={FIELD + " px-3"}
+                className={FIELD + " w-full px-3"}
               >
                 <option value="">Seleccione un proyecto...</option>
                 {proyectos.map((p) => (
