@@ -29,7 +29,15 @@ export const metadata: Metadata = {
   title: "ACTIUM",
   description: descripcion,
   icons: {
-    icon: "/logo-actium-mark.png",
+    // Marca naranja: figura solida que se lee en pestana clara y oscura. La
+    // marca blanca sobre transparente que habia antes desaparecia en claro.
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    // iOS descarta la transparencia y compone sobre negro: va opaca.
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
     type: "website",
