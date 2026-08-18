@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { assertPuedeFinanzas } from "@/lib/auth/guards";
+import { revalidarFinanzas } from "@/lib/actions/revalidar-finanzas";
+import { parseResultadoAnulacion, type ResultadoAnulacion } from "@/lib/actions/anulacion";
 
 const FechaSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida");
 
@@ -47,7 +48,7 @@ export async function crearCxPAction(
   }
   if (!data) throw new Error("La RPC no devolvió el id de la cuenta por pagar creada.");
 
-  revalidatePath("/finanzas/cxp");
+  revalidarFinanzas();
   return { id: data };
 }
 
@@ -73,18 +74,24 @@ export async function registrarPagoCuotaCxpAction(
   if (error) throw new Error(error.message);
   if (!data) throw new Error("La RPC no devolvió el id del movimiento creado.");
 
-  revalidatePath("/finanzas/cxp");
-  revalidatePath("/finanzas/flujo-caja/[proyectoId]", "page");
-  revalidatePath("/finanzas/flujo-caja");
+  revalidarFinanzas();
   return { id: data };
 }
 
-export async function anularCxPAction(cxpId: string): Promise<void> {
+/**
+ * Anula la factura y revierte su rastro contable: los movimientos de sus abonos
+ * pasan a 'anulado' y sus cuotas a 'anulada', de modo que la factura deja de
+ * afectar el flujo de caja del proyecto y el consolidado, y libera el techo del
+ * rubro. Nada se borra — todo queda en el ledger y en auditoria_logs.
+ */
+export async function anularCxPAction(cxpId: string): Promise<ResultadoAnulacion> {
+  const parsed = z.string().uuid().safeParse(cxpId);
+  if (!parsed.success) throw new Error("Identificador de factura inválido.");
+
   const { supabase } = await assertPuedeFinanzas();
-  const { error } = await supabase
-    .from("cuentas_por_pagar")
-    .update({ estado: "anulada" })
-    .eq("id", cxpId);
+  const { data, error } = await supabase.rpc("anular_cxp", { p_cxp_id: parsed.data });
   if (error) throw new Error(error.message);
-  revalidatePath("/finanzas/cxp");
+
+  revalidarFinanzas();
+  return parseResultadoAnulacion(data);
 }

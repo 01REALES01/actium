@@ -1,12 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Ban } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { RegistrarPagoCuotaCxpDialog } from "@/components/finanzas/registrar-pago-cuota-cxp-dialog";
-import { anularCxPAction } from "@/lib/actions/cxp";
+import { AnularCuentaDialog } from "@/components/finanzas/anular-cuenta-dialog";
 import { formatCOP, formatFechaCorta } from "@/lib/format";
 import type { FacturaEstado } from "@/types/database.types";
 import type { CxPConRelaciones } from "@/lib/data/cxp";
@@ -36,20 +32,6 @@ export function CxPTable({
   mostrarProyecto?: boolean;
   puedeEscribir?: boolean;
 }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  function anular(id: string) {
-    startTransition(async () => {
-      try {
-        await anularCxPAction(id);
-        router.refresh();
-      } catch {
-        // el error se refleja simplemente no anulando; sin toast global en este módulo
-      }
-    });
-  }
-
   if (cuentas.length === 0) {
     return (
       <p className="rounded-actium border border-dashed border-[--border-subtle] p-8 text-center text-sm text-[--text-secondary]">
@@ -83,9 +65,13 @@ export function CxPTable({
                   <Badge variant={ESTADO_VARIANT[estadoEfectivo]}>{ESTADO_LABEL[estadoEfectivo]}</Badge>
                 </div>
                 {puedeEscribir && activa ? (
-                  <Button variant="ghost" size="sm" disabled={isPending} onClick={() => anular(c.id)} title="Anular">
-                    <Ban className="h-4 w-4" strokeWidth={1.5} />
-                  </Button>
+                  <AnularCuentaDialog
+                    tipo="cxp"
+                    cuentaId={c.id}
+                    numeroFactura={c.numero_factura}
+                    contraparte={c.proveedor_nombre}
+                    montoAbonado={c.monto_pagado}
+                  />
                 ) : null}
               </div>
             </div>

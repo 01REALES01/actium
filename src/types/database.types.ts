@@ -1677,6 +1677,8 @@ export type Database = {
           comprobante_nombre: string | null
           comprobante_path: string | null
           created_at: string
+          cxc_id: string | null
+          cxp_id: string | null
           ejecutado_at: string | null
           estado: Database["public"]["Enums"]["movimiento_estado"]
           fecha_efectiva: string
@@ -1696,6 +1698,8 @@ export type Database = {
           comprobante_nombre?: string | null
           comprobante_path?: string | null
           created_at?: string
+          cxc_id?: string | null
+          cxp_id?: string | null
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
           fecha_efectiva?: string
@@ -1715,6 +1719,8 @@ export type Database = {
           comprobante_nombre?: string | null
           comprobante_path?: string | null
           created_at?: string
+          cxc_id?: string | null
+          cxp_id?: string | null
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
           fecha_efectiva?: string
@@ -1734,6 +1740,20 @@ export type Database = {
             columns: ["aprobado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_cxc_id_fkey"
+            columns: ["cxc_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas_por_cobrar"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimientos_cxp_id_fkey"
+            columns: ["cxp_id"]
+            isOneToOne: false
+            referencedRelation: "cuentas_por_pagar"
             referencedColumns: ["id"]
           },
           {
@@ -2541,6 +2561,14 @@ export type Database = {
         }
         Returns: string
       }
+      anular_cxc: {
+        Args: { p_cxc_id: string }
+        Returns: Json
+      }
+      anular_cxp: {
+        Args: { p_cxp_id: string }
+        Returns: Json
+      }
       aprobar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
@@ -2713,7 +2741,12 @@ export type Database = {
       formulario_tipo: "ats" | "permiso_altura" | "permiso_caliente"
       incidente_severidad: "leve" | "moderado" | "grave" | "critico"
       incidente_tipo: "incidente" | "accidente" | "casi_accidente"
-      movimiento_estado: "solicitado" | "aprobado" | "rechazado" | "ejecutado"
+      movimiento_estado:
+        | "solicitado"
+        | "aprobado"
+        | "rechazado"
+        | "ejecutado"
+        | "anulado"
       movimiento_tipo: "gasto" | "traslado_entre_rubros" | "ajuste"
       proyecto_estado:
         | "planificacion"
@@ -2890,7 +2923,13 @@ export const Constants = {
       formulario_tipo: ["ats", "permiso_altura", "permiso_caliente"],
       incidente_severidad: ["leve", "moderado", "grave", "critico"],
       incidente_tipo: ["incidente", "accidente", "casi_accidente"],
-      movimiento_estado: ["solicitado", "aprobado", "rechazado", "ejecutado"],
+      movimiento_estado: [
+        "solicitado",
+        "aprobado",
+        "rechazado",
+        "ejecutado",
+        "anulado",
+      ],
       movimiento_tipo: ["gasto", "traslado_entre_rubros", "ajuste"],
       proyecto_estado: [
         "planificacion",

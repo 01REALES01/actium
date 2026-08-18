@@ -12,14 +12,19 @@ import {
   getComprobanteUrlAction,
 } from "@/lib/actions/presupuesto";
 import { formatCOP, formatFechaCorta } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { MovimientoEstado, MovimientoTipo } from "@/types/database.types";
 import type { MovimientoConUsuarios } from "@/lib/data/presupuesto";
 
-const ESTADO_VARIANT: Record<MovimientoEstado, "info" | "success" | "warning" | "destructive"> = {
+const ESTADO_VARIANT: Record<
+  MovimientoEstado,
+  "info" | "success" | "warning" | "destructive" | "secondary"
+> = {
   solicitado: "warning",
   aprobado: "info",
   ejecutado: "success",
   rechazado: "destructive",
+  anulado: "secondary",
 };
 
 const ESTADO_LABEL: Record<MovimientoEstado, string> = {
@@ -27,6 +32,7 @@ const ESTADO_LABEL: Record<MovimientoEstado, string> = {
   aprobado: "Aprobado",
   ejecutado: "Ejecutado",
   rechazado: "Rechazado",
+  anulado: "Anulado",
 };
 
 const TIPO_LABEL: Record<MovimientoTipo, string> = {
@@ -107,15 +113,29 @@ export function MovimientosTable({
           <tbody>
             {movimientos.map((m) => {
               const cargando = isPending && activoId === m.id;
+              // Un movimiento anulado ya no cuenta en el flujo ni en el techo:
+              // se atenúa y se tacha el monto para que se lea de un vistazo.
+              const anulado = m.estado === "anulado";
               return (
-                <tr key={m.id} className="border-b border-[--border-subtle] hover:bg-[--bg-hover]">
+                <tr
+                  key={m.id}
+                  className={cn(
+                    "border-b border-[--border-subtle] hover:bg-[--bg-hover]",
+                    anulado && "opacity-60",
+                  )}
+                >
                   <td className="whitespace-nowrap px-4 py-3 text-[--text-secondary]">
                     {formatFechaCorta(m.fecha_efectiva)}
                   </td>
                   <td className="px-4 py-3 text-[--text-primary]">
                     {m.tipo === "ajuste" && m.rubro_origen_id ? "Transferencia" : TIPO_LABEL[m.tipo]}
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-[--text-primary]">
+                  <td
+                    className={cn(
+                      "px-4 py-3 text-right font-medium text-[--text-primary]",
+                      anulado && "line-through",
+                    )}
+                  >
                     {formatCOP(m.monto)}
                   </td>
                   <td className="max-w-[220px] truncate px-4 py-3 text-[--text-secondary]" title={m.justificacion}>

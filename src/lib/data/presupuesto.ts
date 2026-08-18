@@ -1,4 +1,9 @@
-import type { TypedSupabaseClient, Tables, CategoriaFlujo } from "@/types/database.types";
+import type {
+  TypedSupabaseClient,
+  Tables,
+  CategoriaFlujo,
+  MovimientoTipo,
+} from "@/types/database.types";
 
 type Client = TypedSupabaseClient;
 
@@ -42,15 +47,33 @@ export async function getRubrosPorProyecto(
   return data ?? [];
 }
 
+/**
+ * Movimientos de un proyecto. Sin `opts` devuelve el ledger completo (lo que
+ * necesita la pantalla de presupuesto). El flujo de caja acota por estado, tipo
+ * y fechas para no serializar al cliente todo el historial cuando solo va a
+ * mostrar el detalle de una celda.
+ */
 export async function listMovimientos(
   supabase: Client,
   proyectoId: string,
+  opts: {
+    soloEjecutados?: boolean;
+    tipos?: MovimientoTipo[];
+    desde?: string;
+    hasta?: string;
+  } = {},
 ): Promise<MovimientoConUsuarios[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("movimientos")
     .select("*, solicitante:solicitado_por (nombre), aprobador:aprobado_por (nombre)")
-    .eq("proyecto_id", proyectoId)
-    .order("created_at", { ascending: false });
+    .eq("proyecto_id", proyectoId);
+
+  if (opts.soloEjecutados) query = query.eq("estado", "ejecutado");
+  if (opts.tipos) query = query.in("tipo", opts.tipos);
+  if (opts.desde) query = query.gte("fecha_efectiva", opts.desde);
+  if (opts.hasta) query = query.lte("fecha_efectiva", opts.hasta);
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) throw error;
   return (data ?? []) as MovimientoConUsuarios[];

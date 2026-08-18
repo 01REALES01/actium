@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { assertPuedeFinanzas } from "@/lib/auth/guards";
+import { revalidarFinanzas } from "@/lib/actions/revalidar-finanzas";
+import { parseResultadoAnulacion, type ResultadoAnulacion } from "@/lib/actions/anulacion";
 
 const FechaSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida");
 
@@ -47,7 +48,7 @@ export async function crearCxCAction(
   }
   if (!data) throw new Error("La RPC no devolvió el id de la cuenta por cobrar creada.");
 
-  revalidatePath("/finanzas/cxc");
+  revalidarFinanzas();
   return { id: data };
 }
 
@@ -73,17 +74,24 @@ export async function registrarCobroCuotaAction(
   if (error) throw new Error(error.message);
   if (!data) throw new Error("La RPC no devolvió el id del movimiento creado.");
 
-  revalidatePath("/finanzas/cxc");
-  revalidatePath("/finanzas/flujo-caja/[proyectoId]", "page");
+  revalidarFinanzas();
   return { id: data };
 }
 
-export async function anularCxCAction(cxcId: string): Promise<void> {
+/**
+ * Anula la factura y revierte su rastro contable: los movimientos de sus abonos
+ * pasan a 'anulado' y sus cuotas a 'anulada', de modo que la factura deja de
+ * afectar el flujo de caja del proyecto y el consolidado, y libera el techo del
+ * rubro. Nada se borra — todo queda en el ledger y en auditoria_logs.
+ */
+export async function anularCxCAction(cxcId: string): Promise<ResultadoAnulacion> {
+  const parsed = z.string().uuid().safeParse(cxcId);
+  if (!parsed.success) throw new Error("Identificador de factura inválido.");
+
   const { supabase } = await assertPuedeFinanzas();
-  const { error } = await supabase
-    .from("cuentas_por_cobrar")
-    .update({ estado: "anulada" })
-    .eq("id", cxcId);
+  const { data, error } = await supabase.rpc("anular_cxc", { p_cxc_id: parsed.data });
   if (error) throw new Error(error.message);
-  revalidatePath("/finanzas/cxc");
+
+  revalidarFinanzas();
+  return parseResultadoAnulacion(data);
 }

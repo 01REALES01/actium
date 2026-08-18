@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { quincenaDe } from "@/lib/data/flujo-caja";
+import { quincenaDe, TIPOS_EN_FLUJO } from "@/lib/data/flujo-caja";
 import { formatCOP, formatMontoContable, formatFechaCorta } from "@/lib/format";
 import type { CategoriaFlujo, Tables } from "@/types/database.types";
 import type { FlujoCajaData } from "@/lib/data/flujo-caja";
@@ -88,10 +88,17 @@ export function FlujoCajaTable({
 }) {
   const [celda, setCelda] = useState<{ rubroId: string; rubroNombre: string; quincena: string } | null>(null);
 
+  // Mismo criterio que vw_flujo_caja_quincenal (ejecutados, y solo los tipos que
+  // mueven caja) para que el detalle cuadre con el total de la celda. Quedan
+  // fuera los anulados por anulación de su factura y los ajustes de techo.
   const movimientosDeCelda = celda
-    ? movimientos
-        .filter((m) => m.rubro_destino_id === celda.rubroId)
-        .filter((m) => quincenaDe(parseISODate(m.fecha_efectiva)) === celda.quincena)
+    ? movimientos.filter(
+        (m) =>
+          m.estado === "ejecutado" &&
+          TIPOS_EN_FLUJO.includes(m.tipo) &&
+          m.rubro_destino_id === celda.rubroId &&
+          quincenaDe(parseISODate(m.fecha_efectiva)) === celda.quincena,
+      )
     : [];
 
   return (

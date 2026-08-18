@@ -1,4 +1,4 @@
-import type { TypedSupabaseClient, CategoriaFlujo } from "@/types/database.types";
+import type { TypedSupabaseClient, CategoriaFlujo, MovimientoTipo } from "@/types/database.types";
 import { getRubrosPorProyecto } from "@/lib/data/presupuesto";
 
 type Client = TypedSupabaseClient;
@@ -29,6 +29,14 @@ export type FlujoCajaData = {
   /** Montos proyectados (CxC/CxP pendientes) por clave `rubroId|quincena`. */
   proyectado: Record<string, number>;
 };
+
+/**
+ * Tipos de movimiento que la vista vw_flujo_caja_quincenal suma. Los 'ajuste'
+ * (cambios de techo y transferencias entre rubros) quedan fuera: mueven el
+ * presupuesto, no la caja. Se exporta para que el detalle por celda filtre con
+ * el mismo criterio que el total que muestra.
+ */
+export const TIPOS_EN_FLUJO: MovimientoTipo[] = ["gasto", "traslado_entre_rubros"];
 
 const ORDEN_CATEGORIAS: CategoriaFlujo[] = [
   "costos_operativos",
@@ -74,6 +82,22 @@ export function quincenasEnRango(desde: Date, hasta: Date): string[] {
   }
 
   return quincenas;
+}
+
+/**
+ * Primer y último día calendario cubiertos por un rango de quincenas. Las
+ * quincenas siempre abarcan meses completos, así que sirve para acotar por
+ * fecha_efectiva las consultas que alimentan la tabla.
+ */
+export function limitesDelRango(rango: { desde: Date; hasta: Date }): {
+  desde: string;
+  hasta: string;
+} {
+  const fin = new Date(rango.hasta.getFullYear(), rango.hasta.getMonth() + 1, 0);
+  return {
+    desde: isoDate(rango.desde.getFullYear(), rango.desde.getMonth(), 1),
+    hasta: isoDate(fin.getFullYear(), fin.getMonth(), fin.getDate()),
+  };
 }
 
 /** Rango default: desde el 15 del mes anterior hasta el cierre del mes actual + 4 (ventana semestral). */

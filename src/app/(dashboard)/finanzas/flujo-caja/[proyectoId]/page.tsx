@@ -4,7 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual } from "@/lib/auth/roles";
 import { getProyectoFinanzas, listMovimientos } from "@/lib/data/presupuesto";
-import { getFlujoQuincenal, derivarSeriesProyecto, resolverRango } from "@/lib/data/flujo-caja";
+import {
+  getFlujoQuincenal,
+  derivarSeriesProyecto,
+  resolverRango,
+  limitesDelRango,
+  TIPOS_EN_FLUJO,
+} from "@/lib/data/flujo-caja";
 import { FlujoCajaTable } from "@/components/finanzas/flujo-caja-table";
 import { FlujoCajaCharts } from "@/components/finanzas/flujo-caja-charts";
 import { QuincenaRangoSelector } from "@/components/finanzas/quincena-rango-selector";
@@ -29,9 +35,16 @@ export default async function FlujoCajaPage({
 
   const { rango, desdeQuincena, hastaQuincena, opciones } = resolverRango(searchParams);
 
+  // El detalle por celda solo muestra los movimientos que la vista suma, y solo
+  // dentro del rango visible: se acota en la consulta en vez de traer el ledger
+  // completo al cliente.
   const [flujo, movimientos] = await Promise.all([
     getFlujoQuincenal(supabase, params.proyectoId, rango),
-    listMovimientos(supabase, params.proyectoId),
+    listMovimientos(supabase, params.proyectoId, {
+      soloEjecutados: true,
+      tipos: TIPOS_EN_FLUJO,
+      ...limitesDelRango(rango),
+    }),
   ]);
 
   const series = derivarSeriesProyecto(flujo);
