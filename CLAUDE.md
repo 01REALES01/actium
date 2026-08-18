@@ -196,10 +196,28 @@ Serio e inteligente, pero a la vez amable. No debe sonar relajada, sino que debe
 10. NO inventar componentes — si shadcn/ui lo tiene, úsalo y estilízalo con tokens.
 11. NO `bg-zinc-*`, `bg-orange-500`, `text-orange-400`, etc. — usa los tokens `actium-*`.
 12. No hacer commit sin haber el usuario pedirlo antes.
+13. NO empujar código solo a `actium2`: el repositorio canónico es `Luchowww/actium` (ver §10).
+14. NO desplegar a producción con migraciones pendientes de aplicar en Supabase (ver §10).
 
 ---
 
-## 10. Estructura
+## 10. Repositorios y despliegue
+
+Hay **dos repositorios y cumplen papeles distintos**. Confundirlos es el error más fácil de cometer aquí, porque el `origin` local apunta al de despliegue, no al de código.
+
+| Remoto | Repositorio | Papel |
+|---|---|---|
+| `origin-lucho` | `Luchowww/actium` (privado) | **Canónico. Aquí van todos los cambios de código.** Es el upstream de `main`. |
+| `origin` | `01REALES01/actium2` | Espejo desde el que se despliega. |
+
+- **Todo push de código va a `origin-lucho`.** Si además quieres mantener el espejo al día, empuja a ambos — pero el canónico nunca se salta.
+- Producción es el proyecto **`actium2`** de Vercel, equipo `uniscores`, **sin git conectado**: despliega los archivos locales, no un repo. Por eso el deploy no depende de en qué repositorio esté el commit.
+- Deploy manual: `npx vercel deploy --scope uniscores --archive=tgz` para preview y `--prod` para producción. Verifica en preview antes de promover.
+- **Nunca despliegues código cuyas migraciones no estén aplicadas en Supabase.** Aplica primero las migraciones, en orden, y después promueve.
+
+---
+
+## 11. Estructura
 
 ```
 src/
@@ -221,7 +239,7 @@ src/
 
 ---
 
-## 11. Formularios SST
+## 12. Formularios SST
 
 - Secciones colapsables (accordions), checkboxes Sí/No/N.A., tablas dinámicas con "Agregar fila".
 - Canvas de firma con disclaimer: *"Esta firma tiene carácter informativo y NO constituye firma electrónica certificada según la Ley 527 de 1999"*.
@@ -230,7 +248,7 @@ src/
 
 ---
 
-## 12. Checklist pre-commit (UI)
+## 13. Checklist pre-commit (UI)
 
 - [ ] **Mobile first:** diseñado desde 375px hacia arriba, sin scroll horizontal ni texto cortado
 - [ ] **Targets táctiles ≥ 44×44px**, sin depender solo de hover
