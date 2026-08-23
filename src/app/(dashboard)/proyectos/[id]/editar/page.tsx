@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeGestionarProyectos } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeVerProyectos } from "@/lib/auth/roles";
 import { getProyecto } from "@/lib/data/proyectos";
 import { listEmpresas, listSubempresas } from "@/lib/data/organizacion";
 import { ProyectoForm } from "@/components/projects/proyecto-form";
@@ -13,6 +13,9 @@ export default async function EditarProyectoPage({ params }: EditarProyectoPageP
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
 
+  if (!puedeVerProyectos(perfil?.rol)) {
+    redirect(getRutaInicio(perfil?.rol));
+  }
   if (!puedeGestionarProyectos(perfil?.rol)) {
     redirect(`/proyectos/${params.id}`);
   }

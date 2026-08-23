@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeVerPersonal } from "@/lib/auth/roles";
+import { getPerfilActual, puedeVerPersonal, puedeVerProyectos } from "@/lib/auth/roles";
 import { getCalendarEvents } from "@/lib/data/calendario";
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     desde,
     hasta,
     verPersonal: puedeVerPersonal(perfil.rol),
+    verProyectos: puedeVerProyectos(perfil.rol),
   });
 
   return NextResponse.json({ eventos });

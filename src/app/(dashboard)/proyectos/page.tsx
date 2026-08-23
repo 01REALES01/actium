@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listProyectos, listProyectosArchivados } from "@/lib/data/proyectos";
-import { getPerfilActual, puedeGestionarProyectos } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeVerProyectos } from "@/lib/auth/roles";
 import { ProyectosArchivadosSection } from "@/components/projects/proyectos-archivados-section";
 import type { ProyectoEstado } from "@/types/database.types";
 
@@ -29,9 +29,8 @@ export default async function ProyectosPage() {
 
   const perfil = await getPerfilActual(supabase);
 
-  // El rol financiero solo accede a Finanzas.
-  if (perfil?.rol === "financiero") {
-    redirect("/finanzas");
+  if (!puedeVerProyectos(perfil?.rol)) {
+    redirect(getRutaInicio(perfil?.rol));
   }
 
   const puedeCrear = puedeGestionarProyectos(perfil?.rol);

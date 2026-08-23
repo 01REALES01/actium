@@ -99,6 +99,22 @@ export function puedeVerPersonal(rol: UserRole | null | undefined): boolean {
   );
 }
 
+/**
+ * Puede entrar al módulo Proyectos (listado y ficha de obra). El coordinador
+ * SST (`sst`) y el rol financiero quedan fuera: solo Personal/Permisos o
+ * Finanzas, respectivamente.
+ */
+export function puedeVerProyectos(rol: UserRole | null | undefined): boolean {
+  return rol !== "sst" && rol !== "financiero";
+}
+
+/** Ruta de aterrizaje tras login o al denegar un módulo. */
+export function getRutaInicio(rol: string | null | undefined): string {
+  if (rol === "sst") return "/sst";
+  if (rol === "financiero") return "/finanzas";
+  return "/proyectos";
+}
+
 // ─── Navegación reactiva al rol ───────────────────────────────────────────────
 
 export type NavKey =
@@ -131,7 +147,8 @@ const NAV_BY_ROLE: Record<UserRole, NavKey[]> = {
   admin: ["dashboard", "personal", "sst", "finanzas"],
   // El rol financiero solo opera Finanzas — no accede a ninguna otra sección.
   financiero: ["finanzas"],
-  sst: ["dashboard", "personal", "sst"],
+  // Coordinador SST: Personal y Permisos. Sin acceso al módulo Proyectos.
+  sst: ["personal", "sst"],
   operativo: ["dashboard", "personal"],
   cliente_principal: ["dashboard", "personal"],
   subcliente: ["dashboard", "personal"],

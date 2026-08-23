@@ -19,7 +19,7 @@ export type CalendarEventDTO = {
   href?: string;
 };
 
-type Rango = { desde: string; hasta: string; verPersonal: boolean };
+type Rango = { desde: string; hasta: string; verPersonal: boolean; verProyectos?: boolean };
 
 /** Recorta una fecha-hora o fecha a solo YYYY-MM-DD. */
 function soloDia(valor: string): string {
@@ -30,10 +30,11 @@ function soloDia(valor: string): string {
  * Agrega los eventos de calendario de todas las fuentes, acotados al rango
  * [desde, hasta] (YYYY-MM-DD). Respeta RLS según el cliente recibido; los
  * vencimientos de personal solo se incluyen si `verPersonal` es true.
+ * Los hitos de proyecto (inicio/fin) solo si `verProyectos` es true.
  */
 export async function getCalendarEvents(
   supabase: Client,
-  { desde, hasta, verPersonal }: Rango,
+  { desde, hasta, verPersonal, verProyectos = true }: Rango,
 ): Promise<CalendarEventDTO[]> {
   const [formRes, incRes, ausRes, partes, proyectos, docsRes] = await Promise.all([
     supabase
@@ -53,7 +54,7 @@ export async function getCalendarEvents(
       .lte("fecha_inicio", hasta)
       .gte("fecha_fin", desde),
     listPartes(supabase, { desde, hasta }),
-    listProyectos(supabase),
+    verProyectos ? listProyectos(supabase) : Promise.resolve([]),
     verPersonal
       ? supabase
           .from("empleado_documentos")
@@ -151,7 +152,8 @@ export async function getCalendarEvents(
   });
 
   // Hitos de proyectos (inicio y fin previsto) dentro del rango
-  proyectos.forEach((proy) => {
+  if (verProyectos) {
+    proyectos.forEach((proy) => {
     if (proy.fecha_inicio && proy.fecha_inicio >= desde && proy.fecha_inicio <= hasta) {
       eventos.push({
         id: `proy-ini-${proy.id}`,
@@ -177,6 +179,7 @@ export async function getCalendarEvents(
       });
     }
   });
+  }
 
   // Vencimientos de documentos de personal (solo roles con acceso a Personal)
   documentos.forEach((d) => {

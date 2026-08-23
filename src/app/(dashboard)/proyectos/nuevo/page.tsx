@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeGestionarProyectos } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio, puedeGestionarProyectos } from "@/lib/auth/roles";
 import { listEmpresas, listSubempresas } from "@/lib/data/organizacion";
 import { ProyectoForm } from "@/components/projects/proyecto-form";
 
@@ -9,7 +9,7 @@ export default async function NuevoProyectoPage() {
   const perfil = await getPerfilActual(supabase);
 
   if (!puedeGestionarProyectos(perfil?.rol)) {
-    redirect("/proyectos");
+    redirect(getRutaInicio(perfil?.rol));
   }
 
   const [empresas, subempresas] = await Promise.all([

@@ -3,10 +3,29 @@ import { createServerClient } from "@supabase/ssr";
 
 const PUBLIC_PATHS = ["/login"];
 
+function rutaInicioDesdeRol(rol: string | undefined): string {
+  if (rol === "sst") return "/sst";
+  if (rol === "financiero") return "/finanzas";
+  return "/proyectos";
+}
+
+function rolDesdeAccessToken(token: string | undefined): string | undefined {
+  if (!token) return undefined;
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return undefined;
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof json.rol === "string" ? json.rol : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   let user = null;
+  let accessToken: string | undefined;
   try {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,6 +50,13 @@ export async function middleware(request: NextRequest) {
       data: { user: sessionUser },
     } = await supabase.auth.getUser();
     user = sessionUser;
+
+    if (sessionUser) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      accessToken = session?.access_token;
+    }
   } catch (error) {
     // Supabase inalcanzable (DNS, red, proyecto pausado): no tumbar toda la
     // app con un 500. Se degrada a "no autenticado" y se deja que la página
@@ -49,7 +75,7 @@ export async function middleware(request: NextRequest) {
 
   if (user && pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/proyectos";
+    url.pathname = rutaInicioDesdeRol(rolDesdeAccessToken(accessToken));
     return NextResponse.redirect(url);
   }
 

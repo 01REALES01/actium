@@ -20,7 +20,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEmpleadoPerfil } from "@/lib/data/sst";
 import { listProyectos } from "@/lib/data/proyectos";
 import { listEmpresas, listSubempresas } from "@/lib/data/organizacion";
-import { getPerfilActual, esSuperAdmin } from "@/lib/auth/roles";
+import { getPerfilActual, esSuperAdmin, puedeVerProyectos } from "@/lib/auth/roles";
 import { SubirDocumentoButton } from "@/components/workers/subir-documento-button";
 import { WorkerProfileActions } from "@/components/workers/worker-profile-actions";
 
@@ -164,15 +164,24 @@ export default async function EmpleadoPerfilPage({ params }: Props) {
         {proyectos.length > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-[9px] font-bold uppercase tracking-widest text-white/30">Proyectos:</span>
-            {proyectos.map((p) => (
-              <Link
-                key={p.id}
-                href={`/proyectos/${p.id}`}
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                {p.nombre}
-              </Link>
-            ))}
+            {proyectos.map((p) =>
+              puedeVerProyectos(usuarioActual?.rol) ? (
+                <Link
+                  key={p.id}
+                  href={`/proyectos/${p.id}`}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  {p.nombre}
+                </Link>
+              ) : (
+                <span
+                  key={p.id}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold text-white/70"
+                >
+                  {p.nombre}
+                </span>
+              ),
+            )}
           </div>
         )}
       </div>

@@ -19,7 +19,7 @@ import { getParteCockpitDelDia } from "@/lib/data/partes-sst";
 import { getEmpleadosAsignados, getAvancesSemanaActual } from "@/lib/data/sst";
 import { getProyectoAvances, getProyecto, getProyectoMetas } from "@/lib/data/proyectos";
 import { hoyLocal } from "@/lib/fecha";
-import { getPerfilActual, puedeEditarParteDiario } from "@/lib/auth/roles";
+import { getPerfilActual, puedeEditarParteDiario, puedeVerProyectos } from "@/lib/auth/roles";
 import { GraficaAsistencia, GraficaEventos } from "@/components/sst/parte-graficas";
 import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { ParteDescargarPDF, type PartePDFData } from "@/components/sst/parte-pdf";
@@ -168,10 +168,11 @@ export default async function ParteDiaProyectoPage({
       {/* Header + navegación de día */}
       <div className="flex flex-col gap-6">
         <Link
-          href={`/proyectos/${params.id}`}
+          href={puedeVerProyectos(perfil?.rol) ? `/proyectos/${params.id}` : "/sst/bitacora"}
           className="flex w-fit items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/40 transition-colors hover:text-white"
         >
-          <ArrowLeft className="h-4 w-4" /> Volver al proyecto
+          <ArrowLeft className="h-4 w-4" />
+          {puedeVerProyectos(perfil?.rol) ? "Volver al proyecto" : "Volver a bitácora"}
         </Link>
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

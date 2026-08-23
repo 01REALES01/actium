@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
+import { getPerfilActual, getRutaInicio } from "@/lib/auth/roles";
 import { LoginForm } from "./login-form";
 
 type LoginPageProps = {
@@ -14,10 +15,15 @@ async function signIn(formData: FormData): Promise<void> {
   const password = String(formData.get("password") ?? "");
 
   let errorMessage: string | null = null;
+  let rol: string | undefined;
   try {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     errorMessage = error?.message ?? null;
+    if (!error) {
+      const perfil = await getPerfilActual(supabase);
+      rol = perfil?.rol;
+    }
   } catch (error) {
     console.error("signIn: fallo de conexión con Supabase", error);
     errorMessage = "network";
@@ -31,7 +37,7 @@ async function signIn(formData: FormData): Promise<void> {
     redirect(`/login?error=${encodeURIComponent(displayMessage)}`);
   }
 
-  redirect("/proyectos");
+  redirect(getRutaInicio(rol));
 }
 
 export default function LoginPage({ searchParams }: LoginPageProps) {

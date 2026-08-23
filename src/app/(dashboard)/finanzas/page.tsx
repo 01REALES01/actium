@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Landmark, FileText, FileMinus, LineChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio } from "@/lib/auth/roles";
 import { listProyectosFinanzas } from "@/lib/data/presupuesto";
 import { getCxCResumen } from "@/lib/data/cxc";
 import { getCxPResumen } from "@/lib/data/cxp";
@@ -15,7 +15,7 @@ export default async function FinanzasPage() {
   const perfil = await getPerfilActual(supabase);
 
   if (!perfil || !["super_admin", "admin", "financiero"].includes(perfil.rol)) {
-    redirect("/proyectos");
+    redirect(getRutaInicio(perfil?.rol));
   }
 
   const [proyectos, cxcResumen, cxpResumen] = await Promise.all([

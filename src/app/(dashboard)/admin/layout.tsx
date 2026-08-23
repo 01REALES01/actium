@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio } from "@/lib/auth/roles";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Guard fuerte: solo super_admin entra al panel de administración.
   if (perfil?.rol !== "super_admin") {
-    redirect("/proyectos");
+    redirect(getRutaInicio(perfil?.rol));
   }
 
   return (
