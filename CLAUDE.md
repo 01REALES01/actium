@@ -203,14 +203,24 @@ Serio e inteligente, pero a la vez amable. No debe sonar relajada, sino que debe
 
 ## 10. Repositorios y despliegue
 
-Hay **dos repositorios y cumplen papeles distintos**. Confundirlos es el error más fácil de cometer aquí, porque el `origin` local apunta al de despliegue, no al de código.
+Hay **tres remotos y cumplen papeles distintos**. Confundirlos es el error más fácil de cometer aquí, porque `origin` no es el repositorio de código.
 
 | Remoto | Repositorio | Papel |
 |---|---|---|
-| `origin-lucho` | `Luchowww/actium` (privado) | **Canónico. Aquí van todos los cambios de código.** Es el upstream de `main`. |
-| `origin` | `01REALES01/actium2` | Espejo desde el que se despliega. |
+| `origin-lucho` | `Luchowww/actium` | **Canónico. Aquí van todos los cambios de código.** El repositorio es de Luchowww; nosotros entramos como *contributor*. |
+| `origin` | `01REALES01/actium` | Repositorio personal. Es el upstream que ve `git status`, pero no es el destino del código. |
+| `origin-actium2` | `01REALES01/actium2` | Espejo histórico del despliegue. |
 
-- **Todo push de código va a `origin-lucho`.** Si además quieres mantener el espejo al día, empuja a ambos — pero el canónico nunca se salta.
+- **Todo push de código va a `origin-lucho main`.** El canónico nunca se salta.
+- **Empuja con la cuenta `01REALES01`.** En el llavero hay dos cuentas de GitHub y la activa por defecto es `jeanignia`, que no tiene acceso al canónico (`Repository not found`) ni permiso de escritura en `01REALES01/actium` (403). El error parece del repositorio, pero es de la cuenta:
+
+  ```bash
+  gh auth status                 # confirma cuál está activa
+  gh auth switch --user 01REALES01
+  git -c credential.helper= -c credential.helper='!gh auth git-credential' push origin-lucho main
+  ```
+
+  El `credential.helper=` vacío resetea la lista de helpers; sin él, `osxkeychain` responde primero con el token de `jeanignia` y el push falla.
 - Producción es el proyecto **`actium2`** de Vercel, equipo `uniscores`, **sin git conectado**: despliega los archivos locales, no un repo. Por eso el deploy no depende de en qué repositorio esté el commit.
 - Deploy manual: `npx vercel deploy --scope uniscores --archive=tgz` para preview y `--prod` para producción. Verifica en preview antes de promover.
 - **Nunca despliegues código cuyas migraciones no estén aplicadas en Supabase.** Aplica primero las migraciones, en orden, y después promueve.
