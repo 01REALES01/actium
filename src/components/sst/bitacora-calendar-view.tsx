@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, UserCheck, UserMinus, AlertTriangle, ShieldAlert, FileText, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ETIQUETA_TIPO_SST } from "@/lib/sst/tipos";
+import type { FormularioTipo } from "@/types/database.types";
 
 type ParteRow = {
   proyecto_id: string;
@@ -144,7 +146,7 @@ export function BitacoraCalendarView({ partes = [], formularios = [] }: { partes
               <FileText className="h-3 w-3 text-[#F25C05] shrink-0" />
               <div className="flex flex-col overflow-hidden">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-[#F25C05] truncate">
-                  {f.tipo === 'ats' ? 'ATS' : f.tipo === 'permiso_altura' ? 'ALTURA' : 'CALIENTE'}
+                  {(ETIQUETA_TIPO_SST[f.tipo as FormularioTipo] ?? f.tipo).toUpperCase()}
                 </span>
                 <span className="text-[8px] text-white/60 truncate">{f.proyecto_nombre}</span>
               </div>

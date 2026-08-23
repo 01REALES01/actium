@@ -2738,7 +2738,11 @@ export type Database = {
       factura_estado: "pendiente" | "parcial" | "pagada" | "vencida" | "anulada"
       firma_momento: "inicio" | "fin"
       formulario_estado: "borrador" | "completado" | "firmado" | "archivado"
-      formulario_tipo: "ats" | "permiso_altura" | "permiso_caliente"
+      formulario_tipo:
+        | "ats"
+        | "permiso_altura"
+        | "permiso_caliente"
+        | "preoperacional"
       incidente_severidad: "leve" | "moderado" | "grave" | "critico"
       incidente_tipo: "incidente" | "accidente" | "casi_accidente"
       movimiento_estado:
@@ -2920,7 +2924,12 @@ export const Constants = {
       factura_estado: ["pendiente", "parcial", "pagada", "vencida", "anulada"],
       firma_momento: ["inicio", "fin"],
       formulario_estado: ["borrador", "completado", "firmado", "archivado"],
-      formulario_tipo: ["ats", "permiso_altura", "permiso_caliente"],
+      formulario_tipo: [
+        "ats",
+        "permiso_altura",
+        "permiso_caliente",
+        "preoperacional",
+      ],
       incidente_severidad: ["leve", "moderado", "grave", "critico"],
       incidente_tipo: ["incidente", "accidente", "casi_accidente"],
       movimiento_estado: [

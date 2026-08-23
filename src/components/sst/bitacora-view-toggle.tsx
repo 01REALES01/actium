@@ -5,6 +5,8 @@ import Link from "next/link";
 import { LayoutList, CalendarDays, UserCheck, UserMinus, AlertTriangle, ShieldAlert, ClipboardList, FileText, Download } from "lucide-react";
 import { BitacoraCalendarView } from "./bitacora-calendar-view";
 import { createClient } from "@/lib/supabase/client";
+import { ETIQUETA_TIPO_SST } from "@/lib/sst/tipos";
+import type { FormularioTipo } from "@/types/database.types";
 
 type ParteRow = {
   proyecto_id: string;
@@ -154,7 +156,7 @@ export function BitacoraViewToggle({ partes = [], formularios = [] }: { partes?:
                                   title={`Descargar ${f.tipo}`}
                                 >
                                   <FileText className="h-3 w-3" />
-                                  {f.tipo === 'ats' ? 'ATS' : f.tipo === 'permiso_altura' ? 'ALTURA' : 'CALIENTE'}
+                                  {(ETIQUETA_TIPO_SST[f.tipo as FormularioTipo] ?? f.tipo).toUpperCase()}
                                 </button>
                               ))}
                             </div>
@@ -185,7 +187,7 @@ export function BitacoraViewToggle({ partes = [], formularios = [] }: { partes?:
                       className="mt-1 flex w-fit items-center gap-1.5 bg-[#F25C05]/10 text-[#F25C05] hover:bg-[#F25C05]/20 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-colors"
                     >
                       <Download className="h-3.5 w-3.5" />
-                      {f.tipo === 'ats' ? 'ATS' : f.tipo === 'permiso_altura' ? 'ALTURA' : 'CALIENTE'}
+                      {(ETIQUETA_TIPO_SST[f.tipo as FormularioTipo] ?? f.tipo).toUpperCase()}
                     </button>
                  </div>
               ))}

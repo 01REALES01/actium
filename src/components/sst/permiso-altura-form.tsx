@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Trash2, Loader2, Download, Check, AlertTriangle, ShieldCheck, PenLine } from "lucide-react";
+import { Plus, Trash2, Loader2, Download, Check, AlertTriangle, ShieldCheck, PenLine, History, Save } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,10 +19,14 @@ import type {
   EjecutorAltura,
   PermisoAlturaPDFData,
 } from "./permiso-altura-pdf-document";
+import type { FallbackFormularioSST } from "@/lib/sst/prefill";
+import { listarFaltantes, contar } from "@/lib/sst/faltantes";
+import { hoyLocal } from "@/lib/fecha";
 
 // ─── Estilos compartidos ──────────────────────────────────────────────────────
 const CARD = "rounded-xl border border-white/5 bg-[#1A1A1A] p-5 sm:p-6 shadow-2xl";
 const SECTION_TITLE = "flex items-center gap-2 text-sm font-bold tracking-widest text-[#F25C05] uppercase mb-6";
+const SECTION_TITLE_INLINE = "flex items-center gap-2 text-sm font-bold tracking-widest text-[#F25C05] uppercase";
 const NUM = "flex h-6 w-6 items-center justify-center rounded-full bg-[#F25C05]/10 text-xs";
 const LABEL = "text-[10px] font-bold text-white/40 uppercase tracking-widest";
 const FIELD = "h-12 bg-white/5 border-white/10 text-white rounded-xl placeholder:text-white/20 [&>option]:bg-[#1A1A1A] [&>option]:text-white";
@@ -45,10 +49,18 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
   const router = useRouter();
   const searchParams = useSearchParams();
   const cierreId = searchParams.get("cierreId");
+  const borradorParam = searchParams.get("borradorId");
 
   const [esModoCierre, setEsModoCierre] = useState(false);
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [existingPdfPath, setExistingPdfPath] = useState<string | null>(null);
+  // Fila en estado borrador que se está diligenciando (recién guardada o retomada).
+  const [borradorId, setBorradorId] = useState<string | null>(borradorParam);
+  const [guardandoBorrador, setGuardandoBorrador] = useState(false);
+  const [rellenando, setRellenando] = useState(false);
+  const [avisoMsg, setAvisoMsg] = useState("");
+  // El aviso se pinta en ámbar cuando enumera lo que aún falta por diligenciar.
+  const [avisoPendiente, setAvisoPendiente] = useState(false);
 
   // 1. Datos básicos
   const [proyectoId, setProyectoId] = useState("");
@@ -92,55 +104,71 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
   const [generando, setGenerando] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Cargar datos previos si es modo cierre
+  // Vuelca en el formulario un payload guardado (cierre, borrador o permiso
+  // anterior). Con `conservarPersonal` no se tocan ejecutores ni firmas: al
+  // copiar un permiso previo esos datos deben diligenciarse siempre de nuevo.
+  const aplicarPayload = (
+    payload: Partial<PermisoAlturaPDFData>,
+    opciones?: { fallback?: FallbackFormularioSST; conservarPersonal?: boolean },
+  ) => {
+    const fb = opciones?.fallback;
+    setEmpresa(payload.empresa || fb?.empresa || "");
+    setCiudad(payload.ciudad || "");
+    setLugarTrabajo(payload.lugarTrabajo || "");
+    setAreaProceso(payload.areaProceso || fb?.area || "");
+    setUbicacion(payload.ubicacion || fb?.ubicacion || "");
+    setVigencia(payload.vigencia || "");
+    setFecha(payload.fecha || fb?.fechaInicio || hoyLocal());
+    setHoraInicio(payload.horaInicio || "");
+    setHoraFin(payload.horaFin || "");
+    setTiposTrabajo(payload.tiposTrabajo || "");
+    setHerramientas(payload.herramientas || "");
+    setAlturaAprox(payload.alturaAprox || "");
+    setSistemasAcceso(payload.sistemasAcceso ?? []);
+    setSistemasAccesoOtros(payload.sistemasAccesoOtros || "");
+    setOtrasTar(payload.otrasTar ?? {});
+    setOtrasTarCuales(payload.otrasTarCuales || "");
+    setProcedimiento(payload.procedimiento || "");
+    setEpp(payload.epp ?? []);
+    setEppOtros(payload.eppOtros || "");
+    setChequeo(payload.chequeo ?? {});
+
+    if (opciones?.conservarPersonal) return;
+
+    setEjecutores(
+      payload.ejecutores?.length
+        ? payload.ejecutores.map((e, idx) => ({ ...e, id: idx + 1 }))
+        : [nuevoEjecutor()],
+    );
+    setEmisorNombre(payload.emisorNombre || "");
+    setEmisorCedula(payload.emisorCedula || "");
+    setFirmaData(payload.firmaDataUrl || "");
+    setEmisorFirmaCierre(payload.emisorFirmaCierre || "");
+  };
+
+  // Cargar datos previos: firmas de cierre o borrador retomado.
   useEffect(() => {
-    if (!cierreId) return;
-    setEsModoCierre(true);
+    const formularioId = cierreId || borradorParam;
+    if (!formularioId) return;
+    if (cierreId) setEsModoCierre(true);
     setCargandoDatos(true);
     async function cargar() {
       try {
         const { obtenerDatosCierreAction } = await import("@/lib/actions/permisos-sst");
-        const res = await obtenerDatosCierreAction(cierreId!);
+        const res = await obtenerDatosCierreAction(formularioId!);
 
         if (res.pdfPath) setExistingPdfPath(res.pdfPath);
         if (res.proyectoId) setProyectoId(res.proyectoId);
 
         if (res.payload) {
-          const payload: PermisoAlturaPDFData = res.payload;
-          setEmpresa(payload.empresa || res.fallback.empresa);
-          setCiudad(payload.ciudad || "");
-          setLugarTrabajo(payload.lugarTrabajo || "");
-          setAreaProceso(payload.areaProceso || res.fallback.area);
-          setUbicacion(payload.ubicacion || res.fallback.ubicacion);
-          setVigencia(payload.vigencia || "");
-          setFecha(payload.fecha || res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setHoraInicio(payload.horaInicio || "");
-          setHoraFin(payload.horaFin || "");
-          setTiposTrabajo(payload.tiposTrabajo || "");
-          setHerramientas(payload.herramientas || "");
-          setAlturaAprox(payload.alturaAprox || "");
-          if (payload.sistemasAcceso) setSistemasAcceso(payload.sistemasAcceso);
-          setSistemasAccesoOtros(payload.sistemasAccesoOtros || "");
-          if (payload.otrasTar) setOtrasTar(payload.otrasTar);
-          setOtrasTarCuales(payload.otrasTarCuales || "");
-          setProcedimiento(payload.procedimiento || "");
-          if (payload.epp) setEpp(payload.epp);
-          setEppOtros(payload.eppOtros || "");
-          if (payload.chequeo) setChequeo(payload.chequeo);
-          if (payload.ejecutores && payload.ejecutores.length > 0) {
-            setEjecutores(payload.ejecutores.map((e, idx) => ({ ...e, id: idx + 1 })));
-          }
-          if (payload.emisorNombre) setEmisorNombre(payload.emisorNombre);
-          if (payload.emisorCedula) setEmisorCedula(payload.emisorCedula);
-          if (payload.firmaDataUrl) setFirmaData(payload.firmaDataUrl);
-          if (payload.emisorFirmaCierre) setEmisorFirmaCierre(payload.emisorFirmaCierre);
+          aplicarPayload(res.payload as PermisoAlturaPDFData, { fallback: res.fallback });
         } else {
           // Permiso previo sin JSON en Storage
           setEmpresa(res.fallback.empresa);
           setAreaProceso(res.fallback.area);
           setUbicacion(res.fallback.ubicacion);
-          setFecha(res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setSinDatosPrevios(true);
+          setFecha(res.fallback.fechaInicio || hoyLocal());
+          if (cierreId) setSinDatosPrevios(true);
         }
       } catch (e) {
         console.error("Error al cargar datos previos de altura:", e);
@@ -149,7 +177,8 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
       }
     }
     cargar();
-  }, [cierreId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cierreId, borradorParam]);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   const toggleArr = (
@@ -166,50 +195,191 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
   const setRespuesta = (itemId: string, r: RespuestaChequeo) =>
     setChequeo((prev) => ({ ...prev, [itemId]: r }));
 
+  // Instantánea del formulario, común al PDF final y al borrador.
+  const construirPayload = (): PermisoAlturaPDFData => ({
+    empresa: (empresa || "ACTIUM").trim(),
+    ciudad: ciudad.trim(),
+    lugarTrabajo: lugarTrabajo.trim(),
+    areaProceso: areaProceso.trim(),
+    ubicacion: ubicacion.trim(),
+    vigencia: vigencia.trim(),
+    fecha: fecha || hoyLocal(),
+    horaInicio,
+    horaFin,
+    tiposTrabajo: tiposTrabajo.trim(),
+    herramientas: herramientas.trim(),
+    alturaAprox: alturaAprox.trim(),
+    sistemasAcceso,
+    sistemasAccesoOtros: sistemasAccesoOtros.trim(),
+    otrasTar,
+    otrasTarCuales: otrasTarCuales.trim(),
+    procedimiento: procedimiento.trim(),
+    epp,
+    eppOtros: eppOtros.trim(),
+    chequeo,
+    ejecutores: ejecutores.map(({ id: _id, ...rest }) => rest),
+    emisorNombre: emisorNombre.trim(),
+    emisorCedula: emisorCedula.trim(),
+    firmaDataUrl: firmaData,
+    emisorFirmaCierre,
+  });
+
+  // ─── Rellenar con el último permiso ─────────────────────────────────────────
+  const handleRellenarUltimo = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+    setRellenando(true);
+    try {
+      const { obtenerUltimoFormularioAction } = await import("@/lib/actions/permisos-sst");
+      const res = await obtenerUltimoFormularioAction("permiso_altura", proyectoId || undefined);
+
+      if (!res.encontrado || !res.payload) {
+        setErrorMsg("Aún no hay un permiso de altura anterior para copiar.");
+        return;
+      }
+
+      aplicarPayload(res.payload as PermisoAlturaPDFData, { conservarPersonal: true });
+      const ref = res.referencia;
+      setAvisoMsg(
+        `Se copió el permiso del ${ref?.fecha || "último registro"}${ref?.proyecto ? ` — ${ref.proyecto}` : ""}. Registre el personal ejecutor y las firmas: nunca se heredan.`,
+      );
+    } catch (err: any) {
+      setErrorMsg(err?.message || "No fue posible recuperar el último permiso.");
+    } finally {
+      setRellenando(false);
+    }
+  };
+
+  // Lo único que impide guardar un borrador: la fila necesita un proyecto para
+  // saber a qué empresa y subempresa pertenece.
+  const faltantesParaGuardar = (): string[] => {
+    const faltan: string[] = [];
+    if (!proyectoId) {
+      faltan.push(
+        proyectos.length === 0
+          ? "un proyecto disponible al cual asociar el permiso"
+          : "seleccionar el proyecto asociado",
+      );
+    }
+    return faltan;
+  };
+
+  // Lo que queda por diligenciar antes de poder emitir el permiso. No bloquea el
+  // borrador: se informa para que el usuario sepa por dónde retomarlo.
+  const pendientesPorDiligenciar = (): string[] => {
+    const faltan: string[] = [];
+
+    if (!empresa.trim()) faltan.push("empresa");
+    if (!fecha) faltan.push("fecha de realización");
+    if (!ubicacion.trim()) faltan.push("ubicación del trabajo");
+    if (!tiposTrabajo.trim()) faltan.push("tipos de trabajo en alturas");
+    if (!alturaAprox.trim()) faltan.push("altura aproximada");
+    if (sistemasAcceso.length === 0 && !sistemasAccesoOtros.trim()) {
+      faltan.push("sistemas de acceso");
+    }
+    if (!procedimiento.trim()) faltan.push("procedimiento del trabajo");
+    if (epp.length === 0 && !eppOtros.trim()) faltan.push("elementos de protección personal");
+
+    const sinResponder = CHEQUEO_ALTURA.filter((item) => !chequeo[item.id]).length;
+    if (sinResponder > 0) {
+      faltan.push(`${contar(sinResponder, "ítem", "ítems")} de la lista de verificación`);
+    }
+
+    const conNombre = ejecutores.filter((e) => e.nombre.trim());
+    if (conNombre.length === 0) {
+      faltan.push("personal ejecutor");
+    } else {
+      const sinFirma = conNombre.filter((e) => !e.firma).length;
+      if (sinFirma > 0) {
+        faltan.push(`${contar(sinFirma, "firma", "firmas")} del personal ejecutor`);
+      }
+    }
+
+    if (!emisorNombre.trim()) faltan.push("nombre de quien autoriza");
+    if (!firmaData) faltan.push("firma de quien autoriza");
+
+    return faltan;
+  };
+
+  // ─── Guardar borrador ───────────────────────────────────────────────────────
+  const handleGuardarBorrador = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+
+    const bloqueantes = faltantesParaGuardar();
+    if (bloqueantes.length > 0) {
+      setErrorMsg(`Para guardar el borrador falta ${listarFaltantes(bloqueantes)}.`);
+      return;
+    }
+
+    setGuardandoBorrador(true);
+    try {
+      // El borrador guarda lo que hay en pantalla, sin los valores por defecto
+      // que solo aplican al emitir (empresa "ACTIUM", fecha de hoy). Así lo que
+      // se reporta como pendiente sigue pendiente al retomarlo.
+      const data: PermisoAlturaPDFData = {
+        ...construirPayload(),
+        empresa: empresa.trim(),
+        fecha,
+      };
+
+      const formData = new FormData();
+      formData.append("payload", JSON.stringify(data));
+      formData.append("tipo", "permiso_altura");
+      formData.append("proyectoId", proyectoId);
+      if (borradorId) formData.append("borradorId", borradorId);
+      if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
+      formData.append("area", data.areaProceso);
+      formData.append("ubicacion", data.ubicacion || "N/A");
+      formData.append("fechaInicio", data.fecha);
+
+      const { guardarBorradorAction } = await import("@/lib/actions/permisos-sst");
+      const res = await guardarBorradorAction(formData);
+
+      setBorradorId(res.id);
+      setExistingPdfPath(res.pdfPath);
+
+      const pendientes = pendientesPorDiligenciar();
+      setAvisoPendiente(pendientes.length > 0);
+      setAvisoMsg(
+        pendientes.length === 0
+          ? "Borrador guardado. El permiso está completo: puede emitirlo cuando lo requiera."
+          : `Borrador guardado. Queda pendiente por diligenciar: ${listarFaltantes(pendientes)}.`,
+      );
+    } catch (err: any) {
+      setErrorMsg(err?.message || "No fue posible guardar el borrador. Intenta de nuevo.");
+    } finally {
+      setGuardandoBorrador(false);
+    }
+  };
+
   // ─── Generar PDF ────────────────────────────────────────────────────────────
   const handleGenerar = async () => {
     setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
     const finalEmpresa = (empresa || "ACTIUM").trim();
-    const finalFecha = fecha || new Date().toISOString().split("T")[0];
+    const finalFecha = fecha || hoyLocal();
 
-    if (!esModoCierre && (!finalEmpresa || !finalFecha)) {
-      setErrorMsg("Indique al menos la empresa y la fecha de realización del trabajo.");
-      return;
-    }
-    if (!esModoCierre && !firmaData) {
-      setErrorMsg("Debe registrar la firma de quien autoriza el permiso.");
-      return;
+    if (!esModoCierre) {
+      const faltan: string[] = [];
+      if (!finalEmpresa) faltan.push("empresa");
+      if (!finalFecha) faltan.push("fecha de realización");
+      if (!firmaData) faltan.push("firma de quien autoriza el permiso");
+
+      if (faltan.length > 0) {
+        setErrorMsg(
+          `No fue posible emitir el permiso. Falta diligenciar: ${listarFaltantes(faltan)}.`,
+        );
+        return;
+      }
     }
 
     setGenerando(true);
     try {
-      const data: PermisoAlturaPDFData = {
-        empresa: finalEmpresa,
-        ciudad: ciudad.trim(),
-        lugarTrabajo: lugarTrabajo.trim(),
-        areaProceso: areaProceso.trim(),
-        ubicacion: ubicacion.trim(),
-        vigencia: vigencia.trim(),
-        fecha: finalFecha,
-        horaInicio,
-        horaFin,
-        tiposTrabajo: tiposTrabajo.trim(),
-        herramientas: herramientas.trim(),
-        alturaAprox: alturaAprox.trim(),
-        sistemasAcceso,
-        sistemasAccesoOtros: sistemasAccesoOtros.trim(),
-        otrasTar,
-        otrasTarCuales: otrasTarCuales.trim(),
-        procedimiento: procedimiento.trim(),
-        epp,
-        eppOtros: eppOtros.trim(),
-        chequeo,
-        ejecutores: ejecutores.map(({ id: _id, ...rest }) => rest),
-        emisorNombre: emisorNombre.trim(),
-        emisorCedula: emisorCedula.trim(),
-        firmaDataUrl: firmaData,
-        emisorFirmaCierre,
-      };
+      const data = construirPayload();
 
       const { buildPermisoAlturaPDFBlob } = await import("./permiso-altura-pdf-document");
       const blob = await buildPermisoAlturaPDFBlob(data);
@@ -219,6 +389,7 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
       formData.append("payload", JSON.stringify(data));
       formData.append("tipo", "permiso_altura");
       if (cierreId) formData.append("cierreId", cierreId);
+      else if (borradorId) formData.append("formularioId", borradorId);
       if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
       if (proyectoId) formData.append("proyectoId", proyectoId);
       formData.append("area", areaProceso.trim());
@@ -458,9 +629,24 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
     <div className="flex flex-col gap-6 sm:gap-8 max-w-4xl">
       {/* 1. Datos básicos */}
       <div className={CARD}>
-        <h2 className={SECTION_TITLE}>
-          <span className={NUM}>1</span> Datos básicos del permiso
-        </h2>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className={SECTION_TITLE_INLINE}>
+            <span className={NUM}>1</span> Datos básicos del permiso
+          </h2>
+          <button
+            type="button"
+            onClick={handleRellenarUltimo}
+            disabled={rellenando}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#F25C05]/40 bg-[#F25C05]/10 px-4 text-[10px] font-bold uppercase tracking-widest text-[#F25C05] transition-all hover:bg-[#F25C05]/20 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+          >
+            {rellenando ? <Loader2 className="h-4 w-4 animate-spin" /> : <History className="h-4 w-4" />}
+            Rellenar con el último
+          </button>
+        </div>
+        <p className="mb-5 text-[10px] leading-relaxed text-white/30">
+          Copia los datos del último permiso de altura registrado. El personal ejecutor y las firmas
+          siempre quedan en blanco: deben diligenciarse en cada permiso.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {proyectos.length > 0 && (
             <Campo label="Proyecto Asociado">
@@ -549,6 +735,7 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
               <div className="pt-2 mt-4 border-t border-white/5">
                 <SignaturePad
                   onSave={(firma) => updateEjecutor(ej.id, "firma", firma)}
+                  initialValue={ej.firma}
                   label={`Firma de ${ej.nombre.trim() || `Ejecutor ${index + 1}`}`}
                 />
               </div>
@@ -695,7 +882,7 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
           </Campo>
         </div>
 
-        <SignaturePad onSave={setFirmaData} label="Firma de quien autoriza el permiso" />
+        <SignaturePad onSave={setFirmaData} initialValue={firmaData} label="Firma de quien autoriza el permiso" />
 
         <p className="mt-3 text-[10px] text-white/30 leading-relaxed italic">
           Esta firma tiene carácter informativo y NO constituye firma electrónica certificada según la Ley 527 de 1999.
@@ -707,8 +894,28 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
-          <button type="button" onClick={handleGenerar} disabled={generando}
+        {avisoMsg && (
+          <div
+            className={`mt-6 p-4 rounded-xl border text-sm font-medium leading-relaxed ${
+              avisoPendiente
+                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+            }`}
+          >
+            {avisoMsg}
+          </div>
+        )}
+
+        <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button type="button" onClick={handleGuardarBorrador} disabled={guardandoBorrador || generando}
+            className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-8 text-sm font-bold text-white transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed">
+            {guardandoBorrador ? (
+              <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</>
+            ) : (
+              <><Save className="h-5 w-5" /> Guardar borrador</>
+            )}
+          </button>
+          <button type="button" onClick={handleGenerar} disabled={generando || guardandoBorrador}
             className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-[#F25C05] px-10 text-sm font-bold text-white transition-all hover:bg-[#F25C05]/90 shadow-lg shadow-[#F25C05]/20 disabled:opacity-50 disabled:cursor-not-allowed">
             {generando ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Generando...</>

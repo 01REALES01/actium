@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ChevronLeft, ShieldAlert, FileText, MapPin, User, CalendarDays, Pencil, PenLine } from "lucide-react";
+import { ChevronLeft, ShieldAlert, FileText, MapPin, User, CalendarDays, Pencil, PenLine, FileEdit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
 import { PersonalEjecutor, type TrabajadorItem } from "@/components/sst/personal-ejecutor";
 import { AtsAcciones } from "@/components/sst/ats-acciones";
 import { BotonEliminarSST } from "@/components/sst/boton-eliminar-sst";
 import type { Tables } from "@/types/database.types";
+import { RUTA_FORMULARIO_SST, NOMBRE_TIPO_SST, tieneCierre } from "@/lib/sst/tipos";
 
 type Props = {
   params: { id: string };
@@ -26,8 +27,9 @@ export default async function FormularioDetallePage({ params }: Props) {
   if (error || !formData) notFound();
   const form = formData as Tables<"formularios">;
 
+  // Un borrador reserva la ruta del PDF pero todavía no lo ha generado.
   let pdfSignedUrl: string | null = null;
-  if (form.pdf_generado_path) {
+  if (form.pdf_generado_path && form.estado !== "borrador") {
     const { data: signedData } = await supabase.storage
       .from("pdfs-formularios")
       .createSignedUrl(form.pdf_generado_path, 3600);
@@ -40,14 +42,16 @@ export default async function FormularioDetallePage({ params }: Props) {
   const formAbierto = form.estado !== "firmado" && form.estado !== "archivado";
   const puedeEditar = form.tipo === "ats" && formAbierto && puedeGestionar;
 
+  const rutaFormulario = RUTA_FORMULARIO_SST[form.tipo] ?? null;
+  const esBorrador = form.estado === "borrador";
+
+  // Un borrador todavía no se emitió: se continúa diligenciando, no se cierra.
+  // La inspección preoperacional tampoco tiene cierre: se firma una sola vez.
   const cierreUrl =
-    form.tipo === "permiso_caliente"
-      ? `/sst/permiso-caliente?cierreId=${form.id}`
-      : form.tipo === "permiso_altura"
-      ? `/sst/permiso-altura?cierreId=${form.id}`
-      : form.tipo === "ats"
-      ? `/sst/nuevo-ats?cierreId=${form.id}`
+    rutaFormulario && !esBorrador && tieneCierre(form.tipo)
+      ? `${rutaFormulario}?cierreId=${form.id}`
       : null;
+  const borradorUrl = rutaFormulario && esBorrador ? `${rutaFormulario}?borradorId=${form.id}` : null;
 
   // Obtener proyecto asociado
   const { data: proyectoData } = await supabase
@@ -102,11 +106,7 @@ export default async function FormularioDetallePage({ params }: Props) {
     archivado: "border-white/10 bg-white/5 text-white/40",
   };
 
-  const tipoLabel: Record<string, string> = {
-    ats: "Análisis de Trabajo Seguro",
-    permiso_altura: "Permiso de Trabajo en Alturas",
-    permiso_caliente: "Permiso de Trabajo en Caliente",
-  };
+  const tipoLabel = NOMBRE_TIPO_SST;
 
   return (
     <div className="flex flex-col gap-8 pb-12 max-w-5xl">
@@ -146,6 +146,15 @@ export default async function FormularioDetallePage({ params }: Props) {
             >
               {form.estado}
             </Badge>
+            {puedeGestionar && borradorUrl && (
+              <Link
+                href={borradorUrl}
+                className="flex h-9 items-center gap-2 rounded-lg bg-[#F25C05] px-4 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-[#F25C05]/90"
+              >
+                <FileEdit className="h-4 w-4" />
+                Continuar diligenciamiento
+              </Link>
+            )}
             {puedeGestionar && cierreUrl && (
               <Link
                 href={cierreUrl}
@@ -182,6 +191,16 @@ export default async function FormularioDetallePage({ params }: Props) {
           />
         )}
       </div>
+
+      {esBorrador && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-5">
+          <FileEdit className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+          <p className="text-xs leading-relaxed text-white/80">
+            <strong className="text-amber-400">Borrador sin emitir.</strong> Este formulario aún no
+            tiene PDF ni firmas. Continúe el diligenciamiento para emitirlo.
+          </p>
+        </div>
+      )}
 
       {/* Info General */}
       <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
@@ -300,7 +319,7 @@ export default async function FormularioDetallePage({ params }: Props) {
       )}
 
       {/* Vista Previa del PDF */}
-      {pdfSignedUrl && (
+      {pdfSignedUrl && !esBorrador && (
         <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
           <h2 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-4">Vista Previa del Permiso</h2>
           <div className="relative w-full aspect-[1/1.4] max-h-[850px] rounded-lg overflow-hidden border border-white/10 bg-black">

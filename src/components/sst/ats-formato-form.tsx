@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Trash2, Loader2, Download, Check, AlertTriangle, ShieldCheck, PenLine } from "lucide-react";
+import { Plus, Trash2, Loader2, Download, Check, AlertTriangle, ShieldCheck, PenLine, History, Save } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,13 @@ import type {
   PasoAts,
   AtsFormatoPDFData,
 } from "./ats-formato-pdf-document";
+import type { FallbackFormularioSST } from "@/lib/sst/prefill";
+import { listarFaltantes, contar } from "@/lib/sst/faltantes";
+import { hoyLocal } from "@/lib/fecha";
 
 const CARD = "rounded-actium border border-white/5 bg-[#1A1A1A] p-5 sm:p-6 shadow-2xl";
 const SECTION_TITLE = "flex items-center gap-2 text-sm font-semibold tracking-widest text-actium-orange uppercase mb-6";
+const SECTION_TITLE_INLINE = "flex items-center gap-2 text-sm font-semibold tracking-widest text-actium-orange uppercase";
 const NUM = "flex h-6 w-6 items-center justify-center rounded-full bg-actium-orange/10 text-xs";
 const LABEL = "text-[10px] font-semibold text-white/40 uppercase tracking-widest";
 const FIELD = "h-12 bg-white/5 border-white/10 text-white rounded-xl placeholder:text-white/20 [&>option]:bg-[#1A1A1A] [&>option]:text-white";
@@ -37,10 +41,18 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
   const router = useRouter();
   const searchParams = useSearchParams();
   const cierreId = searchParams.get("cierreId");
+  const borradorParam = searchParams.get("borradorId");
 
   const [esModoCierre, setEsModoCierre] = useState(false);
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [existingPdfPath, setExistingPdfPath] = useState<string | null>(null);
+  // Fila en estado borrador que se está diligenciando (recién guardada o retomada).
+  const [borradorId, setBorradorId] = useState<string | null>(borradorParam);
+  const [guardandoBorrador, setGuardandoBorrador] = useState(false);
+  const [rellenando, setRellenando] = useState(false);
+  const [avisoMsg, setAvisoMsg] = useState("");
+  // El aviso se pinta en ámbar cuando enumera lo que aún falta por diligenciar.
+  const [avisoPendiente, setAvisoPendiente] = useState(false);
 
   // 1. Datos básicos
   const [proyectoId, setProyectoId] = useState("");
@@ -82,52 +94,70 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
   const [generando, setGenerando] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Cargar datos previos si es modo cierre
+  // Vuelca en el formulario un payload guardado (cierre, borrador o ATS
+  // anterior). Con `conservarPersonal` no se tocan ejecutores ni firmas: al
+  // copiar un análisis previo esos datos deben diligenciarse siempre de nuevo.
+  const aplicarPayload = (
+    payload: Partial<AtsFormatoPDFData>,
+    opciones?: { fallback?: FallbackFormularioSST; conservarPersonal?: boolean },
+  ) => {
+    const fb = opciones?.fallback;
+    setEmpresa(payload.empresa || fb?.empresa || "");
+    setCiudad(payload.ciudad || "");
+    setAreaProceso(payload.areaProceso || fb?.area || "");
+    setUbicacion(payload.ubicacion || fb?.ubicacion || "");
+    setLugarTrabajo(payload.lugarTrabajo || "");
+    setFecha(payload.fecha || fb?.fechaInicio || hoyLocal());
+    setHoraInicio(payload.horaInicio || "");
+    setHoraFin(payload.horaFin || "");
+    setDescripcionTarea(payload.descripcionTarea || "");
+    setPermisos(payload.permisos ?? []);
+    setPermisoOtroCual(payload.permisoOtroCual || "");
+    setHerramientas(payload.herramientas ?? {});
+    setAnalisis(payload.analisis ?? {});
+    setPasos(
+      payload.pasos?.length
+        ? payload.pasos.map((paso, idx) => ({ ...paso, id: idx + 1 }))
+        : [nuevoPaso()],
+    );
+    setProbabilidadIncidente(payload.probabilidadIncidente || "");
+    setSeguroProceder(payload.seguroProceder || "");
+
+    if (opciones?.conservarPersonal) return;
+
+    setEjecutores(
+      payload.ejecutores?.length
+        ? payload.ejecutores.map((e, idx) => ({ ...e, id: idx + 1 }))
+        : [nuevoEjecutor()],
+    );
+    setEmisorNombre(payload.emisorNombre || "");
+    setEmisorCedula(payload.emisorCedula || "");
+    setFirmaData(payload.firmaDataUrl || "");
+    setEmisorFirmaCierre(payload.emisorFirmaCierre || "");
+  };
+
+  // Cargar datos previos: firmas de cierre o borrador retomado.
   useEffect(() => {
-    if (!cierreId) return;
-    setEsModoCierre(true);
+    const formularioId = cierreId || borradorParam;
+    if (!formularioId) return;
+    if (cierreId) setEsModoCierre(true);
     setCargandoDatos(true);
     async function cargar() {
       try {
         const { obtenerDatosCierreAction } = await import("@/lib/actions/permisos-sst");
-        const res = await obtenerDatosCierreAction(cierreId!);
+        const res = await obtenerDatosCierreAction(formularioId!);
 
         if (res.pdfPath) setExistingPdfPath(res.pdfPath);
         if (res.proyectoId) setProyectoId(res.proyectoId);
 
         if (res.payload) {
-          const payload: AtsFormatoPDFData = res.payload;
-          setEmpresa(payload.empresa || res.fallback.empresa);
-          setCiudad(payload.ciudad || "");
-          setAreaProceso(payload.areaProceso || res.fallback.area);
-          setUbicacion(payload.ubicacion || res.fallback.ubicacion);
-          setLugarTrabajo(payload.lugarTrabajo || "");
-          setFecha(payload.fecha || res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setHoraInicio(payload.horaInicio || "");
-          setHoraFin(payload.horaFin || "");
-          setDescripcionTarea(payload.descripcionTarea || "");
-          if (payload.permisos) setPermisos(payload.permisos);
-          setPermisoOtroCual(payload.permisoOtroCual || "");
-          if (payload.herramientas) setHerramientas(payload.herramientas);
-          if (payload.analisis) setAnalisis(payload.analisis);
-          if (payload.pasos && payload.pasos.length > 0) {
-            setPasos(payload.pasos.map((p, idx) => ({ ...p, id: idx + 1 })));
-          }
-          if (payload.probabilidadIncidente) setProbabilidadIncidente(payload.probabilidadIncidente);
-          if (payload.seguroProceder) setSeguroProceder(payload.seguroProceder);
-          if (payload.ejecutores && payload.ejecutores.length > 0) {
-            setEjecutores(payload.ejecutores.map((e, idx) => ({ ...e, id: idx + 1 })));
-          }
-          if (payload.emisorNombre) setEmisorNombre(payload.emisorNombre);
-          if (payload.emisorCedula) setEmisorCedula(payload.emisorCedula);
-          if (payload.firmaDataUrl) setFirmaData(payload.firmaDataUrl);
-          if (payload.emisorFirmaCierre) setEmisorFirmaCierre(payload.emisorFirmaCierre);
+          aplicarPayload(res.payload as AtsFormatoPDFData, { fallback: res.fallback });
         } else {
           setEmpresa(res.fallback.empresa);
           setAreaProceso(res.fallback.area);
           setUbicacion(res.fallback.ubicacion);
-          setFecha(res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setSinDatosPrevios(true);
+          setFecha(res.fallback.fechaInicio || hoyLocal());
+          if (cierreId) setSinDatosPrevios(true);
         }
       } catch (e) {
         console.error("Error al cargar datos previos de ATS:", e);
@@ -136,7 +166,8 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
       }
     }
     cargar();
-  }, [cierreId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cierreId, borradorParam]);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   const togglePermiso = (id: string) =>
@@ -154,46 +185,188 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
   const removePaso = (id: number) =>
     setPasos((prev) => (prev.length > 1 ? prev.filter((p) => p.id !== id) : prev));
 
+  // Instantánea del formulario, común al PDF final y al borrador.
+  const construirPayload = (): AtsFormatoPDFData => ({
+    empresa: (empresa || "ACTIUM").trim(),
+    ciudad: ciudad.trim(),
+    areaProceso: areaProceso.trim(),
+    ubicacion: ubicacion.trim(),
+    lugarTrabajo: lugarTrabajo.trim(),
+    fecha: fecha || hoyLocal(),
+    horaInicio,
+    horaFin,
+    descripcionTarea: descripcionTarea.trim(),
+    permisos,
+    permisoOtroCual: permisoOtroCual.trim(),
+    herramientas,
+    analisis,
+    pasos: pasos.map(({ id: _id, ...rest }) => rest),
+    probabilidadIncidente,
+    seguroProceder,
+    ejecutores: ejecutores.map(({ id: _id, ...rest }) => rest),
+    emisorNombre: emisorNombre.trim(),
+    emisorCedula: emisorCedula.trim(),
+    firmaDataUrl: firmaData,
+    emisorFirmaCierre,
+  });
+
+  // ─── Rellenar con el último ATS ─────────────────────────────────────────────
+  const handleRellenarUltimo = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+    setRellenando(true);
+    try {
+      const { obtenerUltimoFormularioAction } = await import("@/lib/actions/permisos-sst");
+      const res = await obtenerUltimoFormularioAction("ats", proyectoId || undefined);
+
+      if (!res.encontrado || !res.payload) {
+        setErrorMsg("Aún no hay un ATS anterior para copiar.");
+        return;
+      }
+
+      aplicarPayload(res.payload as AtsFormatoPDFData, { conservarPersonal: true });
+      const ref = res.referencia;
+      setAvisoMsg(
+        `Se copió el ATS del ${ref?.fecha || "último registro"}${ref?.proyecto ? ` — ${ref.proyecto}` : ""}. Registre el personal ejecutor y las firmas: nunca se heredan.`,
+      );
+    } catch (err: any) {
+      setErrorMsg(err?.message || "No fue posible recuperar el último ATS.");
+    } finally {
+      setRellenando(false);
+    }
+  };
+
+  // Lo único que impide guardar un borrador: la fila necesita un proyecto para
+  // saber a qué empresa y subempresa pertenece.
+  const faltantesParaGuardar = (): string[] => {
+    const faltan: string[] = [];
+    if (!proyectoId) {
+      faltan.push(
+        proyectos.length === 0
+          ? "un proyecto disponible al cual asociar el análisis"
+          : "seleccionar el proyecto asociado",
+      );
+    }
+    return faltan;
+  };
+
+  // Lo que queda por diligenciar antes de poder emitir el ATS. No bloquea el
+  // borrador: se informa para que el usuario sepa por dónde retomarlo.
+  const pendientesPorDiligenciar = (): string[] => {
+    const faltan: string[] = [];
+
+    if (!empresa.trim()) faltan.push("empresa");
+    if (!fecha) faltan.push("fecha de realización");
+    if (!ubicacion.trim()) faltan.push("ubicación");
+    if (!descripcionTarea.trim()) faltan.push("descripción de la tarea");
+
+    if (!Object.values(herramientas).some((valor) => valor.trim())) {
+      faltan.push("equipos y herramientas");
+    }
+
+    const sinAnalisis = PREGUNTAS_ANALISIS.filter((p) => !(analisis[p.id] || "").trim()).length;
+    if (sinAnalisis > 0) {
+      faltan.push(`${contar(sinAnalisis, "pregunta", "preguntas")} del análisis de la tarea`);
+    }
+
+    if (!pasos.some((paso) => paso.paso.trim())) faltan.push("pasos de la tarea");
+    if (!probabilidadIncidente || !seguroProceder) faltan.push("evaluación del riesgo");
+
+    const conNombre = ejecutores.filter((e) => e.nombre.trim());
+    if (conNombre.length === 0) {
+      faltan.push("personal ejecutor");
+    } else {
+      const sinFirma = conNombre.filter((e) => !e.firma).length;
+      if (sinFirma > 0) {
+        faltan.push(`${contar(sinFirma, "firma", "firmas")} del personal ejecutor`);
+      }
+    }
+
+    if (!emisorNombre.trim()) faltan.push("nombre de quien autoriza");
+    if (!firmaData) faltan.push("firma de quien autoriza");
+
+    return faltan;
+  };
+
+  // ─── Guardar borrador ───────────────────────────────────────────────────────
+  const handleGuardarBorrador = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+
+    const bloqueantes = faltantesParaGuardar();
+    if (bloqueantes.length > 0) {
+      setErrorMsg(`Para guardar el borrador falta ${listarFaltantes(bloqueantes)}.`);
+      return;
+    }
+
+    setGuardandoBorrador(true);
+    try {
+      // El borrador guarda lo que hay en pantalla, sin los valores por defecto
+      // que solo aplican al emitir (empresa "ACTIUM", fecha de hoy). Así lo que
+      // se reporta como pendiente sigue pendiente al retomarlo.
+      const data: AtsFormatoPDFData = {
+        ...construirPayload(),
+        empresa: empresa.trim(),
+        fecha,
+      };
+
+      const formData = new FormData();
+      formData.append("payload", JSON.stringify(data));
+      formData.append("tipo", "ats");
+      formData.append("proyectoId", proyectoId);
+      if (borradorId) formData.append("borradorId", borradorId);
+      if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
+      formData.append("area", data.areaProceso);
+      formData.append("ubicacion", data.ubicacion || "N/A");
+      formData.append("fechaInicio", data.fecha);
+
+      const { guardarBorradorAction } = await import("@/lib/actions/permisos-sst");
+      const res = await guardarBorradorAction(formData);
+
+      setBorradorId(res.id);
+      setExistingPdfPath(res.pdfPath);
+
+      const pendientes = pendientesPorDiligenciar();
+      setAvisoPendiente(pendientes.length > 0);
+      setAvisoMsg(
+        pendientes.length === 0
+          ? "Borrador guardado. El análisis está completo: puede emitirlo cuando lo requiera."
+          : `Borrador guardado. Queda pendiente por diligenciar: ${listarFaltantes(pendientes)}.`,
+      );
+    } catch (err: any) {
+      setErrorMsg(err?.message || "No fue posible guardar el borrador. Intenta de nuevo.");
+    } finally {
+      setGuardandoBorrador(false);
+    }
+  };
+
   // ─── Generar PDF ────────────────────────────────────────────────────────────
   const handleGenerar = async () => {
     setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
     const finalEmpresa = (empresa || "ACTIUM").trim();
-    const finalFecha = fecha || new Date().toISOString().split("T")[0];
+    const finalFecha = fecha || hoyLocal();
 
-    if (!esModoCierre && (!finalEmpresa || !finalFecha)) {
-      setErrorMsg("Indique al menos la empresa y la fecha de realización del trabajo.");
-      return;
-    }
-    if (!esModoCierre && !firmaData) {
-      setErrorMsg("Debe registrar la firma de quien autoriza el análisis.");
-      return;
+    if (!esModoCierre) {
+      const faltan: string[] = [];
+      if (!finalEmpresa) faltan.push("empresa");
+      if (!finalFecha) faltan.push("fecha de realización");
+      if (!firmaData) faltan.push("firma de quien autoriza el análisis");
+
+      if (faltan.length > 0) {
+        setErrorMsg(
+          `No fue posible emitir el ATS. Falta diligenciar: ${listarFaltantes(faltan)}.`,
+        );
+        return;
+      }
     }
 
     setGenerando(true);
     try {
-      const data: AtsFormatoPDFData = {
-        empresa: finalEmpresa,
-        ciudad: ciudad.trim(),
-        areaProceso: areaProceso.trim(),
-        ubicacion: ubicacion.trim(),
-        lugarTrabajo: lugarTrabajo.trim(),
-        fecha: finalFecha,
-        horaInicio,
-        horaFin,
-        descripcionTarea: descripcionTarea.trim(),
-        permisos,
-        permisoOtroCual: permisoOtroCual.trim(),
-        herramientas,
-        analisis,
-        pasos: pasos.map(({ id: _id, ...rest }) => rest),
-        probabilidadIncidente,
-        seguroProceder,
-        ejecutores: ejecutores.map(({ id: _id, ...rest }) => rest),
-        emisorNombre: emisorNombre.trim(),
-        emisorCedula: emisorCedula.trim(),
-        firmaDataUrl: firmaData,
-        emisorFirmaCierre,
-      };
+      const data = construirPayload();
 
       const { buildAtsFormatoPDFBlob } = await import("./ats-formato-pdf-document");
       const blob = await buildAtsFormatoPDFBlob(data);
@@ -203,6 +376,7 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
       formData.append("payload", JSON.stringify(data));
       formData.append("tipo", "ats");
       if (cierreId) formData.append("cierreId", cierreId);
+      else if (borradorId) formData.append("formularioId", borradorId);
       if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
       if (proyectoId) formData.append("proyectoId", proyectoId);
       formData.append("area", areaProceso.trim());
@@ -442,9 +616,24 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
     <div className="flex flex-col gap-6 sm:gap-8 max-w-4xl">
       {/* 1. Datos básicos */}
       <div className={CARD}>
-        <h2 className={SECTION_TITLE}>
-          <span className={NUM}>1</span> Datos básicos
-        </h2>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className={SECTION_TITLE_INLINE}>
+            <span className={NUM}>1</span> Datos básicos
+          </h2>
+          <button
+            type="button"
+            onClick={handleRellenarUltimo}
+            disabled={rellenando}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-actium-orange/40 bg-actium-orange/10 px-4 text-[10px] font-semibold uppercase tracking-widest text-actium-orange transition-all hover:bg-actium-orange/20 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+          >
+            {rellenando ? <Loader2 className="h-4 w-4 animate-spin" /> : <History className="h-4 w-4" />}
+            Rellenar con el último
+          </button>
+        </div>
+        <p className="mb-5 text-[10px] leading-relaxed text-white/30">
+          Copia los datos del último ATS registrado. El personal ejecutor y las firmas siempre quedan
+          en blanco: deben diligenciarse en cada análisis.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {proyectos.length > 0 && (
             <Campo label="Proyecto Asociado">
@@ -656,6 +845,7 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
               <div className="pt-2 border-t border-white/5">
                 <SignaturePad
                   onSave={(firma) => updateEjecutor(ej.id, "firma", firma)}
+                  initialValue={ej.firma}
                   label={`Firma de ${ej.nombre.trim() || `Ejecutor ${index + 1}`}`}
                 />
               </div>
@@ -678,7 +868,7 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
           </Campo>
         </div>
 
-        <SignaturePad onSave={setFirmaData} label="Firma de quien autoriza el análisis" />
+        <SignaturePad onSave={setFirmaData} initialValue={firmaData} label="Firma de quien autoriza el análisis" />
 
         <p className="mt-3 text-[10px] text-white/30 leading-relaxed italic">
           Esta firma tiene carácter informativo y NO constituye firma electrónica certificada según la Ley 527 de 1999.
@@ -690,8 +880,28 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
-          <button type="button" onClick={handleGenerar} disabled={generando}
+        {avisoMsg && (
+          <div
+            className={`mt-6 p-4 rounded-xl border text-sm font-medium leading-relaxed ${
+              avisoPendiente
+                ? "bg-warning/10 border-warning/20 text-warning"
+                : "bg-success/10 border-success/20 text-success"
+            }`}
+          >
+            {avisoMsg}
+          </div>
+        )}
+
+        <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button type="button" onClick={handleGuardarBorrador} disabled={guardandoBorrador || generando}
+            className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-8 text-sm font-semibold text-white transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed">
+            {guardandoBorrador ? (
+              <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</>
+            ) : (
+              <><Save className="h-5 w-5" /> Guardar borrador</>
+            )}
+          </button>
+          <button type="button" onClick={handleGenerar} disabled={generando || guardandoBorrador}
             className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-actium-orange px-10 text-sm font-semibold text-white transition-all hover:bg-actium-orange-hover shadow-lg shadow-actium-orange/20 disabled:opacity-50 disabled:cursor-not-allowed">
             {generando ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Generando...</>

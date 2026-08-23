@@ -36,10 +36,13 @@ export async function eliminarFormularioAction(formularioId: string): Promise<vo
 
   const form = rawForm as { pdf_generado_path: string | null } | null;
 
-  // 2. Si tiene un PDF en storage, eliminarlo
+  // 2. Si tiene archivos en storage, eliminarlos: el PDF y el JSON de respaldo
+  // que se guarda a su lado (en un borrador solo existe el JSON).
   if (form?.pdf_generado_path) {
     const adminSupabase = createAdminClient();
-    await adminSupabase.storage.from("pdfs-formularios").remove([form.pdf_generado_path]);
+    await adminSupabase.storage
+      .from("pdfs-formularios")
+      .remove([form.pdf_generado_path, form.pdf_generado_path.replace(/\.pdf$/, ".json")]);
   }
 
   // 3. Eliminar el formulario (en cascada se borran los registros de las tablas hijas)

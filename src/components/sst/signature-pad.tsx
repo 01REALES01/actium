@@ -9,14 +9,22 @@ interface SignaturePadProps {
   onSave: (signatureDataUrl: string) => void;
   className?: string;
   label?: string;
+  /**
+   * Firma ya registrada (data URL) que debe verse al abrir el formulario: al
+   * retomar un borrador o al firmar el cierre de un permiso. Sin esto el lienzo
+   * aparece vacío aunque la firma esté guardada, y el usuario no sabe si quedó.
+   */
+  initialValue?: string;
 }
 
-export function SignaturePad({ onSave, className, label = "Firma del Supervisor o Responsable" }: SignaturePadProps) {
+export function SignaturePad({ onSave, className, label = "Firma del Supervisor o Responsable", initialValue }: SignaturePadProps) {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isEmpty, setIsEmpty] = useState(true);
   const [saved, setSaved] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 200 });
+  // Una vez que el usuario toca el lienzo, la firma previa deja de repintarse.
+  const [intervenido, setIntervenido] = useState(false);
 
   // Ajustar el canvas al contenedor padre
   useEffect(() => {
@@ -34,10 +42,22 @@ export function SignaturePad({ onSave, className, label = "Firma del Supervisor 
     return () => window.removeEventListener("resize", updateDimensions);
   }, []);
 
+  // Pintar la firma previa cuando el lienzo ya tiene ancho real (medirlo lo borra).
+  useEffect(() => {
+    if (!initialValue || intervenido || dimensions.width === 0) return;
+    sigCanvas.current?.fromDataURL(initialValue, {
+      width: dimensions.width,
+      height: dimensions.height,
+    });
+    setIsEmpty(false);
+    setSaved(true);
+  }, [initialValue, intervenido, dimensions.width, dimensions.height]);
+
   const clear = () => {
     sigCanvas.current?.clear();
     setIsEmpty(true);
     setSaved(false);
+    setIntervenido(true);
     onSave("");
   };
 
@@ -88,6 +108,7 @@ export function SignaturePad({ onSave, className, label = "Firma del Supervisor 
           onBegin={() => {
             setIsEmpty(false);
             setSaved(false);
+            setIntervenido(true);
           }}
           onEnd={() => {
             // Auto save when stroke ends

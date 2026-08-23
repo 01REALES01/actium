@@ -32,6 +32,7 @@ export function SSTFilters({ currentTipo, currentEstado }: SSTFiltersProps) {
         <option value="ats">ATS</option>
         <option value="permiso_altura">Alturas</option>
         <option value="permiso_caliente">Caliente</option>
+        <option value="preoperacional">Preoperacional</option>
       </select>
 
       <select

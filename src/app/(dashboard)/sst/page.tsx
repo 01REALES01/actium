@@ -11,6 +11,7 @@ import {
   Flame,
   ArrowUpFromLine,
   ClipboardList,
+  ClipboardCheck,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -20,6 +21,7 @@ import { hoyLocal } from "@/lib/fecha";
 import { listProyectos } from "@/lib/data/proyectos";
 import { Badge } from "@/components/ui/badge";
 import { SSTFilters } from "@/components/sst/sst-filters";
+import { ETIQUETA_TIPO_SST } from "@/lib/sst/tipos";
 
 export default async function SstDashboardPage({
   searchParams,
@@ -68,13 +70,10 @@ export default async function SstDashboardPage({
     ats: <ShieldAlert className="h-4 w-4 text-[#F25C05]" />,
     permiso_altura: <AlertTriangle className="h-4 w-4 text-amber-500" />,
     permiso_caliente: <Flame className="h-4 w-4 text-red-500" />,
+    preoperacional: <ClipboardCheck className="h-4 w-4 text-[#F28729]" />,
   };
 
-  const tipoLabel: Record<string, string> = {
-    ats: "ATS",
-    permiso_altura: "Alturas",
-    permiso_caliente: "Caliente",
-  };
+  const tipoLabel = ETIQUETA_TIPO_SST;
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -108,7 +107,7 @@ export default async function SstDashboardPage({
 
       {/* Action Cards Grid - Redesigned */}
       {puedeCrearPermiso && (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-2">
         <Link
           href="/sst/nuevo-ats"
           className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-[#F25C05]/50 hover:shadow-2xl hover:shadow-[#F25C05]/20"
@@ -148,6 +147,20 @@ export default async function SstDashboardPage({
           <div className="relative z-10 mt-6 lg:mt-12">
             <h3 className="text-xl font-bold text-white uppercase tracking-tight">Permiso en Caliente</h3>
             <p className="mt-2 text-xs font-medium uppercase tracking-widest text-red-500">Nuevo Permiso</p>
+          </div>
+        </Link>
+
+        <Link
+          href="/sst/preoperacional"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-[#F28729]/50 hover:shadow-2xl hover:shadow-[#F28729]/10"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-[#F28729]/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-[#F28729]/10 border border-[#F28729]/20 text-[#F28729] transition-transform group-hover:scale-110">
+            <ClipboardCheck className="h-6 w-6" strokeWidth={2} />
+          </div>
+          <div className="relative z-10 mt-6 lg:mt-12">
+            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Instrucciones Preoperacionales</h3>
+            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-[#F28729]">Inspección de Equipos</p>
           </div>
         </Link>
       </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Trash2, Loader2, Download, Check, AlertTriangle, ShieldCheck, PenLine } from "lucide-react";
+import { Plus, Trash2, Loader2, Download, Check, AlertTriangle, ShieldCheck, PenLine, History, Save } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,9 +21,13 @@ import type {
   TrabajadorCaliente,
   PermisoCalientePDFData,
 } from "./permiso-caliente-pdf-document";
+import type { FallbackFormularioSST } from "@/lib/sst/prefill";
+import { listarFaltantes, contar } from "@/lib/sst/faltantes";
+import { hoyLocal } from "@/lib/fecha";
 
 const CARD = "rounded-xl border border-white/5 bg-[#1A1A1A] p-5 sm:p-6 shadow-2xl";
 const SECTION_TITLE = "flex items-center gap-2 text-sm font-bold tracking-widest text-[#F25C05] uppercase mb-6";
+const SECTION_TITLE_INLINE = "flex items-center gap-2 text-sm font-bold tracking-widest text-[#F25C05] uppercase";
 const NUM = "flex h-6 w-6 items-center justify-center rounded-full bg-[#F25C05]/10 text-xs";
 const LABEL = "text-[10px] font-bold text-white/40 uppercase tracking-widest";
 const FIELD = "h-12 bg-white/5 border-white/10 text-white rounded-xl placeholder:text-white/20 [&>option]:bg-[#1A1A1A] [&>option]:text-white";
@@ -37,10 +41,18 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
   const router = useRouter();
   const searchParams = useSearchParams();
   const cierreId = searchParams.get("cierreId");
+  const borradorParam = searchParams.get("borradorId");
 
   const [esModoCierre, setEsModoCierre] = useState(false);
   const [cargandoDatos, setCargandoDatos] = useState(false);
   const [existingPdfPath, setExistingPdfPath] = useState<string | null>(null);
+  // Fila en estado borrador que se está diligenciando (recién guardada o retomada).
+  const [borradorId, setBorradorId] = useState<string | null>(borradorParam);
+  const [guardandoBorrador, setGuardandoBorrador] = useState(false);
+  const [rellenando, setRellenando] = useState(false);
+  const [avisoMsg, setAvisoMsg] = useState("");
+  // El aviso se pinta en ámbar cuando enumera lo que aún falta por diligenciar.
+  const [avisoPendiente, setAvisoPendiente] = useState(false);
 
   // 1. Datos básicos
   const [proyectoId, setProyectoId] = useState("");
@@ -81,51 +93,67 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
   const [generando, setGenerando] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Cargar datos previos si es modo cierre
+  // Vuelca en el formulario un payload guardado (cierre, borrador o permiso
+  // anterior). Con `conservarPersonal` no se tocan trabajadores ni firmas: al
+  // copiar un permiso previo esos datos deben diligenciarse siempre de nuevo.
+  const aplicarPayload = (
+    payload: Partial<PermisoCalientePDFData>,
+    opciones?: { fallback?: FallbackFormularioSST; conservarPersonal?: boolean },
+  ) => {
+    const fb = opciones?.fallback;
+    setEmpresa(payload.empresa || fb?.empresa || "");
+    setArea(payload.area || fb?.area || "");
+    setProposito(payload.proposito || "");
+    setDesde(payload.desde || fb?.fechaInicio || hoyLocal());
+    setDesdeHora(payload.desdeHora || "");
+    setHasta(payload.hasta || fb?.fechaInicio || hoyLocal());
+    setHastaHora(payload.hastaHora || "");
+    setPermisosAdicionales(payload.permisosAdicionales ?? {});
+    setInstruccionesSO(payload.instruccionesSO ?? {});
+    setChequeo(payload.chequeo ?? {});
+    setEnergias(payload.energias ?? []);
+    setEquiposBloquear(payload.equiposBloquear || "");
+    setMecanismoBloqueo(payload.mecanismoBloqueo || "");
+    setEpp(payload.epp ?? []);
+
+    if (opciones?.conservarPersonal) return;
+
+    setBloqueadoPor(payload.bloqueadoPor || "");
+    setTrabajadores(
+      payload.trabajadores?.length
+        ? payload.trabajadores.map((t, idx) => ({ ...t, id: idx + 1 }))
+        : [nuevoTrabajador()],
+    );
+    setEmisorNombre(payload.emisorNombre || "");
+    setEmisorFirma(payload.emisorFirma || "");
+    setEmisorFirmaCierre(payload.emisorFirmaCierre || "");
+    setCoordinadorNombre(payload.coordinadorNombre || "");
+    setCoordinadorFirma(payload.coordinadorFirma || "");
+    setCoordinadorFirmaCierre(payload.coordinadorFirmaCierre || "");
+  };
+
+  // Cargar datos previos: firmas de cierre o borrador retomado.
   useEffect(() => {
-    if (!cierreId) return;
-    setEsModoCierre(true);
+    const formularioId = cierreId || borradorParam;
+    if (!formularioId) return;
+    if (cierreId) setEsModoCierre(true);
     setCargandoDatos(true);
     async function cargar() {
       try {
         const { obtenerDatosCierreAction } = await import("@/lib/actions/permisos-sst");
-        const res = await obtenerDatosCierreAction(cierreId!);
+        const res = await obtenerDatosCierreAction(formularioId!);
 
         if (res.pdfPath) setExistingPdfPath(res.pdfPath);
         if (res.proyectoId) setProyectoId(res.proyectoId);
 
         if (res.payload) {
-          const payload: PermisoCalientePDFData = res.payload;
-          setEmpresa(payload.empresa || res.fallback.empresa);
-          setArea(payload.area || res.fallback.area);
-          setProposito(payload.proposito || "");
-          setDesde(payload.desde || res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setDesdeHora(payload.desdeHora || "");
-          setHasta(payload.hasta || res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setHastaHora(payload.hastaHora || "");
-          if (payload.permisosAdicionales) setPermisosAdicionales(payload.permisosAdicionales);
-          if (payload.instruccionesSO) setInstruccionesSO(payload.instruccionesSO);
-          if (payload.chequeo) setChequeo(payload.chequeo);
-          if (payload.energias) setEnergias(payload.energias);
-          setEquiposBloquear(payload.equiposBloquear || "");
-          setMecanismoBloqueo(payload.mecanismoBloqueo || "");
-          setBloqueadoPor(payload.bloqueadoPor || "");
-          if (payload.epp) setEpp(payload.epp);
-          if (payload.trabajadores && payload.trabajadores.length > 0) {
-            setTrabajadores(payload.trabajadores.map((t, idx) => ({ ...t, id: idx + 1 })));
-          }
-          if (payload.emisorNombre) setEmisorNombre(payload.emisorNombre);
-          if (payload.emisorFirma) setEmisorFirma(payload.emisorFirma);
-          if (payload.emisorFirmaCierre) setEmisorFirmaCierre(payload.emisorFirmaCierre);
-          if (payload.coordinadorNombre) setCoordinadorNombre(payload.coordinadorNombre);
-          if (payload.coordinadorFirma) setCoordinadorFirma(payload.coordinadorFirma);
-          if (payload.coordinadorFirmaCierre) setCoordinadorFirmaCierre(payload.coordinadorFirmaCierre);
+          aplicarPayload(res.payload as PermisoCalientePDFData, { fallback: res.fallback });
         } else {
           setEmpresa(res.fallback.empresa);
           setArea(res.fallback.area);
-          setDesde(res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setHasta(res.fallback.fechaInicio || new Date().toISOString().split("T")[0]);
-          setSinDatosPrevios(true);
+          setDesde(res.fallback.fechaInicio || hoyLocal());
+          setHasta(res.fallback.fechaInicio || hoyLocal());
+          if (cierreId) setSinDatosPrevios(true);
         }
       } catch (e) {
         console.error("Error al cargar datos previos:", e);
@@ -134,7 +162,8 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
       }
     }
     cargar();
-  }, [cierreId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cierreId, borradorParam]);
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   const toggleArr = (setter: React.Dispatch<React.SetStateAction<string[]>>, id: string) =>
@@ -146,47 +175,197 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
   const removeTrabajador = (id: number) =>
     setTrabajadores((prev) => (prev.length > 1 ? prev.filter((t) => t.id !== id) : prev));
 
+  // Instantánea del formulario, común al PDF final y al borrador.
+  const construirPayload = (): PermisoCalientePDFData => {
+    const finalDesde = desde || hoyLocal();
+    return {
+      empresa: (empresa || "ACTIUM").trim(),
+      area: area.trim(),
+      proposito: proposito.trim(),
+      desde: finalDesde,
+      desdeHora,
+      hasta: hasta || finalDesde,
+      hastaHora,
+      permisosAdicionales,
+      instruccionesSO,
+      chequeo,
+      energias,
+      equiposBloquear: equiposBloquear.trim(),
+      mecanismoBloqueo: mecanismoBloqueo.trim(),
+      bloqueadoPor: bloqueadoPor.trim(),
+      epp,
+      trabajadores: trabajadores.map(({ id: _id, ...rest }) => rest),
+      emisorNombre: emisorNombre.trim(),
+      emisorFirma,
+      emisorFirmaCierre,
+      coordinadorNombre: coordinadorNombre.trim(),
+      coordinadorFirma,
+      coordinadorFirmaCierre,
+    };
+  };
+
+  // ─── Rellenar con el último permiso ─────────────────────────────────────────
+  const handleRellenarUltimo = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+    setRellenando(true);
+    try {
+      const { obtenerUltimoFormularioAction } = await import("@/lib/actions/permisos-sst");
+      const res = await obtenerUltimoFormularioAction("permiso_caliente", proyectoId || undefined);
+
+      if (!res.encontrado || !res.payload) {
+        setErrorMsg("Aún no hay un permiso en caliente anterior para copiar.");
+        return;
+      }
+
+      aplicarPayload(res.payload as PermisoCalientePDFData, { conservarPersonal: true });
+      const ref = res.referencia;
+      setAvisoMsg(
+        `Se copió el permiso del ${ref?.fecha || "último registro"}${ref?.proyecto ? ` — ${ref.proyecto}` : ""}. Registre los trabajadores y las firmas: nunca se heredan.`,
+      );
+    } catch (err: any) {
+      setErrorMsg(err?.message || "No fue posible recuperar el último permiso.");
+    } finally {
+      setRellenando(false);
+    }
+  };
+
+  // Lo único que impide guardar un borrador: la fila necesita un proyecto para
+  // saber a qué empresa y subempresa pertenece.
+  const faltantesParaGuardar = (): string[] => {
+    const faltan: string[] = [];
+    if (!proyectoId) {
+      faltan.push(
+        proyectos.length === 0
+          ? "un proyecto disponible al cual asociar el permiso"
+          : "seleccionar el proyecto asociado",
+      );
+    }
+    return faltan;
+  };
+
+  // Lo que queda por diligenciar antes de poder emitir el permiso. No bloquea el
+  // borrador: se informa para que el usuario sepa por dónde retomarlo.
+  const pendientesPorDiligenciar = (): string[] => {
+    const faltan: string[] = [];
+
+    if (!empresa.trim()) faltan.push("empresa");
+    if (!area.trim()) faltan.push("área o lugar del trabajo");
+    if (!proposito.trim()) faltan.push("propósito de la labor");
+    if (!desde) faltan.push("fecha de inicio");
+    if (!hasta) faltan.push("fecha de finalización");
+
+    const sinPermisos = PERMISOS_ADICIONALES.filter((p) => !permisosAdicionales[p.id]).length;
+    if (sinPermisos > 0) {
+      faltan.push(`${contar(sinPermisos, "respuesta", "respuestas")} de permisos adicionales`);
+    }
+
+    const itemsChequeo = CHEQUEO_CALIENTE.flatMap((seccion) => seccion.items);
+    const sinResponder = itemsChequeo.filter((item) => !chequeo[item.id]).length;
+    if (sinResponder > 0) {
+      faltan.push(`${contar(sinResponder, "ítem", "ítems")} de la lista de verificación`);
+    }
+
+    if (epp.length === 0) faltan.push("elementos de protección personal");
+
+    const conNombre = trabajadores.filter((t) => t.nombre.trim());
+    if (conNombre.length === 0) {
+      faltan.push("trabajadores autorizados");
+    } else {
+      const sinFirma = conNombre.filter((t) => !t.firma).length;
+      if (sinFirma > 0) {
+        faltan.push(`${contar(sinFirma, "firma", "firmas")} de los trabajadores`);
+      }
+    }
+
+    if (!emisorNombre.trim()) faltan.push("nombre del emisor");
+    if (!emisorFirma) faltan.push("firma del emisor");
+    if (!coordinadorNombre.trim()) faltan.push("nombre del coordinador SISO");
+    if (!coordinadorFirma) faltan.push("firma del coordinador SISO");
+
+    return faltan;
+  };
+
+  // ─── Guardar borrador ───────────────────────────────────────────────────────
+  const handleGuardarBorrador = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+
+    const bloqueantes = faltantesParaGuardar();
+    if (bloqueantes.length > 0) {
+      setErrorMsg(`Para guardar el borrador falta ${listarFaltantes(bloqueantes)}.`);
+      return;
+    }
+
+    setGuardandoBorrador(true);
+    try {
+      // El borrador guarda lo que hay en pantalla, sin los valores por defecto
+      // que solo aplican al emitir (empresa "ACTIUM", fecha de hoy). Así lo que
+      // se reporta como pendiente sigue pendiente al retomarlo.
+      const data: PermisoCalientePDFData = {
+        ...construirPayload(),
+        empresa: empresa.trim(),
+        desde,
+        hasta,
+      };
+
+      const formData = new FormData();
+      formData.append("payload", JSON.stringify(data));
+      formData.append("tipo", "permiso_caliente");
+      formData.append("proyectoId", proyectoId);
+      if (borradorId) formData.append("borradorId", borradorId);
+      if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
+      formData.append("area", data.area);
+      formData.append("ubicacion", "N/A");
+      formData.append("fechaInicio", data.desde);
+
+      const { guardarBorradorAction } = await import("@/lib/actions/permisos-sst");
+      const res = await guardarBorradorAction(formData);
+
+      setBorradorId(res.id);
+      setExistingPdfPath(res.pdfPath);
+
+      const pendientes = pendientesPorDiligenciar();
+      setAvisoPendiente(pendientes.length > 0);
+      setAvisoMsg(
+        pendientes.length === 0
+          ? "Borrador guardado. El permiso está completo: puede emitirlo cuando lo requiera."
+          : `Borrador guardado. Queda pendiente por diligenciar: ${listarFaltantes(pendientes)}.`,
+      );
+    } catch (err: any) {
+      setErrorMsg(err?.message || "No fue posible guardar el borrador. Intenta de nuevo.");
+    } finally {
+      setGuardandoBorrador(false);
+    }
+  };
+
   // ─── Generar PDF ────────────────────────────────────────────────────────────
   const handleGenerar = async () => {
     setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
     const finalEmpresa = (empresa || "ACTIUM").trim();
-    const finalDesde = desde || new Date().toISOString().split("T")[0];
+    const finalDesde = desde || hoyLocal();
 
-    if (!esModoCierre && (!finalEmpresa || !finalDesde)) {
-      setErrorMsg("Indique al menos la empresa y la fecha de inicio del trabajo.");
-      return;
-    }
-    if (!esModoCierre && !emisorFirma) {
-      setErrorMsg("Debe registrar la firma del emisor del permiso.");
-      return;
+    if (!esModoCierre) {
+      const faltan: string[] = [];
+      if (!finalEmpresa) faltan.push("empresa");
+      if (!finalDesde) faltan.push("fecha de inicio del trabajo");
+      if (!emisorFirma) faltan.push("firma del emisor del permiso");
+
+      if (faltan.length > 0) {
+        setErrorMsg(
+          `No fue posible emitir el permiso. Falta diligenciar: ${listarFaltantes(faltan)}.`,
+        );
+        return;
+      }
     }
 
     setGenerando(true);
     try {
-      const data: PermisoCalientePDFData = {
-        empresa: finalEmpresa,
-        area: area.trim(),
-        proposito: proposito.trim(),
-        desde: finalDesde,
-        desdeHora,
-        hasta: hasta || finalDesde,
-        hastaHora,
-        permisosAdicionales,
-        instruccionesSO,
-        chequeo,
-        energias,
-        equiposBloquear: equiposBloquear.trim(),
-        mecanismoBloqueo: mecanismoBloqueo.trim(),
-        bloqueadoPor: bloqueadoPor.trim(),
-        epp,
-        trabajadores: trabajadores.map(({ id: _id, ...rest }) => rest),
-        emisorNombre: emisorNombre.trim(),
-        emisorFirma,
-        emisorFirmaCierre,
-        coordinadorNombre: coordinadorNombre.trim(),
-        coordinadorFirma,
-        coordinadorFirmaCierre,
-      };
+      const data = construirPayload();
 
       const { buildPermisoCalientePDFBlob } = await import("./permiso-caliente-pdf-document");
       const blob = await buildPermisoCalientePDFBlob(data);
@@ -196,6 +375,7 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
       formData.append("payload", JSON.stringify(data));
       formData.append("tipo", "permiso_caliente");
       if (cierreId) formData.append("cierreId", cierreId);
+      else if (borradorId) formData.append("formularioId", borradorId);
       if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
       if (proyectoId) formData.append("proyectoId", proyectoId);
       formData.append("area", area.trim());
@@ -448,9 +628,24 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
     <div className="flex flex-col gap-6 sm:gap-8 max-w-4xl">
       {/* 1. Datos básicos */}
       <div className={CARD}>
-        <h2 className={SECTION_TITLE}>
-          <span className={NUM}>1</span> Datos del permiso
-        </h2>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className={SECTION_TITLE_INLINE}>
+            <span className={NUM}>1</span> Datos del permiso
+          </h2>
+          <button
+            type="button"
+            onClick={handleRellenarUltimo}
+            disabled={rellenando}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#F25C05]/40 bg-[#F25C05]/10 px-4 text-[10px] font-bold uppercase tracking-widest text-[#F25C05] transition-all hover:bg-[#F25C05]/20 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+          >
+            {rellenando ? <Loader2 className="h-4 w-4 animate-spin" /> : <History className="h-4 w-4" />}
+            Rellenar con el último
+          </button>
+        </div>
+        <p className="mb-5 text-[10px] leading-relaxed text-white/30">
+          Copia los datos del último permiso en caliente registrado. Los trabajadores y las firmas
+          siempre quedan en blanco: deben diligenciarse en cada permiso.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {proyectos.length > 0 && (
             <Campo label="Proyecto Asociado">
@@ -656,6 +851,7 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
               <div className="pt-2 border-t border-white/5">
                 <SignaturePad
                   onSave={(firma) => updateTrabajador(t.id, "firma", firma)}
+                  initialValue={t.firma}
                   label={`Firma de ${t.nombre.trim() || `Trabajador ${index + 1}`}`}
                 />
               </div>
@@ -674,13 +870,13 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
             <Campo label="Nombre del emisor del permiso">
               <Input value={emisorNombre} onChange={(e) => setEmisorNombre(e.target.value)} className={FIELD + " mb-4"} />
             </Campo>
-            <SignaturePad onSave={setEmisorFirma} label="Firma del emisor" />
+            <SignaturePad onSave={setEmisorFirma} initialValue={emisorFirma} label="Firma del emisor" />
           </div>
           <div>
             <Campo label="Nombre del coordinador SISO">
               <Input value={coordinadorNombre} onChange={(e) => setCoordinadorNombre(e.target.value)} className={FIELD + " mb-4"} />
             </Campo>
-            <SignaturePad onSave={setCoordinadorFirma} label="Firma del coordinador SISO" />
+            <SignaturePad onSave={setCoordinadorFirma} initialValue={coordinadorFirma} label="Firma del coordinador SISO" />
           </div>
         </div>
 
@@ -694,8 +890,28 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-white/5 flex justify-end">
-          <button type="button" onClick={handleGenerar} disabled={generando}
+        {avisoMsg && (
+          <div
+            className={`mt-6 p-4 rounded-xl border text-sm font-medium leading-relaxed ${
+              avisoPendiente
+                ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+            }`}
+          >
+            {avisoMsg}
+          </div>
+        )}
+
+        <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button type="button" onClick={handleGuardarBorrador} disabled={guardandoBorrador || generando}
+            className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-8 text-sm font-bold text-white transition-all hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed">
+            {guardandoBorrador ? (
+              <><Loader2 className="h-5 w-5 animate-spin" /> Guardando...</>
+            ) : (
+              <><Save className="h-5 w-5" /> Guardar borrador</>
+            )}
+          </button>
+          <button type="button" onClick={handleGenerar} disabled={generando || guardandoBorrador}
             className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-[#F25C05] px-10 text-sm font-bold text-white transition-all hover:bg-[#F25C05]/90 shadow-lg shadow-[#F25C05]/20 disabled:opacity-50 disabled:cursor-not-allowed">
             {generando ? (
               <><Loader2 className="h-5 w-5 animate-spin" /> Generando...</>

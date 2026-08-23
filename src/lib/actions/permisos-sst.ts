@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { limpiarDatosPersonales, type FallbackFormularioSST } from "@/lib/sst/prefill";
+import { hoyLocal } from "@/lib/fecha";
+import type { FormularioTipo } from "@/types/database.types";
 
 export async function crearPermisoAlturaAction(data: {
   proyectoId: string;
@@ -226,12 +229,7 @@ export async function obtenerDatosCierreAction(formularioId: string): Promise<{
   pdfPath: string | null;
   proyectoId: string | null;
   payload: any | null;
-  fallback: {
-    empresa: string;
-    area: string;
-    ubicacion: string;
-    fechaInicio: string;
-  };
+  fallback: FallbackFormularioSST;
 }> {
   const admin = createAdminClient();
   const { data: formData, error } = await (admin.from("formularios") as any)
@@ -305,9 +303,12 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
   if (!pdfFile) throw new Error("Archivo PDF requerido.");
 
   const payloadStr = (formData.get("payload") as string) || "{}";
-  const tipo = (formData.get("tipo") as "permiso_caliente" | "permiso_altura" | "ats") || "permiso_caliente";
+  const tipo = (formData.get("tipo") as FormularioTipo) || "permiso_caliente";
   const proyectoId = (formData.get("proyectoId") as string) || "";
-  const existingId = (formData.get("cierreId") as string) || "";
+  // `cierreId` llega desde la vista de firmas de cierre; `formularioId`, desde un
+  // borrador que se está finalizando. Ambos significan "actualizar esta fila".
+  const existingId =
+    (formData.get("cierreId") as string) || (formData.get("formularioId") as string) || "";
   const existingPdfPath = (formData.get("existingPdfPath") as string) || "";
   const area = (formData.get("area") as string) || "";
   const ubicacion = (formData.get("ubicacion") as string) || "";
@@ -370,13 +371,28 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
   let formularioId = existingId;
 
   if (existingId) {
-    // Modo cierre: actualizar ruta y marcar firmado
+    // Modo cierre o finalización de borrador: actualizar ruta y marcar firmado.
+    const { data: prev } = await (db.from("formularios") as any)
+      .select("estado")
+      .eq("id", existingId)
+      .single();
+
+    const cambios: Record<string, unknown> = {
+      pdf_generado_path: storagePath,
+      estado: "firmado",
+      firmado_at: new Date().toISOString(),
+    };
+
+    // Un borrador pudo cambiar de área, ubicación o fecha mientras se
+    // diligenciaba; en un cierre esos datos ya son definitivos y no se tocan.
+    if (prev?.estado === "borrador") {
+      cambios.area = area || null;
+      cambios.ubicacion = ubicacion || "N/A";
+      cambios.fecha_inicio = fechaInicio;
+    }
+
     const { error: errUpd } = await (db.from("formularios") as any)
-      .update({
-        pdf_generado_path: storagePath,
-        estado: "firmado",
-        firmado_at: new Date().toISOString(),
-      })
+      .update(cambios)
       .eq("id", existingId);
 
     if (errUpd) throw new Error(`Error actualizando formulario: ${errUpd.message}`);
@@ -417,6 +433,211 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
   if (formularioId) revalidatePath(`/sst/${formularioId}`);
   revalidatePath("/sst/bitacora");
   if (proyectoId) revalidatePath(`/sst/bitacora/${proyectoId}`);
+
+  return { id: formularioId, pdfPath: storagePath };
+}
+
+// ─── Reutilizar el último permiso ────────────────────────────────────────────
+
+/**
+ * Devuelve el payload del último permiso emitido de este tipo para prellenar uno
+ * nuevo. Busca de lo más parecido a lo más general: mismo proyecto antes que
+ * cualquier proyecto y permisos propios antes que los de otro coordinador de la
+ * empresa. Los borradores no cuentan: solo se copia de un permiso ya emitido.
+ *
+ * El payload vuelve SIN datos de personal ni firmas — ver `limpiarDatosPersonales`.
+ */
+export async function obtenerUltimoFormularioAction(
+  tipo: FormularioTipo,
+  proyectoId?: string,
+): Promise<{
+  encontrado: boolean;
+  payload: any | null;
+  referencia: { fecha: string | null; proyecto: string | null } | null;
+}> {
+  const supabase = createClient();
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para diligenciar permisos SST.");
+  }
+
+  const db = createAdminClient();
+
+  const consulta = (mismoProyecto: boolean) => {
+    let q = (db.from("formularios") as any)
+      .select("id, created_at, fecha_inicio, pdf_generado_path, proyectos(nombre)")
+      .eq("tipo", tipo)
+      .neq("estado", "borrador")
+      .not("pdf_generado_path", "is", null)
+      .order("created_at", { ascending: false })
+      // Varios candidatos: los permisos anteriores al respaldo estructurado no
+      // tienen JSON que copiar y hay que seguir buscando hacia atrás.
+      .limit(5);
+    if (mismoProyecto && proyectoId) q = q.eq("proyecto_id", proyectoId);
+    return q;
+  };
+
+  // Se busca de lo más parecido a lo más general: mismo proyecto antes que
+  // cualquier proyecto, y permisos propios antes que los de otro coordinador.
+  const intentos: (() => any)[] = [
+    () => consulta(true).eq("creado_por", perfil.id),
+  ];
+  if (perfil.empresa_id) {
+    intentos.push(() => consulta(true).eq("empresa_id", perfil.empresa_id));
+  }
+  if (proyectoId) {
+    intentos.push(() => consulta(false).eq("creado_por", perfil.id));
+    if (perfil.empresa_id) {
+      intentos.push(() => consulta(false).eq("empresa_id", perfil.empresa_id));
+    }
+  }
+
+  let filas: any[] | null = null;
+  for (const intento of intentos) {
+    ({ data: filas } = await intento());
+    if (filas?.length) break;
+  }
+
+  for (const candidato of filas ?? []) {
+    if (!candidato.pdf_generado_path) continue;
+
+    const jsonPath = candidato.pdf_generado_path.replace(/\.pdf$/, ".json");
+    const { data: archivo } = await db.storage.from("pdfs-formularios").download(jsonPath);
+    if (!archivo) continue;
+
+    try {
+      const payload = JSON.parse(await archivo.text());
+      return {
+        encontrado: true,
+        payload: limpiarDatosPersonales(payload),
+        referencia: {
+          fecha: candidato.fecha_inicio || candidato.created_at?.split("T")[0] || null,
+          proyecto: candidato.proyectos?.nombre || null,
+        },
+      };
+    } catch (parseErr) {
+      console.error("Error parseando el JSON de un permiso SST previo:", parseErr);
+    }
+  }
+
+  return { encontrado: false, payload: null, referencia: null };
+}
+
+// ─── Borradores ──────────────────────────────────────────────────────────────
+
+/**
+ * Guarda el permiso a medio diligenciar sin generar PDF: sube el payload como
+ * JSON al mismo path que ocupará el PDF y deja la fila en estado `borrador`.
+ * Reutiliza la ruta ya reservada al volver a guardar, así el borrador no
+ * multiplica archivos en Storage.
+ */
+export async function guardarBorradorAction(formData: FormData): Promise<{
+  id: string;
+  pdfPath: string;
+}> {
+  const supabase = createClient();
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para gestionar formularios SST.");
+  }
+
+  const payloadStr = (formData.get("payload") as string) || "{}";
+  const tipo = (formData.get("tipo") as FormularioTipo) || "permiso_caliente";
+  const proyectoId = (formData.get("proyectoId") as string) || "";
+  const borradorId = (formData.get("borradorId") as string) || "";
+  const existingPdfPath = (formData.get("existingPdfPath") as string) || "";
+  const area = (formData.get("area") as string) || "";
+  const ubicacion = (formData.get("ubicacion") as string) || "";
+  const fechaInicio = (formData.get("fechaInicio") as string) || hoyLocal();
+
+  if (!proyectoId) {
+    throw new Error("Seleccione el proyecto asociado para guardar el borrador.");
+  }
+
+  const db = createAdminClient();
+
+  const { data: proyecto } = await (db.from("proyectos") as any)
+    .select("empresa_id, subempresa_id")
+    .eq("id", proyectoId)
+    .single();
+
+  if (!proyecto) throw new Error("Proyecto no encontrado o sin acceso.");
+
+  const storagePath =
+    existingPdfPath ||
+    `${proyecto.empresa_id}/${proyecto.subempresa_id}/${proyectoId}/${crypto.randomUUID()}.pdf`;
+  const jsonPath = storagePath.replace(/\.pdf$/, ".json");
+
+  const { error: errJson } = await db.storage
+    .from("pdfs-formularios")
+    .upload(jsonPath, Buffer.from(payloadStr), {
+      contentType: "application/pdf", // Cumple la restricción MIME del bucket
+      upsert: true,
+    });
+
+  if (errJson) {
+    console.error("Error guardando el borrador SST en storage:", errJson);
+    throw new Error(`No fue posible guardar el borrador. Detalle: ${errJson.message}`);
+  }
+
+  let formularioId = borradorId;
+
+  if (borradorId) {
+    // Solo se actualiza mientras siga siendo borrador: si otro dispositivo ya lo
+    // emitió, esta pestaña no puede devolverlo a borrador ni pisar su PDF.
+    const { data: actualizado, error: errUpd } = await (db.from("formularios") as any)
+      .update({
+        area: area || null,
+        ubicacion: ubicacion || "N/A",
+        fecha_inicio: fechaInicio,
+        proyecto_id: proyectoId,
+        empresa_id: proyecto.empresa_id,
+        subempresa_id: proyecto.subempresa_id,
+        pdf_generado_path: storagePath,
+      })
+      .eq("id", borradorId)
+      .eq("estado", "borrador")
+      .select("id");
+
+    if (errUpd) throw new Error(`No fue posible actualizar el borrador: ${errUpd.message}`);
+    if (!actualizado?.length) {
+      throw new Error("Este permiso ya fue emitido y no puede guardarse como borrador.");
+    }
+  } else {
+    const { data: formRow, error: errInsert } = await (db.from("formularios") as any)
+      .insert({
+        tipo,
+        estado: "borrador",
+        proyecto_id: proyectoId,
+        empresa_id: proyecto.empresa_id,
+        subempresa_id: proyecto.subempresa_id,
+        ubicacion: ubicacion || "N/A",
+        area: area || null,
+        creado_por: perfil.id,
+        fecha_inicio: fechaInicio,
+        pdf_generado_path: storagePath,
+      })
+      .select("id")
+      .single();
+
+    if (errInsert || !formRow) {
+      throw new Error(`No fue posible registrar el borrador: ${errInsert?.message}`);
+    }
+    formularioId = formRow.id;
+
+    if (tipo === "permiso_caliente") {
+      await (db.from("caliente_detalles") as any).insert({ formulario_id: formularioId });
+    } else if (tipo === "permiso_altura") {
+      await (db.from("altura_detalles") as any).insert({ formulario_id: formularioId });
+    } else if (tipo === "ats") {
+      await (db.from("ats_detalles") as any).insert({ formulario_id: formularioId });
+    }
+  }
+
+  revalidatePath("/sst");
+  revalidatePath(`/sst/${formularioId}`);
 
   return { id: formularioId, pdfPath: storagePath };
 }
