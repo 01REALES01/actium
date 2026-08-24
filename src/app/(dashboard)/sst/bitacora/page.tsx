@@ -25,7 +25,7 @@ export default async function BitacoraPage() {
   const { data: formulariosRaw, error } = await db
     .from("formularios")
     .select("id, tipo, fecha_inicio, pdf_generado_path, proyecto_id, proyectos(nombre)")
-    .in("tipo", ["ats", "permiso_altura", "permiso_caliente", "preoperacional"])
+    .in("tipo", ["ats", "permiso_altura", "permiso_caliente", "preoperacional", "entrega_epp"])
     .not("pdf_generado_path", "is", null)
     // Los borradores reservan ruta de PDF pero aún no lo tienen: no son registros del día.
     .neq("estado", "borrador");

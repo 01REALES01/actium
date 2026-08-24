@@ -146,6 +146,15 @@ export default async function FormularioDetallePage({ params }: Props) {
             >
               {form.estado}
             </Badge>
+            {puedeGestionar && form.tipo === "entrega_epp" && !esBorrador && (
+              <Link
+                href={`/sst/entrega-epp?proyectoId=${form.proyecto_id}`}
+                className="flex h-9 items-center gap-2 rounded-lg border border-[#F27405]/40 bg-[#F27405]/10 px-4 text-[10px] font-bold uppercase tracking-widest text-[#F27405] transition-all hover:bg-[#F27405]/20"
+              >
+                <User className="h-4 w-4" />
+                Registrar entrega para otro trabajador
+              </Link>
+            )}
             {puedeGestionar && borradorUrl && (
               <Link
                 href={borradorUrl}

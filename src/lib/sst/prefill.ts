@@ -31,6 +31,10 @@ const CAMPOS_PERSONA = [
   "inspectorCedula",
   "supervisorNombre",
   "supervisorCedula",
+  "empleadoId",
+  "trabajadorNombre",
+  "trabajadorCedula",
+  "trabajadorCargo",
 ] as const;
 
 /** Firmas de canvas (data URL). Nunca se heredan. */
@@ -42,6 +46,7 @@ const CAMPOS_FIRMA = [
   "coordinadorFirmaCierre",
   "inspectorFirma",
   "supervisorFirma",
+  "trabajadorFirma",
 ] as const;
 
 /** Listas de personal (ejecutores en ATS/altura, trabajadores en caliente). */

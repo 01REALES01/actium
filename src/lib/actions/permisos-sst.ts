@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import { limpiarDatosPersonales, type FallbackFormularioSST } from "@/lib/sst/prefill";
 import { hoyLocal } from "@/lib/fecha";
+import { ELEMENTOS_EPP } from "@/constants/entrega-epp";
 import type { FormularioTipo } from "@/types/database.types";
 
 export async function crearPermisoAlturaAction(data: {
@@ -288,6 +289,64 @@ export async function obtenerDatosCierreAction(formularioId: string): Promise<{
   };
 }
 
+// ─── Entrega de EPP: tabla hija ──────────────────────────────────────────────
+
+/**
+ * Sincroniza la cabecera y los elementos entregados del cargo de EPP con lo que
+ * hay en el payload. A diferencia de ats/altura/caliente, aquí la cabecera
+ * (`epp_entregas`) y sus filas (`epp_entrega_items`) pueden cambiar en cada
+ * guardado —se agregan o quitan elementos mientras se diligencia—, así que se
+ * reescriben por completo en cada guardado de borrador y en la emisión final.
+ * Esto es lo que permite consultar el historial de dotación de un trabajador
+ * sin tener que abrir cada PDF.
+ */
+async function sincronizarEntregaEpp(db: any, formularioId: string, payloadStr: string): Promise<void> {
+  let data: any;
+  try {
+    data = JSON.parse(payloadStr);
+  } catch {
+    return;
+  }
+
+  const fechaEntrega = data.fecha || hoyLocal();
+
+  await db.from("epp_entregas").upsert({
+    formulario_id: formularioId,
+    empleado_id: data.empleadoId || null,
+    trabajador_nombre: (data.trabajadorNombre || "").trim() || "Sin definir",
+    trabajador_cedula: (data.trabajadorCedula || "").trim() || null,
+    trabajador_cargo: (data.trabajadorCargo || "").trim() || null,
+    area: (data.area || "").trim() || null,
+    fecha_entrega: fechaEntrega,
+  });
+
+  await db.from("epp_entrega_items").delete().eq("formulario_id", formularioId);
+
+  const filas: { elemento_id: string; elemento: string; unidad: string; cantidad: string; fechaRecepcion: string }[] = [];
+  for (const el of ELEMENTOS_EPP) {
+    const estado = data.elementos?.[el.id];
+    if (!estado?.entregado || !estado.cantidad || !estado.fechaRecepcion) continue;
+    filas.push({ elemento_id: el.id, elemento: el.nombre, unidad: el.unidad, cantidad: estado.cantidad, fechaRecepcion: estado.fechaRecepcion });
+  }
+  for (const ad of data.adicionales ?? []) {
+    if (!ad.nombre?.trim() || !ad.cantidad || !ad.fechaRecepcion) continue;
+    filas.push({ elemento_id: "adicional", elemento: ad.nombre.trim(), unidad: ad.unidad, cantidad: ad.cantidad, fechaRecepcion: ad.fechaRecepcion });
+  }
+
+  if (filas.length > 0) {
+    await db.from("epp_entrega_items").insert(
+      filas.map((f) => ({
+        formulario_id: formularioId,
+        elemento_id: f.elemento_id,
+        elemento: f.elemento,
+        unidad: f.unidad,
+        cantidad: Number(f.cantidad),
+        fecha_recepcion: f.fechaRecepcion,
+      })),
+    );
+  }
+}
+
 export async function guardarPdfYDatosFormularioAction(formData: FormData): Promise<{
   id: string;
   pdfPath: string;
@@ -396,6 +455,10 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
       .eq("id", existingId);
 
     if (errUpd) throw new Error(`Error actualizando formulario: ${errUpd.message}`);
+
+    if (tipo === "entrega_epp") {
+      await sincronizarEntregaEpp(db, existingId, payloadStr);
+    }
   } else if (proyectoId) {
     // Modo creación con proyecto
     const { data: formRow, error: errInsert } = await (db.from("formularios") as any)
@@ -426,6 +489,8 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
       await (db.from("altura_detalles") as any).insert({ formulario_id: formularioId });
     } else if (tipo === "ats") {
       await (db.from("ats_detalles") as any).insert({ formulario_id: formularioId });
+    } else if (tipo === "entrega_epp") {
+      await sincronizarEntregaEpp(db, formularioId, payloadStr);
     }
   }
 
@@ -605,6 +670,10 @@ export async function guardarBorradorAction(formData: FormData): Promise<{
     if (!actualizado?.length) {
       throw new Error("Este permiso ya fue emitido y no puede guardarse como borrador.");
     }
+
+    if (tipo === "entrega_epp") {
+      await sincronizarEntregaEpp(db, borradorId, payloadStr);
+    }
   } else {
     const { data: formRow, error: errInsert } = await (db.from("formularios") as any)
       .insert({
@@ -633,6 +702,8 @@ export async function guardarBorradorAction(formData: FormData): Promise<{
       await (db.from("altura_detalles") as any).insert({ formulario_id: formularioId });
     } else if (tipo === "ats") {
       await (db.from("ats_detalles") as any).insert({ formulario_id: formularioId });
+    } else if (tipo === "entrega_epp") {
+      await sincronizarEntregaEpp(db, formularioId, payloadStr);
     }
   }
 

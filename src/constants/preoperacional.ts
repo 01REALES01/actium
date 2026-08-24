@@ -10,9 +10,11 @@
 // De cada herramienta pueden inspeccionarse VARIOS equipos en el mismo permiso
 // (dos botiquines, tres taladros); cada equipo lleva su propia identificación,
 // sus respuestas y su observación. Una herramienta sin equipos registrados, o
-// marcada como no aplica, sale así en el PDF.
+// marcada como no aplica, sale así en el PDF. La excepción es una herramienta
+// `unico` —los elementos de protección personal—: no se identifica ni se
+// repite, es un solo bloque por permiso.
 //
-// Agregar una sexta herramienta es agregar una entrada a HERRAMIENTAS_PREOP:
+// Agregar una nueva herramienta es agregar una entrada a HERRAMIENTAS_PREOP:
 // el formulario y el PDF se construyen a partir de este catálogo.
 // =============================================================================
 
@@ -51,7 +53,7 @@ export const ESCALAS: Record<EscalaId, Escala> = {
       { id: "na", label: "No aplica", corto: "N.A." },
     ],
     critico: "no",
-    leyenda: "Sí: cumple · No: no cumple · N.A.: el equipo no tiene ese elemento",
+    leyenda: "Sí: cumple · No: no cumple · N.A.: no incluye ese elemento",
   },
   estado_tres: {
     opciones: [
@@ -75,7 +77,22 @@ export type CampoIdentificacion = {
   full?: boolean;
 };
 
-export type ItemChequeo = { id: string; texto: string };
+export type ItemChequeo = {
+  id: string;
+  texto: string;
+  /**
+   * Encabezado de sección del formato original. Los ítems consecutivos que
+   * comparten grupo se presentan bajo un mismo título, numerados por posición.
+   * Sin grupo, la herramienta se diligencia como una lista plana.
+   */
+  grupo?: string;
+  /**
+   * Opción que constituye hallazgo cuando el ítem está redactado como defecto
+   * —"montura partida o vencida"—, donde responder que sí es la mala noticia.
+   * Sin declarar, el hallazgo es el valor crítico de la escala.
+   */
+  criticoCuando?: string;
+};
 
 export type ElementoInventario = {
   id: string;
@@ -98,6 +115,8 @@ export type HerramientaPreop = {
   modo: "chequeo" | "inventario";
   identificacion: CampoIdentificacion[];
   items: ItemChequeo[];
+  /** Un solo bloque por permiso, sin identificación: no se agregan ni eliminan equipos. */
+  unico?: boolean;
   inventario?: ElementoInventario[];
   /** Bloque de EPP a marcar, propio del formato de la máquina de soldar. */
   epp?: { id: string; label: string }[];
@@ -107,6 +126,72 @@ export type HerramientaPreop = {
   notas?: string[];
   /** Tabla de referencia del formato original (pulidora: disco y revoluciones). */
   referencia?: { titulo: string; columnas: string[]; filas: string[][] };
+};
+
+// ─── Elementos de protección personal ───────────────────────────────────────
+
+const EPP: HerramientaPreop = {
+  id: "epp",
+  nombre: "Elementos de protección personal",
+  singular: "dotación de EPP",
+  subtitulo: "Inspección de la dotación antes de iniciar la labor",
+  icono: "HardHat",
+  escala: "si_no",
+  modo: "chequeo",
+  unico: true,
+  etiquetaCritica: "REQUIERE REPOSICIÓN",
+  identificacion: [],
+  items: [
+    // 1. Casco de seguridad
+    { id: "casco_casquete", texto: "Está en buen estado el casquete", grupo: "Casco de seguridad" },
+    { id: "casco_tafilete", texto: "Está en buen estado el tafilete o araña", grupo: "Casco de seguridad" },
+    { id: "casco_barbuquejo", texto: "Está en buen estado el barbuquejo", grupo: "Casco de seguridad" },
+
+    // 2. Botas de seguridad
+    { id: "botas_cubierta", texto: "Está en buen estado la cubierta", grupo: "Botas de seguridad" },
+    { id: "botas_suela", texto: "Está en buen estado la suela", grupo: "Botas de seguridad" },
+    { id: "botas_riesgo", texto: "Son adecuadas para el riesgo", grupo: "Botas de seguridad" },
+
+    // 3. Guantes y/o kit guantes de seguridad
+    { id: "guantes_material", texto: "Buen estado de material", grupo: "Guantes y/o kit guantes de seguridad" },
+    { id: "guantes_riesgo", texto: "Son adecuados para el riesgo", grupo: "Guantes y/o kit guantes de seguridad" },
+    { id: "guantes_prueba_aire", texto: "A algunas partes se les han realizado pruebas de aire", grupo: "Guantes y/o kit guantes de seguridad" },
+    { id: "guantes_piezas", texto: "Cuenta con el número de piezas", grupo: "Guantes y/o kit guantes de seguridad" },
+    { id: "guantes_sin_danos", texto: "Sin cortes, grietas, desgarros, abrasiones, contaminación u otros", grupo: "Guantes y/o kit guantes de seguridad" },
+
+    // 4. Careta dieléctrica
+    { id: "careta_estado", texto: "El estado general es bueno", grupo: "Careta dieléctrica" },
+    { id: "careta_rayaduras", texto: "Se encuentra sin rayaduras, desgaste y/o deformaciones", grupo: "Careta dieléctrica" },
+    { id: "careta_barbuquejo", texto: "Cuenta con barbuquejo", grupo: "Careta dieléctrica" },
+    { id: "careta_ajuste", texto: "Se ajusta adecuadamente", grupo: "Careta dieléctrica" },
+
+    // 5. Gafas de seguridad
+    { id: "gafas_cortes", texto: "Sin cortes o rotura", grupo: "Gafas de seguridad" },
+    { id: "gafas_desgaste", texto: "Se encuentra sin desgaste, deformación o rayadura de lentes", grupo: "Gafas de seguridad" },
+    { id: "gafas_ajuste", texto: "Se ajusta adecuadamente", grupo: "Gafas de seguridad" },
+    { id: "gafas_montura", texto: "Montura partida o vencida", grupo: "Gafas de seguridad", criticoCuando: "si" },
+
+    // 6. Protectores auditivos
+    { id: "auditivos_desgaste", texto: "Se encuentra sin desgaste o deformaciones", grupo: "Protectores auditivos" },
+    { id: "auditivos_ajuste", texto: "Se ajusta adecuadamente", grupo: "Protectores auditivos" },
+    { id: "auditivos_riesgo", texto: "Adecuado para el riesgo", grupo: "Protectores auditivos" },
+
+    // 7. Ropa de trabajo
+    { id: "ropa_riesgo", texto: "Adecuada para el riesgo", grupo: "Ropa de trabajo" },
+    { id: "ropa_estado", texto: "Estado general", grupo: "Ropa de trabajo" },
+    { id: "ropa_fibras", texto: "Fibras cortadas o desgastadas", grupo: "Ropa de trabajo", criticoCuando: "si" },
+    { id: "ropa_aseo", texto: "Aseo e higiene", grupo: "Ropa de trabajo" },
+
+    // 8. Protección respiratoria
+    { id: "respiratoria_desgaste", texto: "Se encuentra sin desgaste o deformaciones", grupo: "Protección respiratoria" },
+    { id: "respiratoria_ajuste", texto: "Se ajusta adecuadamente", grupo: "Protección respiratoria" },
+    { id: "respiratoria_riesgo", texto: "Adecuado para el riesgo", grupo: "Protección respiratoria" },
+    { id: "respiratoria_partes", texto: "Sus partes se encuentran en buen estado", grupo: "Protección respiratoria" },
+  ],
+  notas: [
+    "Esta lista se deberá diligenciar diariamente en el sitio de trabajo, antes de iniciar la labor.",
+    "Todo elemento marcado como hallazgo debe retirarse de uso y reponerse antes de iniciar la labor.",
+  ],
 };
 
 // ─── Taladro percutor ───────────────────────────────────────────────────────
@@ -325,6 +410,7 @@ const BOTIQUIN: HerramientaPreop = {
 // ─── Catálogo ───────────────────────────────────────────────────────────────
 
 export const HERRAMIENTAS_PREOP: HerramientaPreop[] = [
+  EPP,
   TALADRO,
   PULIDORA,
   EXTENSIONES,
@@ -339,6 +425,40 @@ export function getHerramientaPreop(id: string): HerramientaPreop | undefined {
 /** Etiqueta corta de una respuesta, para el PDF. */
 export function etiquetaCorta(escala: EscalaId, valor: string): string {
   return ESCALAS[escala].opciones.find((o) => o.id === valor)?.corto ?? "—";
+}
+
+/**
+ * Opción que constituye hallazgo para este ítem: la que el propio ítem declara
+ * al estar redactado como defecto, o si no la crítica de la escala.
+ */
+export function valorCritico(escala: EscalaId, item: ItemChequeo): string {
+  return item.criticoCuando ?? ESCALAS[escala].critico;
+}
+
+export type GrupoItems = { grupo: string | null; items: { item: ItemChequeo; codigo: string }[] };
+
+/**
+ * Agrupa los ítems de una herramienta por `grupo`, numerando por posición
+ * (1.1, 1.2, 2.1…). Sin grupos declarados, devuelve un solo grupo sin título.
+ */
+export function itemsPorGrupo(herramienta: HerramientaPreop): GrupoItems[] {
+  const grupos: GrupoItems[] = [];
+  let numGrupo = 0;
+  let ultimoGrupo: string | null | undefined;
+
+  herramienta.items.forEach((item) => {
+    const grupo = item.grupo ?? null;
+    if (grupo !== ultimoGrupo) {
+      numGrupo += 1;
+      grupos.push({ grupo, items: [] });
+      ultimoGrupo = grupo;
+    }
+    const actual = grupos[grupos.length - 1];
+    const codigo = grupo ? `${numGrupo}.${actual.items.length + 1}` : "";
+    actual.items.push({ item, codigo });
+  });
+
+  return grupos;
 }
 
 /** Certificación que firma quien realiza la inspección. */
@@ -372,8 +492,9 @@ export function equipoVacio(): EquipoPreop {
 
 /** Ítems calificados con el valor crítico de la escala (malo / no / mal estado). */
 export function itemsCriticos(herramienta: HerramientaPreop, equipo: EquipoPreop): ItemChequeo[] {
-  const critico = ESCALAS[herramienta.escala].critico;
-  return herramienta.items.filter((item) => equipo.respuestas[item.id] === critico);
+  return herramienta.items.filter(
+    (item) => equipo.respuestas[item.id] === valorCritico(herramienta.escala, item),
+  );
 }
 
 /** Elementos del botiquín con menos unidades de las exigidas. */
@@ -443,6 +564,7 @@ export function nombreEquipo(
   equipo: EquipoPreop,
   indice: number,
 ): string {
+  if (herramienta.unico) return herramienta.nombre;
   const identificadores = herramienta.identificacion
     .map((campo) => equipo.identificacion[campo.id]?.trim())
     .filter(Boolean);

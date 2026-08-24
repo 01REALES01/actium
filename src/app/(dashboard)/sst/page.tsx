@@ -12,6 +12,7 @@ import {
   ArrowUpFromLine,
   ClipboardList,
   ClipboardCheck,
+  HardHat,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -71,9 +72,70 @@ export default async function SstDashboardPage({
     permiso_altura: <AlertTriangle className="h-4 w-4 text-amber-500" />,
     permiso_caliente: <Flame className="h-4 w-4 text-red-500" />,
     preoperacional: <ClipboardCheck className="h-4 w-4 text-[#F28729]" />,
+    entrega_epp: <HardHat className="h-4 w-4 text-[#F27405]" />,
   };
 
   const tipoLabel = ETIQUETA_TIPO_SST;
+
+  // Clases de acento completas y estáticas: Tailwind no compila clases armadas
+  // en runtime, así que cada tarjeta trae ya resueltos sus colores.
+  const tarjetas = [
+    {
+      href: "/sst/nuevo-ats",
+      titulo: "Análisis de Trabajo Seguro",
+      subtitulo: "Crear ATS Oficial",
+      icono: <ShieldAlert className="h-6 w-6" strokeWidth={2} />,
+      hoverBorder: "hover:border-[#F25C05]/50",
+      hoverShadow: "hover:shadow-[#F25C05]/20",
+      gradiente: "from-[#F25C05]/10",
+      iconoBg: "bg-[#F25C05]/10 border-[#F25C05]/20 text-[#F25C05]",
+      subtituloColor: "text-[#F25C05]",
+    },
+    {
+      href: "/sst/permiso-altura",
+      titulo: "Permiso en Alturas",
+      subtitulo: "Nuevo Permiso",
+      icono: <ArrowUpFromLine className="h-6 w-6" strokeWidth={2} />,
+      hoverBorder: "hover:border-amber-500/50",
+      hoverShadow: "hover:shadow-amber-500/10",
+      gradiente: "from-amber-500/10",
+      iconoBg: "bg-amber-500/10 border-amber-500/20 text-amber-500",
+      subtituloColor: "text-amber-500",
+    },
+    {
+      href: "/sst/permiso-caliente",
+      titulo: "Permiso en Caliente",
+      subtitulo: "Nuevo Permiso",
+      icono: <Flame className="h-6 w-6" strokeWidth={2} />,
+      hoverBorder: "hover:border-red-500/50",
+      hoverShadow: "hover:shadow-red-500/10",
+      gradiente: "from-red-500/10",
+      iconoBg: "bg-red-500/10 border-red-500/20 text-red-500",
+      subtituloColor: "text-red-500",
+    },
+    {
+      href: "/sst/preoperacional",
+      titulo: "Instrucciones Preoperacionales",
+      subtitulo: "Inspección de Equipos",
+      icono: <ClipboardCheck className="h-6 w-6" strokeWidth={2} />,
+      hoverBorder: "hover:border-[#F28729]/50",
+      hoverShadow: "hover:shadow-[#F28729]/10",
+      gradiente: "from-[#F28729]/10",
+      iconoBg: "bg-[#F28729]/10 border-[#F28729]/20 text-[#F28729]",
+      subtituloColor: "text-[#F28729]",
+    },
+    {
+      href: "/sst/entrega-epp",
+      titulo: "Cargo de Entrega de EPP",
+      subtitulo: "Constancia por Trabajador",
+      icono: <HardHat className="h-6 w-6" strokeWidth={2} />,
+      hoverBorder: "hover:border-[#F27405]/50",
+      hoverShadow: "hover:shadow-[#F27405]/10",
+      gradiente: "from-[#F27405]/10",
+      iconoBg: "bg-[#F27405]/10 border-[#F27405]/20 text-[#F27405]",
+      subtituloColor: "text-[#F27405]",
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -105,64 +167,25 @@ export default async function SstDashboardPage({
         </div>
       </div>
 
-      {/* Action Cards Grid - Redesigned */}
+      {/* Action Cards Grid */}
       {puedeCrearPermiso && (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-2">
-        <Link
-          href="/sst/nuevo-ats"
-          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-[#F25C05]/50 hover:shadow-2xl hover:shadow-[#F25C05]/20"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-[#F25C05]/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-[#F25C05]/10 border border-[#F25C05]/20 text-[#F25C05] transition-transform group-hover:scale-110">
-            <ShieldAlert className="h-6 w-6" strokeWidth={2} />
-          </div>
-          <div className="relative z-10 mt-6 lg:mt-12">
-            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Análisis de Trabajo Seguro</h3>
-            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-[#F25C05]">Crear ATS Oficial</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/sst/permiso-altura"
-          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-amber-500/50 hover:shadow-2xl hover:shadow-amber-500/10"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 transition-transform group-hover:scale-110">
-            <ArrowUpFromLine className="h-6 w-6" strokeWidth={2} />
-          </div>
-          <div className="relative z-10 mt-6 lg:mt-12">
-            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Permiso en Alturas</h3>
-            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-amber-500">Nuevo Permiso</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/sst/permiso-caliente"
-          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-red-500/50 hover:shadow-2xl hover:shadow-red-500/10"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 transition-transform group-hover:scale-110">
-            <Flame className="h-6 w-6" strokeWidth={2} />
-          </div>
-          <div className="relative z-10 mt-6 lg:mt-12">
-            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Permiso en Caliente</h3>
-            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-red-500">Nuevo Permiso</p>
-          </div>
-        </Link>
-
-        <Link
-          href="/sst/preoperacional"
-          className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:border-[#F28729]/50 hover:shadow-2xl hover:shadow-[#F28729]/10"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-[#F28729]/10 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-xl bg-[#F28729]/10 border border-[#F28729]/20 text-[#F28729] transition-transform group-hover:scale-110">
-            <ClipboardCheck className="h-6 w-6" strokeWidth={2} />
-          </div>
-          <div className="relative z-10 mt-6 lg:mt-12">
-            <h3 className="text-xl font-bold text-white uppercase tracking-tight">Instrucciones Preoperacionales</h3>
-            <p className="mt-2 text-xs font-medium uppercase tracking-widest text-[#F28729]">Inspección de Equipos</p>
-          </div>
-        </Link>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 mt-2">
+        {tarjetas.map((t) => (
+          <Link
+            key={t.href}
+            href={t.href}
+            className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:shadow-2xl ${t.hoverBorder} ${t.hoverShadow}`}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${t.gradiente} to-transparent opacity-0 transition-opacity group-hover:opacity-100`} />
+            <div className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-xl border transition-transform group-hover:scale-110 ${t.iconoBg}`}>
+              {t.icono}
+            </div>
+            <div className="relative z-10 mt-4">
+              <h3 className="text-lg xl:text-xl font-bold text-white uppercase tracking-tight break-words">{t.titulo}</h3>
+              <p className={`mt-2 text-xs font-medium uppercase tracking-widest ${t.subtituloColor}`}>{t.subtitulo}</p>
+            </div>
+          </Link>
+        ))}
       </div>
       )}
 

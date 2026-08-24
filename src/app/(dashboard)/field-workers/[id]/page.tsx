@@ -15,6 +15,7 @@ import {
   FileText,
   CalendarOff,
   AlertTriangle,
+  HardHat,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getEmpleadoPerfil } from "@/lib/data/sst";
@@ -82,7 +83,7 @@ export default async function EmpleadoPerfilPage({ params }: Props) {
 
   if (!perfil) notFound();
 
-  const { empleado, documentos, ausentismos, incidentes, proyectos } = perfil;
+  const { empleado, documentos, ausentismos, incidentes, proyectos, entregasEpp } = perfil;
   const puedeEditar = esSuperAdmin(usuarioActual?.rol);
 
   return (
@@ -274,6 +275,47 @@ export default async function EmpleadoPerfilPage({ params }: Props) {
                   )}
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Entregas de EPP */}
+      <section className="rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
+        <h2 className="flex items-center gap-2 text-xs font-bold tracking-widest text-white/50 uppercase mb-5">
+          <HardHat className="h-4 w-4 text-[#F27405]" /> Entregas de EPP
+          <span className="ml-1 rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-white/40">
+            {entregasEpp.length}
+          </span>
+        </h2>
+        {entregasEpp.length === 0 ? (
+          <p className="text-sm text-white/20 italic">Aún no se han registrado entregas de EPP para este trabajador.</p>
+        ) : (
+          <div className="space-y-3">
+            {entregasEpp.map((entrega) => (
+              <Link
+                key={entrega.formularioId}
+                href={`/sst/${entrega.formularioId}`}
+                className="block rounded-lg border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.05]"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#F27405]">
+                    {entrega.codigoConsecutivo || "Sin consecutivo"}
+                    {entrega.estado === "borrador" && " · Borrador"}
+                  </span>
+                  <span className="text-[11px] font-bold text-white/40">{fmtFecha(entrega.fecha)}</span>
+                </div>
+                {entrega.proyectoNombre && (
+                  <p className="mt-2 text-[10px] uppercase tracking-widest text-white/30">
+                    Proyecto: {entrega.proyectoNombre}
+                  </p>
+                )}
+                <p className="mt-2 text-sm text-white/80">
+                  {entrega.elementos.length === 0
+                    ? "Sin elementos registrados."
+                    : entrega.elementos.map((el) => `${el.elemento} (${el.cantidad} ${el.unidad})`).join(", ")}
+                </p>
+              </Link>
             ))}
           </div>
         )}

@@ -16,6 +16,7 @@ import {
   Cable,
   Zap,
   BriefcaseMedical,
+  HardHat,
   ClipboardCheck,
 } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
@@ -31,6 +32,8 @@ import {
   elementosFaltantes,
   elementosVencidos,
   elementosSinContar,
+  itemsPorGrupo,
+  valorCritico,
   CERTIFICACION_OPERADOR,
   type EquipoPreop,
   type EstadoHerramientaPreop,
@@ -54,11 +57,12 @@ const ICONOS: Record<string, React.ComponentType<{ className?: string }>> = {
   Cable,
   Zap,
   BriefcaseMedical,
+  HardHat,
 };
 
 function estadoInicial(): Record<string, EstadoHerramientaPreop> {
   return Object.fromEntries(
-    HERRAMIENTAS_PREOP.map((h) => [h.id, { noAplica: false, equipos: [] }]),
+    HERRAMIENTAS_PREOP.map((h) => [h.id, { noAplica: false, equipos: h.unico ? [equipoVacio()] : [] }]),
   );
 }
 
@@ -716,7 +720,7 @@ function SeccionHerramienta({
           >
             {estado.noAplica ? "No aplica" : "Marcar no aplica"}
           </button>
-          {!estado.noAplica && (
+          {!estado.noAplica && !herramienta.unico && (
             <button
               type="button"
               onClick={onAgregar}
@@ -730,7 +734,9 @@ function SeccionHerramienta({
 
       {estado.noAplica ? (
         <p className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4 text-xs text-white/40">
-          Esta herramienta no se utiliza en la labor. Saldrá como no aplica en el permiso.
+          {herramienta.unico
+            ? "Esta sección no aplica a la labor. Saldrá como no aplica en el permiso."
+            : "Esta herramienta no se utiliza en la labor. Saldrá como no aplica en el permiso."}
         </p>
       ) : cantidad === 0 ? (
         <p className="mt-6 rounded-xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-xs text-white/40">
@@ -815,7 +821,7 @@ function EquipoCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-widest text-white">
-            {herramienta.nombre} {indice + 1}
+            {herramienta.unico ? herramienta.nombre : `${herramienta.nombre} ${indice + 1}`}
           </span>
           {critico ? (
             <span className="flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-red-400">
@@ -828,14 +834,16 @@ function EquipoCard({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onEliminar}
-          className="flex h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest text-red-400 transition-colors hover:bg-red-400/10 sm:w-auto"
-          aria-label={`Eliminar ${herramienta.singular} ${indice + 1}`}
-        >
-          <Trash2 className="h-4 w-4" /> Eliminar
-        </button>
+        {!herramienta.unico && (
+          <button
+            type="button"
+            onClick={onEliminar}
+            className="flex h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest text-red-400 transition-colors hover:bg-red-400/10 sm:w-auto"
+            aria-label={`Eliminar ${herramienta.singular} ${indice + 1}`}
+          >
+            <Trash2 className="h-4 w-4" /> Eliminar
+          </button>
+        )}
       </div>
 
       {/* Identificación del equipo */}
@@ -854,37 +862,49 @@ function EquipoCard({
 
       {/* Lista de chequeo o inventario */}
       {herramienta.modo === "chequeo" ? (
-        <div className="mt-5 space-y-2">
-          {herramienta.items.map((item) => (
-            <div
-              key={item.id}
-              className="flex flex-col gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4"
-            >
-              <p className="text-xs leading-relaxed text-white/80 lg:flex-1">{item.texto}</p>
-              <div className="flex gap-2 lg:shrink-0">
-                {ESCALAS[herramienta.escala].opciones.map((op) => {
-                  const activo = equipo.respuestas[item.id] === op.id;
-                  const esCritico = op.id === ESCALAS[herramienta.escala].critico;
-                  return (
-                    <button
-                      key={op.id}
-                      type="button"
-                      onClick={() => setRespuesta(item.id, op.id)}
-                      className={`min-h-[44px] flex-1 rounded-lg border px-2 text-[10px] font-bold uppercase tracking-widest transition-all lg:flex-none lg:px-3 ${
-                        activo
-                          ? esCritico
-                            ? "border-red-500 bg-red-500/20 text-red-300"
-                            : op.id === "na"
-                            ? "border-white/30 bg-white/10 text-white/70"
-                            : "border-emerald-500 bg-emerald-500/20 text-emerald-300"
-                          : "border-white/10 bg-white/[0.02] text-white/40 hover:bg-white/5"
-                      }`}
-                    >
-                      {op.corto}
-                    </button>
-                  );
-                })}
-              </div>
+        <div className="mt-5 space-y-5">
+          {itemsPorGrupo(herramienta).map((grupo, gi) => (
+            <div key={grupo.grupo ?? gi} className="space-y-2">
+              {grupo.grupo && (
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/50 border-b border-white/5 pb-2">
+                  {grupo.grupo}
+                </p>
+              )}
+              {grupo.items.map(({ item, codigo }) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4"
+                >
+                  <p className="text-xs leading-relaxed text-white/80 lg:flex-1">
+                    {codigo && <span className="text-white/40 mr-1.5">{codigo}</span>}
+                    {item.texto}
+                  </p>
+                  <div className="flex gap-2 lg:shrink-0">
+                    {ESCALAS[herramienta.escala].opciones.map((op) => {
+                      const activo = equipo.respuestas[item.id] === op.id;
+                      const esCritico = op.id === valorCritico(herramienta.escala, item);
+                      return (
+                        <button
+                          key={op.id}
+                          type="button"
+                          onClick={() => setRespuesta(item.id, op.id)}
+                          className={`min-h-[44px] flex-1 rounded-lg border px-2 text-[10px] font-bold uppercase tracking-widest transition-all lg:flex-none lg:px-3 ${
+                            activo
+                              ? esCritico
+                                ? "border-red-500 bg-red-500/20 text-red-300"
+                                : op.id === "na"
+                                ? "border-white/30 bg-white/10 text-white/70"
+                                : "border-emerald-500 bg-emerald-500/20 text-emerald-300"
+                              : "border-white/10 bg-white/[0.02] text-white/40 hover:bg-white/5"
+                          }`}
+                        >
+                          {op.corto}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </div>

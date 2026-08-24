@@ -287,13 +287,60 @@ export type IncidenteConProyecto = Tables<"incidentes"> & {
   proyectos: Pick<Tables<"proyectos">, "nombre"> | null;
 };
 
+export type EntregaEppEmpleado = {
+  formularioId: string;
+  codigoConsecutivo: string | null;
+  fecha: string;
+  estado: FormularioEstado;
+  proyectoId: string;
+  proyectoNombre: string | null;
+  elementos: { elemento: string; unidad: string; cantidad: number }[];
+};
+
 export type EmpleadoPerfil = {
   empleado: Tables<"empleados">;
   documentos: EmpleadoDocumento[];
   ausentismos: AusentismoConProyecto[];
   incidentes: IncidenteConProyecto[];
   proyectos: { id: string; nombre: string }[];
+  entregasEpp: EntregaEppEmpleado[];
 };
+
+/**
+ * Historial de cargos de entrega de EPP de un trabajador: de dónde sale la
+ * trazabilidad "¿cuándo se le entregó el último casco a esta persona?" — sin
+ * esto habría que abrir cada PDF uno por uno.
+ */
+export async function listEntregasEppEmpleado(
+  supabase: Client,
+  empleadoId: string,
+): Promise<EntregaEppEmpleado[]> {
+  const { data, error } = await supabase
+    .from("epp_entregas")
+    .select(
+      `formulario_id, fecha_entrega,
+       formularios:formulario_id ( codigo_consecutivo, estado, proyecto_id, proyectos:proyecto_id ( nombre ) ),
+       epp_entrega_items ( elemento, unidad, cantidad )`,
+    )
+    .eq("empleado_id", empleadoId)
+    .order("fecha_entrega", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row: any) => ({
+    formularioId: row.formulario_id,
+    codigoConsecutivo: row.formularios?.codigo_consecutivo ?? null,
+    fecha: row.fecha_entrega,
+    estado: row.formularios?.estado ?? "borrador",
+    proyectoId: row.formularios?.proyecto_id ?? "",
+    proyectoNombre: row.formularios?.proyectos?.nombre ?? null,
+    elementos: (row.epp_entrega_items ?? []).map((it: any) => ({
+      elemento: it.elemento,
+      unidad: it.unidad,
+      cantidad: Number(it.cantidad),
+    })),
+  }));
+}
 
 export async function getEmpleadoPerfil(
   supabase: Client,
@@ -308,7 +355,7 @@ export async function getEmpleadoPerfil(
   if (errEmp) throw errEmp;
   if (!empleado) return null;
 
-  const [documentosRes, ausentismosRes, incidentesRes, asignacionesRes] = await Promise.all([
+  const [documentosRes, ausentismosRes, incidentesRes, asignacionesRes, entregasEpp] = await Promise.all([
     supabase.from("empleado_documentos").select("*").eq("empleado_id", empleadoId),
     supabase
       .from("ausentismos")
@@ -325,6 +372,7 @@ export async function getEmpleadoPerfil(
       .select(`proyecto_id, proyectos:proyecto_id ( id, nombre )`)
       .eq("empleado_id", empleadoId)
       .is("retirado_at", null),
+    listEntregasEppEmpleado(supabase, empleadoId),
   ]);
 
   const proyectos = (asignacionesRes.data ?? [])
@@ -338,6 +386,7 @@ export async function getEmpleadoPerfil(
     ausentismos: (ausentismosRes.data ?? []) as AusentismoConProyecto[],
     incidentes: (incidentesRes.data ?? []) as IncidenteConProyecto[],
     proyectos,
+    entregasEpp,
   };
 }
 

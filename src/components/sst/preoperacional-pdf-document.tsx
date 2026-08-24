@@ -18,9 +18,12 @@ import {
   elementosFaltantes,
   elementosVencidos,
   nombreEquipo,
+  itemsPorGrupo,
+  valorCritico,
   type EquipoPreop,
   type EstadoHerramientaPreop,
   type HerramientaPreop,
+  type ItemChequeo,
 } from "@/constants/preoperacional";
 import { getLogoSrc } from "@/lib/pdf-logo";
 import { ACTIUM_PDF, registerActiumFonts } from "@/lib/pdf-fonts";
@@ -108,9 +111,9 @@ const s = StyleSheet.create({
 });
 
 /** Verde para lo conforme, naranja para lo aceptable, rojo para lo crítico. */
-function colorRespuesta(herramienta: HerramientaPreop, valor: string): string {
+function colorRespuesta(herramienta: HerramientaPreop, item: ItemChequeo, valor: string): string {
   if (!valor) return GRAY;
-  if (valor === ESCALAS[herramienta.escala].critico) return RED;
+  if (valor === valorCritico(herramienta.escala, item)) return RED;
   if (valor === "na") return GRAY;
   if (valor === "ea") return ORANGE;
   return GREEN;
@@ -154,17 +157,30 @@ function EquipoChequeo({
           <Text style={[s.thText, { width: "78%" }]}>Aspecto a verificar</Text>
           <Text style={[s.thText, { width: "22%", textAlign: "center" }]}>Estado</Text>
         </View>
-        {herramienta.items.map((item, i) => {
-          const valor = equipo.respuestas[item.id] ?? "";
-          return (
-            <View key={item.id} style={[s.tr, i % 2 === 1 ? s.trAlt : {}]} wrap={false}>
-              <Text style={[s.td, { width: "78%" }]}>{item.texto}</Text>
-              <Text style={[s.resp, { width: "22%", color: colorRespuesta(herramienta, valor) }]}>
-                {valor ? etiquetaCorta(herramienta.escala, valor) : "—"}
-              </Text>
-            </View>
-          );
-        })}
+        {itemsPorGrupo(herramienta).map((grupo, gi) => (
+          <View key={grupo.grupo ?? gi} wrap={false}>
+            {grupo.grupo && (
+              <View style={s.tr}>
+                <Text style={[s.td, { width: "100%", fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, backgroundColor: SEASHELL, textTransform: "uppercase", fontSize: 7 }]}>
+                  {grupo.grupo}
+                </Text>
+              </View>
+            )}
+            {grupo.items.map(({ item, codigo }, i) => {
+              const valor = equipo.respuestas[item.id] ?? "";
+              return (
+                <View key={item.id} style={[s.tr, i % 2 === 1 ? s.trAlt : {}]}>
+                  <Text style={[s.td, { width: "78%" }]}>
+                    {codigo ? `${codigo} ${item.texto}` : item.texto}
+                  </Text>
+                  <Text style={[s.resp, { width: "22%", color: colorRespuesta(herramienta, item, valor) }]}>
+                    {valor ? etiquetaCorta(herramienta.escala, valor) : "—"}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        ))}
       </View>
 
       {herramienta.epp && (
