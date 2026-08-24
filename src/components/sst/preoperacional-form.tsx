@@ -112,16 +112,19 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
 
   /**
    * Vuelca un payload guardado en el formulario. Con `conservarPersonal` no se
-   * tocan las firmas ni los nombres, y con `soloEquipos` se conserva el parque de
-   * herramientas —qué equipos existen y cómo se identifican— pero se descartan
-   * las calificaciones: la inspección de hoy hay que hacerla hoy.
+   * tocan las firmas ni los nombres.
+   *
+   * Al copiar un permiso anterior se hereda TODO lo técnico —equipos,
+   * identificación, calificaciones, inventario y observaciones—, igual que en
+   * altura, caliente y ATS. Es lo que el equipo pidió: la inspección diaria se
+   * repite sobre los mismos equipos y rehacer 78 ítems cada mañana no es viable.
+   * Lo que nunca se hereda son las personas ni sus firmas.
    */
   const aplicarPayload = (
     payload: Partial<PreoperacionalPDFData>,
     opciones?: {
       fallback?: FallbackFormularioSST;
       conservarPersonal?: boolean;
-      soloEquipos?: boolean;
     },
   ) => {
     const fb = opciones?.fallback;
@@ -143,16 +146,15 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
         equipos: (guardada.equipos ?? []).map((equipo) => ({
           ...equipoVacio(),
           ...equipo,
-          // Al copiar un permiso anterior se hereda el equipo, no su calificación.
-          respuestas: opciones?.soloEquipos ? {} : { ...(equipo.respuestas ?? {}) },
-          inventario: opciones?.soloEquipos ? {} : { ...(equipo.inventario ?? {}) },
-          observaciones: opciones?.soloEquipos ? "" : equipo.observaciones || "",
+          respuestas: { ...(equipo.respuestas ?? {}) },
+          inventario: { ...(equipo.inventario ?? {}) },
+          observaciones: equipo.observaciones || "",
           epp: [...(equipo.epp ?? [])],
         })),
       };
     }
     setHerramientas(base);
-    setObservacionesGenerales(opciones?.soloEquipos ? "" : payload.observacionesGenerales || "");
+    setObservacionesGenerales(payload.observacionesGenerales || "");
 
     if (opciones?.conservarPersonal) return;
 
@@ -333,19 +335,16 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
       const res = await obtenerUltimoFormularioAction("preoperacional", proyectoId || undefined);
 
       if (!res.encontrado || !res.payload) {
-        setErrorMsg("Aún no hay una inspección preoperacional anterior para copiar.");
+        setErrorMsg(res.motivo || "Aún no hay una inspección preoperacional anterior para copiar.");
         return;
       }
 
-      aplicarPayload(res.payload as PreoperacionalPDFData, {
-        conservarPersonal: true,
-        soloEquipos: true,
-      });
+      aplicarPayload(res.payload as PreoperacionalPDFData, { conservarPersonal: true });
       const ref = res.referencia;
       setAvisoMsg(
-        `Se copiaron los equipos de la inspección del ${ref?.fecha || "último registro"}${
+        `Se copió la inspección del ${ref?.fecha || "último registro"}${
           ref?.proyecto ? ` — ${ref.proyecto}` : ""
-        }. Las calificaciones y las firmas quedan en blanco: la inspección de hoy debe realizarse hoy.`,
+        }. Verifique equipo por equipo antes de emitir: las calificaciones vienen de esa inspección, no del estado de hoy. Las firmas quedan en blanco.`,
       );
     } catch (err: any) {
       setErrorMsg(err?.message || "No fue posible recuperar la última inspección.");
@@ -505,8 +504,8 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
           </button>
         </div>
         <p className="mb-5 text-[10px] leading-relaxed text-white/30">
-          Copia los equipos de la última inspección con su identificación. Las calificaciones y las
-          firmas siempre quedan en blanco: el estado de hoy debe verificarse hoy.
+          Copia la última inspección completa: equipos, identificación y calificaciones. Verifique
+          cada equipo antes de emitir. El personal y las firmas nunca se heredan.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

@@ -235,7 +235,7 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
       const res = await obtenerUltimoFormularioAction("permiso_altura", proyectoId || undefined);
 
       if (!res.encontrado || !res.payload) {
-        setErrorMsg("Aún no hay un permiso de altura anterior para copiar.");
+        setErrorMsg(res.motivo || "Aún no hay un permiso de altura anterior para copiar.");
         return;
       }
 

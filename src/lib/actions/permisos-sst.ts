@@ -519,6 +519,8 @@ export async function obtenerUltimoFormularioAction(
   encontrado: boolean;
   payload: any | null;
   referencia: { fecha: string | null; proyecto: string | null } | null;
+  /** Por qué no se pudo copiar, cuando sí existen permisos anteriores. */
+  motivo?: string;
 }> {
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
@@ -531,7 +533,7 @@ export async function obtenerUltimoFormularioAction(
 
   const consulta = (mismoProyecto: boolean) => {
     let q = (db.from("formularios") as any)
-      .select("id, created_at, fecha_inicio, pdf_generado_path, proyectos(nombre)")
+      .select("id, created_at, fecha_inicio, codigo_consecutivo, pdf_generado_path, proyectos(nombre)")
       .eq("tipo", tipo)
       .neq("estado", "borrador")
       .not("pdf_generado_path", "is", null)
@@ -569,7 +571,7 @@ export async function obtenerUltimoFormularioAction(
 
     const jsonPath = candidato.pdf_generado_path.replace(/\.pdf$/, ".json");
     const { data: archivo } = await db.storage.from("pdfs-formularios").download(jsonPath);
-    if (!archivo) continue;
+    if (!archivo) continue; // Emitido antes del respaldo estructurado: solo existe el PDF.
 
     try {
       const payload = JSON.parse(await archivo.text());
@@ -584,6 +586,24 @@ export async function obtenerUltimoFormularioAction(
     } catch (parseErr) {
       console.error("Error parseando el JSON de un permiso SST previo:", parseErr);
     }
+  }
+
+  // Hay permisos anteriores, pero ninguno guarda los datos estructurados: se
+  // emitieron antes de que existiera el respaldo JSON y de ellos solo queda el
+  // PDF, que no es reutilizable. Decirlo explícitamente evita que el usuario
+  // crea que la función está rota cuando ve permisos en el historial.
+  const anterior = filas?.[0];
+  if (anterior) {
+    const fecha = anterior.fecha_inicio || anterior.created_at?.split("T")[0] || "";
+    return {
+      encontrado: false,
+      payload: null,
+      referencia: null,
+      motivo:
+        `El permiso anterior${anterior.codigo_consecutivo ? ` (${anterior.codigo_consecutivo})` : ""}` +
+        `${fecha ? `, del ${fecha},` : ""} se emitió antes de que se guardaran los datos del formulario, ` +
+        "así que solo existe su PDF y no hay nada que copiar. Los permisos que emita desde ahora sí quedan disponibles para reutilizar.",
+    };
   }
 
   return { encontrado: false, payload: null, referencia: null };

@@ -221,7 +221,7 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
       const res = await obtenerUltimoFormularioAction("ats", proyectoId || undefined);
 
       if (!res.encontrado || !res.payload) {
-        setErrorMsg("Aún no hay un ATS anterior para copiar.");
+        setErrorMsg(res.motivo || "Aún no hay un ATS anterior para copiar.");
         return;
       }
 

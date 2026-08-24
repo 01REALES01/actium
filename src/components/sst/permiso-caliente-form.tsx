@@ -215,7 +215,7 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
       const res = await obtenerUltimoFormularioAction("permiso_caliente", proyectoId || undefined);
 
       if (!res.encontrado || !res.payload) {
-        setErrorMsg("Aún no hay un permiso en caliente anterior para copiar.");
+        setErrorMsg(res.motivo || "Aún no hay un permiso en caliente anterior para copiar.");
         return;
       }
 
