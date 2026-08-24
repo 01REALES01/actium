@@ -17,6 +17,11 @@ ALTER TYPE formulario_tipo ADD VALUE IF NOT EXISTS 'preoperacional';
 -- El consecutivo usa el prefijo PRE-{AÑO}-{NNNN}. La comparación se hace sobre
 -- TEXT y no sobre el enum: usar un valor de enum recién agregado dentro de la
 -- misma transacción que lo crea es un error en PostgreSQL.
+--
+-- La rama de `entrega_epp` (migración 20260824000000) va incluida a propósito,
+-- aunque sea posterior: en producción esa migración se aplicó antes que esta, y
+-- sin la rama aquí, correr este archivo después le quitaría el prefijo EPP al
+-- trigger. Comparando TEXT la rama es inofensiva mientras el valor no exista.
 CREATE OR REPLACE FUNCTION public.generar_codigo_formulario()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -35,6 +40,7 @@ BEGIN
     WHEN 'permiso_altura'   THEN 'ALT'
     WHEN 'permiso_caliente' THEN 'CAL'
     WHEN 'preoperacional'   THEN 'PRE'
+    WHEN 'entrega_epp'      THEN 'EPP'
     ELSE UPPER(NEW.tipo::TEXT)
   END;
 
