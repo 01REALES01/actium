@@ -1320,6 +1320,92 @@ export type Database = {
         }
         Relationships: []
       }
+      epp_entrega_items: {
+        Row: {
+          cantidad: number
+          elemento: string
+          elemento_id: string
+          fecha_recepcion: string
+          formulario_id: string
+          id: string
+          unidad: string
+        }
+        Insert: {
+          cantidad: number
+          elemento: string
+          elemento_id: string
+          fecha_recepcion: string
+          formulario_id: string
+          id?: string
+          unidad: string
+        }
+        Update: {
+          cantidad?: number
+          elemento?: string
+          elemento_id?: string
+          fecha_recepcion?: string
+          formulario_id?: string
+          id?: string
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "epp_entrega_items_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "epp_entregas"
+            referencedColumns: ["formulario_id"]
+          },
+        ]
+      }
+      epp_entregas: {
+        Row: {
+          area: string | null
+          created_at: string
+          empleado_id: string | null
+          fecha_entrega: string
+          formulario_id: string
+          trabajador_cargo: string | null
+          trabajador_cedula: string | null
+          trabajador_nombre: string
+        }
+        Insert: {
+          area?: string | null
+          created_at?: string
+          empleado_id?: string | null
+          fecha_entrega: string
+          formulario_id: string
+          trabajador_cargo?: string | null
+          trabajador_cedula?: string | null
+          trabajador_nombre: string
+        }
+        Update: {
+          area?: string | null
+          created_at?: string
+          empleado_id?: string | null
+          fecha_entrega?: string
+          formulario_id?: string
+          trabajador_cargo?: string | null
+          trabajador_cedula?: string | null
+          trabajador_nombre?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "epp_entregas_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_entregas_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: true
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formulario_secuencias: {
         Row: {
           anio: number
@@ -2546,6 +2632,13 @@ export type Database = {
             foreignKeyName: "rubros_proyecto_id_fkey"
             columns: ["proyecto_id"]
             isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "rubros_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
             referencedRelation: "vw_proyectos_finanzas"
             referencedColumns: ["proyecto_id"]
           },
@@ -2562,12 +2655,12 @@ export type Database = {
         Returns: string
       }
       anular_cxc: {
-        Args: { p_cxc_id: string }
-        Returns: Json
+        Args: { p_cxc_id: string; p_motivo?: string }
+        Returns: undefined
       }
       anular_cxp: {
-        Args: { p_cxp_id: string }
-        Returns: Json
+        Args: { p_cxp_id: string; p_motivo?: string }
+        Returns: undefined
       }
       aprobar_movimiento: {
         Args: { p_movimiento_id: string }
@@ -2638,6 +2731,8 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      eliminar_cxc: { Args: { p_cxc_id: string }; Returns: undefined }
+      eliminar_cxp: { Args: { p_cxp_id: string }; Returns: undefined }
       eliminar_empleado_definitivo: {
         Args: { p_empleado_id: string }
         Returns: undefined
@@ -2743,6 +2838,7 @@ export type Database = {
         | "permiso_altura"
         | "permiso_caliente"
         | "preoperacional"
+        | "entrega_epp"
       incidente_severidad: "leve" | "moderado" | "grave" | "critico"
       incidente_tipo: "incidente" | "accidente" | "casi_accidente"
       movimiento_estado:
@@ -2929,6 +3025,7 @@ export const Constants = {
         "permiso_altura",
         "permiso_caliente",
         "preoperacional",
+        "entrega_epp",
       ],
       incidente_severidad: ["leve", "moderado", "grave", "critico"],
       incidente_tipo: ["incidente", "accidente", "casi_accidente"],
