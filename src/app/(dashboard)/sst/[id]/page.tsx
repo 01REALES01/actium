@@ -119,7 +119,7 @@ export default async function FormularioDetallePage({ params }: Props) {
           <ChevronLeft className="h-4 w-4" /> Volver al Historial SST
         </Link>
 
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F25C05]/10">
@@ -139,7 +139,7 @@ export default async function FormularioDetallePage({ params }: Props) {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Badge
               variant="outline"
               className={`px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase border w-fit ${estadoColor[form.estado] || estadoColor.archivado}`}
@@ -149,7 +149,7 @@ export default async function FormularioDetallePage({ params }: Props) {
             {puedeGestionar && form.tipo === "entrega_epp" && !esBorrador && (
               <Link
                 href={`/sst/entrega-epp?proyectoId=${form.proyecto_id}`}
-                className="flex h-9 items-center gap-2 rounded-lg border border-[#F27405]/40 bg-[#F27405]/10 px-4 text-[10px] font-bold uppercase tracking-widest text-[#F27405] transition-all hover:bg-[#F27405]/20"
+                className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[#F27405]/40 bg-[#F27405]/10 px-4 text-[10px] font-bold uppercase tracking-widest text-[#F27405] transition-all hover:bg-[#F27405]/20 sm:w-auto"
               >
                 <User className="h-4 w-4" />
                 Registrar entrega para otro trabajador
@@ -158,7 +158,7 @@ export default async function FormularioDetallePage({ params }: Props) {
             {puedeGestionar && borradorUrl && (
               <Link
                 href={borradorUrl}
-                className="flex h-9 items-center gap-2 rounded-lg bg-[#F25C05] px-4 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-[#F25C05]/90"
+                className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-actium-orange px-4 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-actium-orange-hover sm:w-auto"
               >
                 <FileEdit className="h-4 w-4" />
                 Continuar diligenciamiento
@@ -167,7 +167,7 @@ export default async function FormularioDetallePage({ params }: Props) {
             {puedeGestionar && cierreUrl && (
               <Link
                 href={cierreUrl}
-                className="flex h-9 items-center gap-2 rounded-lg border border-[#F25C05] bg-[#F25C05]/10 px-4 text-[10px] font-bold uppercase tracking-widest text-[#F25C05] transition-all hover:bg-[#F25C05]/20 shadow-sm"
+                className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-actium-orange bg-actium-orange/10 px-4 text-[10px] font-bold uppercase tracking-widest text-actium-orange transition-all hover:bg-actium-orange/20 sm:w-auto"
               >
                 <PenLine className="h-4 w-4" />
                 Firmas de Cierre
@@ -178,7 +178,7 @@ export default async function FormularioDetallePage({ params }: Props) {
                 href={pdfSignedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-9 items-center gap-2 rounded-lg bg-[#F25C05] px-4 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-[#F25C05]/90"
+                className="inline-flex h-11 min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-actium-orange px-4 text-[10px] font-bold uppercase tracking-widest text-white transition-all hover:bg-actium-orange-hover sm:w-auto"
               >
                 <FileText className="h-4 w-4" />
                 Descargar PDF

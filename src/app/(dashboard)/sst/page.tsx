@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  Plus,
   ShieldAlert,
   CheckCircle2,
   FileText,
@@ -13,28 +12,36 @@ import {
   ClipboardList,
   ClipboardCheck,
   HardHat,
+  ChevronRight,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
 import { listFormularios } from "@/lib/data/sst";
 import { hoyLocal } from "@/lib/fecha";
 import { listProyectos } from "@/lib/data/proyectos";
 import { Badge } from "@/components/ui/badge";
 import { SSTFilters } from "@/components/sst/sst-filters";
+import { BotonEliminarSST } from "@/components/sst/boton-eliminar-sst";
 import { ETIQUETA_TIPO_SST } from "@/lib/sst/tipos";
+
+function claseEstado(estado: string) {
+  if (estado === "completado") return "border-success/20 bg-success/15 text-success";
+  if (estado === "firmado") return "border-info/20 bg-info/15 text-info";
+  if (estado === "borrador") return "border-warning/20 bg-warning/15 text-warning";
+  return "border-border-subtle bg-bg-hover text-text-muted";
+}
 
 export default async function SstDashboardPage({
   searchParams,
 }: {
   searchParams?: { tipo?: string; estado?: string };
 }) {
-  // Lecturas por admin: tablas SST con RLS activo y auth_rol() rota.
   const supabase = createAdminClient();
   const perfil = await getPerfilActual(createClient());
   const puedeCrearPermiso = puedeCrearFormularioSST(perfil?.rol);
+  const puedeEliminar = puedeGestionarSST(perfil?.rol);
 
-  // Filtros desde query params
   const filtros: { tipo?: any; estado?: any } = {};
   if (searchParams?.tipo && searchParams.tipo !== "todos") filtros.tipo = searchParams.tipo;
   if (searchParams?.estado && searchParams.estado !== "todos") filtros.estado = searchParams.estado;
@@ -44,7 +51,6 @@ export default async function SstDashboardPage({
     listProyectos(supabase),
   ]);
 
-  // KPIs consolidados — contar todos los incidentes y ausentismos a nivel global
   const [
     { count: totalIncidentes },
     { count: totalAccidentesGraves },
@@ -64,284 +70,298 @@ export default async function SstDashboardPage({
       .gte("fecha_fin", hoyLocal()),
   ]);
 
-  // Mapa de proyectos para nombres rápidos
   const proyectosMap = new Map(proyectos.map((p) => [p.id, p.nombre]));
 
   const tipoIcon: Record<string, React.ReactNode> = {
-    ats: <ShieldAlert className="h-4 w-4 text-[#F25C05]" />,
-    permiso_altura: <AlertTriangle className="h-4 w-4 text-amber-500" />,
-    permiso_caliente: <Flame className="h-4 w-4 text-red-500" />,
-    preoperacional: <ClipboardCheck className="h-4 w-4 text-[#F28729]" />,
-    entrega_epp: <HardHat className="h-4 w-4 text-[#F27405]" />,
+    ats: <ShieldAlert className="h-4 w-4 text-actium-orange" />,
+    permiso_altura: <AlertTriangle className="h-4 w-4 text-warning" />,
+    permiso_caliente: <Flame className="h-4 w-4 text-danger" />,
+    preoperacional: <ClipboardCheck className="h-4 w-4 text-actium-sandy" />,
+    entrega_epp: <HardHat className="h-4 w-4 text-actium-amber" />,
   };
 
   const tipoLabel = ETIQUETA_TIPO_SST;
 
-  // Clases de acento completas y estáticas: Tailwind no compila clases armadas
-  // en runtime, así que cada tarjeta trae ya resueltos sus colores.
   const tarjetas = [
     {
       href: "/sst/nuevo-ats",
       titulo: "Análisis de Trabajo Seguro",
       subtitulo: "Crear ATS Oficial",
-      icono: <ShieldAlert className="h-6 w-6" strokeWidth={2} />,
-      hoverBorder: "hover:border-[#F25C05]/50",
-      hoverShadow: "hover:shadow-[#F25C05]/20",
-      gradiente: "from-[#F25C05]/10",
-      iconoBg: "bg-[#F25C05]/10 border-[#F25C05]/20 text-[#F25C05]",
-      subtituloColor: "text-[#F25C05]",
+      icono: <ShieldAlert className="h-6 w-6" strokeWidth={1.5} />,
+      iconoBg: "bg-actium-orange/10 border-actium-orange/20 text-actium-orange",
+      subtituloColor: "text-actium-orange",
     },
     {
       href: "/sst/permiso-altura",
       titulo: "Permiso en Alturas",
       subtitulo: "Nuevo Permiso",
-      icono: <ArrowUpFromLine className="h-6 w-6" strokeWidth={2} />,
-      hoverBorder: "hover:border-amber-500/50",
-      hoverShadow: "hover:shadow-amber-500/10",
-      gradiente: "from-amber-500/10",
-      iconoBg: "bg-amber-500/10 border-amber-500/20 text-amber-500",
-      subtituloColor: "text-amber-500",
+      icono: <ArrowUpFromLine className="h-6 w-6" strokeWidth={1.5} />,
+      iconoBg: "bg-warning/10 border-warning/20 text-warning",
+      subtituloColor: "text-warning",
     },
     {
       href: "/sst/permiso-caliente",
       titulo: "Permiso en Caliente",
       subtitulo: "Nuevo Permiso",
-      icono: <Flame className="h-6 w-6" strokeWidth={2} />,
-      hoverBorder: "hover:border-red-500/50",
-      hoverShadow: "hover:shadow-red-500/10",
-      gradiente: "from-red-500/10",
-      iconoBg: "bg-red-500/10 border-red-500/20 text-red-500",
-      subtituloColor: "text-red-500",
+      icono: <Flame className="h-6 w-6" strokeWidth={1.5} />,
+      iconoBg: "bg-danger/10 border-danger/20 text-danger",
+      subtituloColor: "text-danger",
     },
     {
       href: "/sst/preoperacional",
       titulo: "Inspecciones Preoperacionales",
       subtitulo: "Inspección de Equipos",
-      icono: <ClipboardCheck className="h-6 w-6" strokeWidth={2} />,
-      hoverBorder: "hover:border-[#F28729]/50",
-      hoverShadow: "hover:shadow-[#F28729]/10",
-      gradiente: "from-[#F28729]/10",
-      iconoBg: "bg-[#F28729]/10 border-[#F28729]/20 text-[#F28729]",
-      subtituloColor: "text-[#F28729]",
+      icono: <ClipboardCheck className="h-6 w-6" strokeWidth={1.5} />,
+      iconoBg: "bg-actium-sandy/10 border-actium-sandy/20 text-actium-sandy",
+      subtituloColor: "text-actium-sandy",
     },
     {
       href: "/sst/entrega-epp",
       titulo: "Formato Entrega EPP",
       subtitulo: "Constancia por Trabajador",
-      icono: <HardHat className="h-6 w-6" strokeWidth={2} />,
-      hoverBorder: "hover:border-[#F27405]/50",
-      hoverShadow: "hover:shadow-[#F27405]/10",
-      gradiente: "from-[#F27405]/10",
-      iconoBg: "bg-[#F27405]/10 border-[#F27405]/20 text-[#F27405]",
-      subtituloColor: "text-[#F27405]",
+      icono: <HardHat className="h-6 w-6" strokeWidth={1.5} />,
+      iconoBg: "bg-actium-amber/10 border-actium-amber/20 text-actium-amber",
+      subtituloColor: "text-actium-amber",
     },
   ];
 
   return (
-    <div className="flex flex-col gap-8 pb-12">
-      {/* Header Section */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-        <div className="text-center lg:text-left">
-          <h1 className="text-3xl md:text-5xl font-display font-bold tracking-tight text-white uppercase">
+    <div className="flex flex-col gap-6 pb-12 md:gap-8">
+      <div className="flex flex-col gap-4">
+        <div>
+          <h1 className="font-display text-[28px] tracking-tight text-text-primary uppercase md:text-[32px]">
             Gestión de Permisos
           </h1>
-          <p className="mt-3 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest max-w-2xl mx-auto lg:mx-0">
+          <p className="mt-2 max-w-2xl text-sm font-normal text-text-secondary">
             Control de permisos de trabajo, análisis de seguridad y registros digitales en campo.
           </p>
         </div>
 
-        <div className="flex items-center justify-center gap-4 mt-4 lg:mt-0">
-          <div className="flex rounded-xl border border-white/10 bg-white/5 p-1 w-fit">
-            <div className="flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg">
-              <List className="h-4 w-4 text-orange-500" />
-              <span className="hidden sm:inline">Permisos</span>
-            </div>
-            <Link
-              href="/sst/bitacora"
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all hover:bg-white/5"
-            >
-              <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">Bitácora Diaria</span>
-            </Link>
+        <div className="flex w-full rounded-xl border border-border-subtle bg-bg-secondary p-1">
+          <div className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg bg-actium-orange/10 px-3 text-xs font-semibold uppercase tracking-widest text-actium-orange">
+            <List className="h-4 w-4" />
+            Permisos
           </div>
+          <Link
+            href="/sst/bitacora"
+            className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-3 text-xs font-semibold uppercase tracking-widest text-text-secondary transition-all duration-200 hover:bg-bg-hover hover:text-text-primary"
+          >
+            <ClipboardList className="h-4 w-4" />
+            Bitácora
+          </Link>
         </div>
       </div>
 
-      {/* Action Cards Grid */}
       {puedeCrearPermiso && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6 mt-2">
-        {tarjetas.map((t) => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#1A1A1A] p-6 transition-all hover:-translate-y-1 hover:shadow-2xl ${t.hoverBorder} ${t.hoverShadow}`}
-          >
-            <div className={`absolute inset-0 bg-gradient-to-br ${t.gradiente} to-transparent opacity-0 transition-opacity group-hover:opacity-100`} />
-            <div className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-xl border transition-transform group-hover:scale-110 ${t.iconoBg}`}>
-              {t.icono}
-            </div>
-            <div className="relative z-10 mt-4">
-              <h3 className="text-lg xl:text-xl font-bold text-white uppercase tracking-tight break-words">{t.titulo}</h3>
-              <p className={`mt-2 text-xs font-medium uppercase tracking-widest ${t.subtituloColor}`}>{t.subtitulo}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {tarjetas.map((t) => (
+            <Link
+              key={t.href}
+              href={t.href}
+              className="group flex min-h-[44px] items-center gap-4 rounded-actium border border-border-subtle bg-bg-elevated p-4 shadow-actium transition-all duration-200 hover:border-actium-orange/30 hover:shadow-actium-glow"
+            >
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${t.iconoBg}`}
+              >
+                {t.icono}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-subtitle text-base font-semibold text-text-primary">{t.titulo}</h3>
+                <p className={`mt-0.5 text-xs font-medium ${t.subtituloColor}`}>{t.subtitulo}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0 text-text-muted" />
+            </Link>
+          ))}
+        </div>
       )}
 
-      {/* KPI Cards — Ahora con métricas SST reales */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-5 shadow-2xl flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F25C05]/10 shrink-0">
-            <FileSignature className="h-5 w-5 text-[#F25C05]" />
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+        <div className="flex items-center gap-3 rounded-actium border border-border-subtle bg-bg-elevated p-4 shadow-actium">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-actium-orange/10">
+            <FileSignature className="h-5 w-5 text-actium-orange" />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Total Formularios</p>
-            <p className="text-2xl font-bold text-white mt-0.5">
-              {formularios.length}
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-text-muted">Formularios</p>
+            <p className="font-display text-2xl text-text-primary">{formularios.length}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-actium border border-border-subtle bg-bg-elevated p-4 shadow-actium">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-success/10">
+            <CheckCircle2 className="h-5 w-5 text-success" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-text-muted">Completados</p>
+            <p className="font-display text-2xl text-text-primary">
+              {formularios.filter((f) => f.estado === "completado" || f.estado === "firmado").length}
             </p>
           </div>
         </div>
-
-        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-5 shadow-2xl flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500/10 shrink-0">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+        <div className="flex items-center gap-3 rounded-actium border border-border-subtle bg-bg-elevated p-4 shadow-actium">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-warning/10">
+            <AlertTriangle className="h-5 w-5 text-warning" />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Completados</p>
-            <p className="text-2xl font-bold text-white mt-0.5">
-              {formularios.filter(f => f.estado === 'completado' || f.estado === 'firmado').length}
-            </p>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-text-muted">Incidentes</p>
+            <p className="font-display text-2xl text-text-primary">{totalIncidentes ?? 0}</p>
           </div>
         </div>
-
-        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-5 shadow-2xl flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 shrink-0">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
+        <div className="flex items-center gap-3 rounded-actium border border-border-subtle bg-bg-elevated p-4 shadow-actium">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-danger/10">
+            <ShieldAlert className="h-5 w-5 text-danger" />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Incidentes</p>
-            <p className="text-2xl font-bold text-white mt-0.5">
-              {totalIncidentes ?? 0}
-            </p>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-text-muted">Acc. graves</p>
+            <p className="font-display text-2xl text-text-primary">{totalAccidentesGraves ?? 0}</p>
           </div>
         </div>
-
-        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-5 shadow-2xl flex items-center gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500/10 shrink-0">
-            <ShieldAlert className="h-5 w-5 text-red-500" />
+        <div className="col-span-2 flex items-center gap-3 rounded-actium border border-border-subtle bg-bg-elevated p-4 shadow-actium md:col-span-1">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-actium-amber/10">
+            <UserMinus className="h-5 w-5 text-actium-amber" />
           </div>
-          <div>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Accidentes Graves</p>
-            <p className="text-2xl font-bold text-white mt-0.5">
-              {totalAccidentesGraves ?? 0}
-            </p>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-5 shadow-2xl flex items-center gap-4 col-span-2 md:col-span-1">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-500/10 shrink-0">
-            <UserMinus className="h-5 w-5 text-orange-500" />
-          </div>
-          <div>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Ausentes Hoy</p>
-            <p className="text-2xl font-bold text-white mt-0.5">
-              {totalAusentismosActivos ?? 0}
-            </p>
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-text-muted">Ausentes hoy</p>
+            <p className="font-display text-2xl text-text-primary">{totalAusentismosActivos ?? 0}</p>
           </div>
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="flex flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
-          <h3 className="text-xs font-bold tracking-widest text-white/50 uppercase">
-            Historial de Registros
-          </h3>
+      <div className="flex flex-col gap-4 rounded-actium border border-border-subtle bg-bg-elevated p-4 shadow-actium md:p-6">
+        <div className="flex flex-col gap-4">
+          <h2 className="font-subtitle text-lg font-semibold uppercase tracking-wide text-text-secondary">
+            Historial de registros
+          </h2>
           <SSTFilters
             currentTipo={searchParams?.tipo || "todos"}
             currentEstado={searchParams?.estado || "todos"}
           />
         </div>
-        
+
         {formularios.length === 0 ? (
-          <div className="py-12 text-center border-t border-white/5">
-            <FileText className="mx-auto h-8 w-8 text-white/20 mb-3" />
-            <p className="text-sm text-white/40 font-medium">
+          <div className="border-t border-border-subtle py-12 text-center">
+            <FileText className="mx-auto mb-3 h-8 w-8 text-text-muted" />
+            <p className="text-sm font-medium text-text-secondary">
               {searchParams?.tipo || searchParams?.estado
                 ? "No hay formularios que coincidan con los filtros."
-                : "Aún no hay formularios registrados."}
+                : "Aún no hay formularios registrados. Crea el primero."}
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-white/5">
-                  <th className="pb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">ID / Fecha</th>
-                  <th className="pb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Tipo</th>
-                  <th className="pb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Proyecto</th>
-                  <th className="pb-3 text-[10px] font-bold uppercase tracking-widest text-white/40">Ubicación</th>
-                  <th className="pb-3 text-[10px] font-bold uppercase tracking-widest text-white/40 text-center">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {formularios.map((form) => (
-                  <tr key={form.id} className="transition-colors hover:bg-white/[0.03] group">
-                    <td className="py-4">
-                      <Link href={`/sst/${form.id}`} className="block">
-                        <p className="text-xs font-bold text-white group-hover:text-[#F25C05] transition-colors">
-                          {new Date(form.created_at).toLocaleDateString("es-CO", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </p>
-                        <p className="text-[10px] font-medium text-white/30 uppercase tracking-wider mt-1">
-                          {form.id.split('-')[0]}
-                        </p>
-                      </Link>
-                    </td>
-                    <td className="py-4">
-                      <Link href={`/sst/${form.id}`} className="flex items-center gap-2">
-                        {tipoIcon[form.tipo] || <FileText className="h-4 w-4 text-white/40" />}
-                        <span className="text-sm font-bold text-white uppercase tracking-wider">
+          <>
+            <div className="flex flex-col gap-3 lg:hidden">
+              {formularios.map((form) => (
+                <article
+                  key={form.id}
+                  className="rounded-actium border border-border-subtle bg-bg-secondary p-4"
+                >
+                  <Link href={`/sst/${form.id}`} className="block min-h-[44px]">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        {tipoIcon[form.tipo] || <FileText className="h-4 w-4 text-text-muted" />}
+                        <span className="truncate text-sm font-semibold uppercase tracking-wide text-text-primary">
                           {tipoLabel[form.tipo] || form.tipo}
                         </span>
-                      </Link>
-                    </td>
-                    <td className="py-4">
-                      <Link href={`/sst/${form.id}`} className="block">
-                        <p className="text-sm text-white/80 max-w-[200px] truncate">
-                          {proyectosMap.get(form.proyecto_id) || "Desconocido"}
-                        </p>
-                      </Link>
-                    </td>
-                    <td className="py-4">
-                      <Link href={`/sst/${form.id}`} className="block">
-                        <p className="text-xs text-white/60">{form.ubicacion || form.ciudad || "—"}</p>
-                      </Link>
-                    </td>
-                    <td className="py-4 text-center">
-                      <Link href={`/sst/${form.id}`} className="block">
-                        <Badge 
-                          variant="outline" 
-                          className={`px-2 py-0.5 text-[9px] font-bold tracking-widest uppercase border ${
-                            form.estado === 'completado' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' :
-                            form.estado === 'firmado' ? 'border-blue-500/30 bg-blue-500/10 text-blue-400' :
-                            form.estado === 'borrador' ? 'border-amber-500/30 bg-amber-500/10 text-amber-400' :
-                            'border-white/10 bg-white/5 text-white/40'
-                          }`}
-                        >
+                      </div>
+                      <Badge variant="outline" className={`shrink-0 ${claseEstado(form.estado)}`}>
+                        {form.estado}
+                      </Badge>
+                    </div>
+                    <p className="mt-3 truncate text-sm text-text-secondary">
+                      {proyectosMap.get(form.proyecto_id) || "Proyecto desconocido"}
+                    </p>
+                    <p className="mt-1 text-xs text-text-muted">
+                      {new Date(form.created_at).toLocaleDateString("es-CO", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                      {" · "}
+                      {form.ubicacion || form.ciudad || "Sin ubicación"}
+                    </p>
+                  </Link>
+                  <div className="mt-4 flex items-stretch gap-2">
+                    <Link
+                      href={`/sst/${form.id}`}
+                      className="inline-flex h-11 min-h-[44px] flex-1 items-center justify-center rounded-xl border border-actium-orange px-4 text-xs font-semibold uppercase tracking-widest text-actium-orange transition-all duration-200 hover:bg-actium-orange/10"
+                    >
+                      Ver permiso
+                    </Link>
+                    {puedeEliminar && (
+                      <BotonEliminarSST formularioId={form.id} variante="completo" className="flex-1" />
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-actium-espresso text-white">
+                    <th className="px-4 py-3 text-sm font-semibold uppercase tracking-wider">Fecha</th>
+                    <th className="px-4 py-3 text-sm font-semibold uppercase tracking-wider">Tipo</th>
+                    <th className="px-4 py-3 text-sm font-semibold uppercase tracking-wider">Proyecto</th>
+                    <th className="px-4 py-3 text-sm font-semibold uppercase tracking-wider">Ubicación</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold uppercase tracking-wider">Estado</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold uppercase tracking-wider">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formularios.map((form) => (
+                    <tr key={form.id} className="border-b border-border-subtle transition-colors hover:bg-bg-hover">
+                      <td className="px-4 py-3">
+                        <Link href={`/sst/${form.id}`} className="block min-h-[44px] py-2">
+                          <p className="text-sm font-medium text-text-primary">
+                            {new Date(form.created_at).toLocaleDateString("es-CO", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                          <p className="mt-0.5 text-xs text-text-muted">{form.id.split("-")[0]}</p>
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/sst/${form.id}`} className="flex min-h-[44px] items-center gap-2">
+                          {tipoIcon[form.tipo] || <FileText className="h-4 w-4 text-text-muted" />}
+                          <span className="text-sm font-medium uppercase tracking-wide text-text-primary">
+                            {tipoLabel[form.tipo] || form.tipo}
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/sst/${form.id}`} className="block min-h-[44px] py-2">
+                          <p className="max-w-[220px] truncate text-sm text-text-secondary">
+                            {proyectosMap.get(form.proyecto_id) || "Desconocido"}
+                          </p>
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/sst/${form.id}`} className="block min-h-[44px] py-2 text-sm text-text-secondary">
+                          {form.ubicacion || form.ciudad || "—"}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <Badge variant="outline" className={claseEstado(form.estado)}>
                           {form.estado}
                         </Badge>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/sst/${form.id}`}
+                            className="inline-flex h-11 min-h-[44px] items-center rounded-xl px-3 text-xs font-semibold uppercase tracking-widest text-actium-orange transition-all duration-200 hover:bg-actium-orange/10"
+                          >
+                            Ver
+                          </Link>
+                          {puedeEliminar && <BotonEliminarSST formularioId={form.id} variante="icono" />}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
     </div>

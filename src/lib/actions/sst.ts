@@ -23,7 +23,7 @@ export async function eliminarFormularioAction(formularioId: string): Promise<vo
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
   if (!perfil) throw new Error("No autenticado");
-  if (!puedeGestionarSST(perfil?.rol)) {
+  if (!puedeGestionarSST(perfil.rol)) {
     throw new Error("No tiene permisos para eliminar formularios SST.");
   }
 
