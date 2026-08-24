@@ -115,7 +115,7 @@ export default async function SstDashboardPage({
     },
     {
       href: "/sst/preoperacional",
-      titulo: "Instrucciones Preoperacionales",
+      titulo: "Inspecciones Preoperacionales",
       subtitulo: "Inspección de Equipos",
       icono: <ClipboardCheck className="h-6 w-6" strokeWidth={2} />,
       hoverBorder: "hover:border-[#F28729]/50",
@@ -126,7 +126,7 @@ export default async function SstDashboardPage({
     },
     {
       href: "/sst/entrega-epp",
-      titulo: "Cargo de Entrega de EPP",
+      titulo: "Formato Entrega EPP",
       subtitulo: "Constancia por Trabajador",
       icono: <HardHat className="h-6 w-6" strokeWidth={2} />,
       hoverBorder: "hover:border-[#F27405]/50",
