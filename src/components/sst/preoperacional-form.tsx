@@ -111,20 +111,20 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
   // ─── Hidratación ────────────────────────────────────────────────────────────
 
   /**
-   * Vuelca un payload guardado en el formulario. Con `conservarPersonal` no se
-   * tocan las firmas ni los nombres.
+   * Vuelca un payload guardado en el formulario. Con `sinFirmas` se heredan los
+   * nombres y las cédulas, pero no las firmas.
    *
    * Al copiar un permiso anterior se hereda TODO lo técnico —equipos,
    * identificación, calificaciones, inventario y observaciones—, igual que en
    * altura, caliente y ATS. Es lo que el equipo pidió: la inspección diaria se
    * repite sobre los mismos equipos y rehacer 78 ítems cada mañana no es viable.
-   * Lo que nunca se hereda son las personas ni sus firmas.
+   * Lo único que nunca se hereda es la firma.
    */
   const aplicarPayload = (
     payload: Partial<PreoperacionalPDFData>,
     opciones?: {
       fallback?: FallbackFormularioSST;
-      conservarPersonal?: boolean;
+      sinFirmas?: boolean;
     },
   ) => {
     const fb = opciones?.fallback;
@@ -156,13 +156,14 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
     setHerramientas(base);
     setObservacionesGenerales(payload.observacionesGenerales || "");
 
-    if (opciones?.conservarPersonal) return;
-
     setInspectorNombre(payload.inspectorNombre || "");
     setInspectorCedula(payload.inspectorCedula || "");
-    setInspectorFirma(payload.inspectorFirma || "");
     setSupervisorNombre(payload.supervisorNombre || "");
     setSupervisorCedula(payload.supervisorCedula || "");
+
+    if (opciones?.sinFirmas) return;
+
+    setInspectorFirma(payload.inspectorFirma || "");
     setSupervisorFirma(payload.supervisorFirma || "");
   };
 
@@ -339,12 +340,12 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
         return;
       }
 
-      aplicarPayload(res.payload as PreoperacionalPDFData, { conservarPersonal: true });
+      aplicarPayload(res.payload as PreoperacionalPDFData, { sinFirmas: true });
       const ref = res.referencia;
       setAvisoMsg(
         `Se copió la inspección del ${ref?.fecha || "último registro"}${
           ref?.proyecto ? ` — ${ref.proyecto}` : ""
-        }. Verifique equipo por equipo antes de emitir: las calificaciones vienen de esa inspección, no del estado de hoy. Las firmas quedan en blanco.`,
+        }. Verifique equipo por equipo antes de emitir: las calificaciones vienen de esa inspección, no del estado de hoy. Solo las firmas quedan en blanco.`,
       );
     } catch (err: any) {
       setErrorMsg(err?.message || "No fue posible recuperar la última inspección.");
@@ -504,8 +505,8 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
           </button>
         </div>
         <p className="mb-5 text-[10px] leading-relaxed text-white/30">
-          Copia la última inspección completa: equipos, identificación y calificaciones. Verifique
-          cada equipo antes de emitir. El personal y las firmas nunca se heredan.
+          Copia la última inspección completa: equipos, identificación, calificaciones y el personal
+          con su cédula. Verifique cada equipo antes de emitir. Las firmas nunca se heredan.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

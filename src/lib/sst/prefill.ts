@@ -2,10 +2,13 @@
 // Reutilización de permisos SST: rellenar un formulario con el último emitido.
 // =============================================================================
 // En obra se repite el mismo permiso casi a diario (mismo trabajo, misma área,
-// mismos EPP y controles). Copiar el último ahorra el diligenciamiento completo,
-// PERO los datos de personas NUNCA se heredan: el personal ejecutor, el emisor,
-// el coordinador y todas las firmas deben registrarse de nuevo en cada permiso.
-// Heredarlos daría por presente a alguien que no lo está y firmaría por él.
+// mismos EPP y controles) y casi siempre con la misma cuadrilla. Copiar el
+// último ahorra el diligenciamiento completo, incluidos los nombres y las
+// cédulas del personal, que el equipo pidió heredar para no reescribirlos.
+//
+// Lo que NUNCA se hereda es la FIRMA. Un trazo capturado otro día no puede dar
+// por firmado el documento de hoy, así que las firmas se vacían aquí, en el
+// servidor: ni siquiera viajan al navegador.
 // =============================================================================
 
 import { hoyLocal } from "@/lib/fecha";
@@ -21,16 +24,14 @@ export type FallbackFormularioSST = {
   fechaInicio: string;
 };
 
-/** Nombres de persona que se limpian siempre (van acompañados de firma). */
-const CAMPOS_PERSONA = [
-  "emisorNombre",
-  "emisorCedula",
-  "coordinadorNombre",
-  "bloqueadoPor",
-  "inspectorNombre",
-  "inspectorCedula",
-  "supervisorNombre",
-  "supervisorCedula",
+// Se heredan el nombre y la cédula de quienes firman el permiso —emisor,
+// coordinador, inspector, supervisor, quien bloqueó energías— y del personal
+// ejecutor, porque la cuadrilla suele ser la misma día tras día.
+//
+// El destinatario del cargo de EPP es la excepción: ese documento se emite a
+// nombre de UNA persona concreta, así que su identidad no se arrastra de un
+// cargo a otro.
+const CAMPOS_DESTINATARIO_EPP = [
   "empleadoId",
   "trabajadorNombre",
   "trabajadorCedula",
@@ -57,20 +58,29 @@ const CAMPOS_FECHA = ["fecha", "desde", "hasta"] as const;
 
 /**
  * Devuelve una copia del payload apta para prellenar un permiso nuevo: conserva
- * la descripción del trabajo, los controles y las listas de chequeo; vacía todo
- * dato de personal y firma, y sitúa las fechas en el día de hoy.
+ * la descripción del trabajo, los controles, las listas de chequeo y el personal
+ * con su nombre y cédula; vacía únicamente las firmas y sitúa las fechas en el
+ * día de hoy.
  */
 export function limpiarDatosPersonales<T extends Record<string, any>>(payload: T): T {
   const limpio: Record<string, any> = { ...payload };
 
-  for (const campo of CAMPOS_PERSONA) {
-    if (campo in limpio) limpio[campo] = "";
-  }
   for (const campo of CAMPOS_FIRMA) {
     if (campo in limpio) limpio[campo] = "";
   }
+  for (const campo of CAMPOS_DESTINATARIO_EPP) {
+    if (campo in limpio) limpio[campo] = "";
+  }
+
+  // El personal se conserva con nombre y cédula, pero sin su firma.
   for (const campo of CAMPOS_PERSONAL) {
-    if (campo in limpio) limpio[campo] = [];
+    const lista = limpio[campo];
+    if (!Array.isArray(lista)) continue;
+    limpio[campo] = lista.map((persona: Record<string, unknown>) => ({
+      ...persona,
+      firma: "",
+      firmaCierre: "",
+    }));
   }
 
   const hoy = hoyLocal();

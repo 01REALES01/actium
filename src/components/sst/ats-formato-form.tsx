@@ -95,11 +95,11 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
   const [errorMsg, setErrorMsg] = useState("");
 
   // Vuelca en el formulario un payload guardado (cierre, borrador o ATS
-  // anterior). Con `conservarPersonal` no se tocan ejecutores ni firmas: al
-  // copiar un análisis previo esos datos deben diligenciarse siempre de nuevo.
+  // anterior). Con `sinFirmas` se heredan el personal ejecutor y sus cédulas
+  // pero no las firmas: la cuadrilla se repite, el trazo de la firma nunca.
   const aplicarPayload = (
     payload: Partial<AtsFormatoPDFData>,
-    opciones?: { fallback?: FallbackFormularioSST; conservarPersonal?: boolean },
+    opciones?: { fallback?: FallbackFormularioSST; sinFirmas?: boolean },
   ) => {
     const fb = opciones?.fallback;
     setEmpresa(payload.empresa || fb?.empresa || "");
@@ -123,8 +123,6 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
     setProbabilidadIncidente(payload.probabilidadIncidente || "");
     setSeguroProceder(payload.seguroProceder || "");
 
-    if (opciones?.conservarPersonal) return;
-
     setEjecutores(
       payload.ejecutores?.length
         ? payload.ejecutores.map((e, idx) => ({ ...e, id: idx + 1 }))
@@ -132,6 +130,9 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
     );
     setEmisorNombre(payload.emisorNombre || "");
     setEmisorCedula(payload.emisorCedula || "");
+
+    if (opciones?.sinFirmas) return;
+
     setFirmaData(payload.firmaDataUrl || "");
     setEmisorFirmaCierre(payload.emisorFirmaCierre || "");
   };
@@ -225,10 +226,10 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
         return;
       }
 
-      aplicarPayload(res.payload as AtsFormatoPDFData, { conservarPersonal: true });
+      aplicarPayload(res.payload as AtsFormatoPDFData, { sinFirmas: true });
       const ref = res.referencia;
       setAvisoMsg(
-        `Se copió el ATS del ${ref?.fecha || "último registro"}${ref?.proyecto ? ` — ${ref.proyecto}` : ""}. Registre el personal ejecutor y las firmas: nunca se heredan.`,
+        `Se copió el ATS del ${ref?.fecha || "último registro"}${ref?.proyecto ? ` — ${ref.proyecto}` : ""}. Registre las firmas: son lo único que no se hereda.`,
       );
     } catch (err: any) {
       setErrorMsg(err?.message || "No fue posible recuperar el último ATS.");
@@ -631,8 +632,8 @@ export function AtsFormatoForm({ proyectos = [] }: { proyectos?: { id: string; n
           </button>
         </div>
         <p className="mb-5 text-[10px] leading-relaxed text-white/30">
-          Copia los datos del último ATS registrado. El personal ejecutor y las firmas siempre quedan
-          en blanco: deben diligenciarse en cada análisis.
+          Copia el último ATS registrado, incluidos el personal ejecutor y sus cédulas. Las firmas
+          siempre quedan en blanco: se firman en cada análisis.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {proyectos.length > 0 && (

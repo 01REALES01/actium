@@ -94,11 +94,11 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
   const [errorMsg, setErrorMsg] = useState("");
 
   // Vuelca en el formulario un payload guardado (cierre, borrador o permiso
-  // anterior). Con `conservarPersonal` no se tocan trabajadores ni firmas: al
-  // copiar un permiso previo esos datos deben diligenciarse siempre de nuevo.
+  // anterior). Con `sinFirmas` se heredan los trabajadores y sus cédulas pero
+  // no las firmas: la cuadrilla se repite, el trazo de la firma nunca.
   const aplicarPayload = (
     payload: Partial<PermisoCalientePDFData>,
-    opciones?: { fallback?: FallbackFormularioSST; conservarPersonal?: boolean },
+    opciones?: { fallback?: FallbackFormularioSST; sinFirmas?: boolean },
   ) => {
     const fb = opciones?.fallback;
     setEmpresa(payload.empresa || fb?.empresa || "");
@@ -116,8 +116,6 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
     setMecanismoBloqueo(payload.mecanismoBloqueo || "");
     setEpp(payload.epp ?? []);
 
-    if (opciones?.conservarPersonal) return;
-
     setBloqueadoPor(payload.bloqueadoPor || "");
     setTrabajadores(
       payload.trabajadores?.length
@@ -125,9 +123,12 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
         : [nuevoTrabajador()],
     );
     setEmisorNombre(payload.emisorNombre || "");
+    setCoordinadorNombre(payload.coordinadorNombre || "");
+
+    if (opciones?.sinFirmas) return;
+
     setEmisorFirma(payload.emisorFirma || "");
     setEmisorFirmaCierre(payload.emisorFirmaCierre || "");
-    setCoordinadorNombre(payload.coordinadorNombre || "");
     setCoordinadorFirma(payload.coordinadorFirma || "");
     setCoordinadorFirmaCierre(payload.coordinadorFirmaCierre || "");
   };
@@ -219,10 +220,10 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
         return;
       }
 
-      aplicarPayload(res.payload as PermisoCalientePDFData, { conservarPersonal: true });
+      aplicarPayload(res.payload as PermisoCalientePDFData, { sinFirmas: true });
       const ref = res.referencia;
       setAvisoMsg(
-        `Se copió el permiso del ${ref?.fecha || "último registro"}${ref?.proyecto ? ` — ${ref.proyecto}` : ""}. Registre los trabajadores y las firmas: nunca se heredan.`,
+        `Se copió el permiso del ${ref?.fecha || "último registro"}${ref?.proyecto ? ` — ${ref.proyecto}` : ""}. Registre las firmas: son lo único que no se hereda.`,
       );
     } catch (err: any) {
       setErrorMsg(err?.message || "No fue posible recuperar el último permiso.");
@@ -643,8 +644,8 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
           </button>
         </div>
         <p className="mb-5 text-[10px] leading-relaxed text-white/30">
-          Copia los datos del último permiso en caliente registrado. Los trabajadores y las firmas
-          siempre quedan en blanco: deben diligenciarse en cada permiso.
+          Copia el último permiso en caliente registrado, incluidos los trabajadores y sus cédulas.
+          Las firmas siempre quedan en blanco: se firman en cada permiso.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {proyectos.length > 0 && (
