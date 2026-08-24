@@ -13,8 +13,8 @@ export const NOMBRE_TIPO_SST: Record<FormularioTipo, string> = {
   ats: "Análisis de Trabajo Seguro",
   permiso_altura: "Permiso de Trabajo en Alturas",
   permiso_caliente: "Permiso de Trabajo en Caliente",
-  preoperacional: "Instrucciones Preoperacionales",
-  entrega_epp: "Cargo de Entrega de EPP",
+  preoperacional: "Inspecciones Preoperacionales",
+  entrega_epp: "Formato Entrega EPP",
 };
 
 /** Rótulo corto, para tablas, filtros y tarjetas de la bitácora. */

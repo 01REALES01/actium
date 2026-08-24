@@ -83,7 +83,7 @@ function EntregaEppDocument({ data }: { data: EntregaEppPDFData }) {
   const filas = filasEntregadas(data.elementos, data.adicionales);
 
   return (
-    <Document title={`Cargo de Entrega de EPP ${data.trabajadorNombre} ${data.fecha}`}>
+    <Document title={`Formato Entrega EPP ${data.trabajadorNombre} ${data.fecha}`}>
       <Page size="A4" style={s.page}>
         <View style={s.header} fixed>
           <View>
@@ -91,7 +91,7 @@ function EntregaEppDocument({ data }: { data: EntregaEppPDFData }) {
             <Image src={getLogoSrc()} style={s.brandLogo} />
           </View>
           <View>
-            <Text style={s.docTitle}>Cargo de Entrega de EPP</Text>
+            <Text style={s.docTitle}>Formato Entrega EPP</Text>
             <Text style={s.docMeta}>Elementos de protección personal</Text>
             <Text style={s.docMeta}>{data.fecha || "—"}</Text>
           </View>

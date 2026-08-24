@@ -1,5 +1,5 @@
 // =============================================================================
-// Catálogo del formato Instrucciones Preoperacionales.
+// Catálogo del formato Inspecciones Preoperacionales.
 // =============================================================================
 // Un solo permiso reúne la inspección preoperacional de varias herramientas.
 // Cada herramienta conserva la escala de su formato original —el taladro y las

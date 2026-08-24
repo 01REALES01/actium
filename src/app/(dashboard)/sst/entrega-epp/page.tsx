@@ -52,7 +52,7 @@ export default async function EntregaEppPage() {
             className="h-9 w-auto brightness-0 invert mb-4"
           />
           <h1 className="text-3xl md:text-4xl font-display tracking-tight text-white uppercase">
-            Cargo de Entrega de EPP
+            Formato Entrega EPP
           </h1>
           <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest">
             Constancia de la dotación recibida por el trabajador

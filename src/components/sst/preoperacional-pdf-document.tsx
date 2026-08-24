@@ -296,7 +296,7 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
   const hoy = data.fecha || new Date().toISOString().split("T")[0];
 
   return (
-    <Document title={`Instrucciones Preoperacionales ${data.empresa} ${data.fecha}`}>
+    <Document title={`Inspecciones Preoperacionales ${data.empresa} ${data.fecha}`}>
       <Page size="A4" style={s.page}>
         <View style={s.header} fixed>
           <View>
@@ -304,7 +304,7 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
             <Image src={getLogoSrc()} style={s.brandLogo} />
           </View>
           <View>
-            <Text style={s.docTitle}>Instrucciones Preoperacionales</Text>
+            <Text style={s.docTitle}>Inspecciones Preoperacionales</Text>
             <Text style={s.docMeta}>Inspección de herramientas y equipos</Text>
             <Text style={s.docMeta}>{data.fecha || "—"}</Text>
           </View>

@@ -38,7 +38,7 @@ export default async function PreoperacionalPage() {
             className="h-9 w-auto brightness-0 invert mb-4"
           />
           <h1 className="text-3xl md:text-4xl font-display tracking-tight text-white uppercase">
-            Instrucciones Preoperacionales
+            Inspecciones Preoperacionales
           </h1>
           <p className="mt-2 text-[10px] md:text-sm font-medium text-white/40 uppercase tracking-widest">
             Inspección de herramientas y equipos antes de iniciar la labor
