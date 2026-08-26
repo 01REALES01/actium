@@ -3,13 +3,17 @@
 import { useState } from "react";
 import { Camera, ZoomIn } from "lucide-react";
 import { ImageLightbox, type LightboxImage } from "@/components/ui/image-lightbox";
+import { BotonEliminarFoto } from "@/components/projects/boton-eliminar-foto";
 import type { FotoDia } from "@/lib/data/partes-sst";
 
 interface ParteDiaFotosProps {
   fotos: FotoDia[];
+  proyectoId: string;
+  fecha: string;
+  puedeEditar?: boolean;
 }
 
-export function ParteDiaFotos({ fotos }: ParteDiaFotosProps) {
+export function ParteDiaFotos({ fotos, proyectoId, fecha, puedeEditar = false }: ParteDiaFotosProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -72,6 +76,15 @@ export function ParteDiaFotos({ fotos }: ParteDiaFotosProps) {
                     : "opacity-60"
                 }`}
               >
+                {puedeEditar && (
+                  <BotonEliminarFoto
+                    fotoId={f.id}
+                    proyectoId={proyectoId}
+                    fecha={fecha}
+                    onEliminada={() => setLightboxOpen(false)}
+                  />
+                )}
+
                 {hasUrl ? (
                   <div className="relative aspect-[4/3] w-full overflow-hidden bg-black/40">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -378,6 +378,62 @@ export async function uploadFotoAction(formData: FormData): Promise<void> {
   revalidatePath(`/proyectos/${proyectoId}`);
 }
 
+// ─── Eliminar foto ────────────────────────────────────────────────────────────
+
+const EliminarFotoSchema = z.object({
+  fotoId: z.string().uuid(),
+  proyectoId: z.string().uuid(),
+  /** Solo cuando se borra desde el parte diario, para revalidar esa ruta. */
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
+
+/**
+ * Borra la foto del bucket y su registro. El archivo se elimina primero: si
+ * fallara el borrado de la fila quedaría un registro sin archivo (visible como
+ * miniatura rota) y no un archivo huérfano imposible de rastrear.
+ */
+export async function eliminarFotoAction(
+  input: z.infer<typeof EliminarFotoSchema>,
+): Promise<void> {
+  const parsed = EliminarFotoSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Datos inválidos.");
+
+  await assertSuperAdmin();
+
+  const db = createAdminClient();
+  const { data: foto, error: selectError } = await db
+    .from("fotos")
+    .select("storage_path")
+    .eq("id", parsed.data.fotoId)
+    .eq("proyecto_id", parsed.data.proyectoId)
+    .maybeSingle();
+
+  if (selectError) throw new Error(selectError.message);
+  if (!foto) throw new Error("La foto ya no existe.");
+
+  const { error: storageError } = await db.storage
+    .from("fotos-proyectos")
+    .remove([foto.storage_path]);
+
+  if (storageError) throw new Error(storageError.message);
+
+  const { error: deleteError } = await db
+    .from("fotos")
+    .delete()
+    .eq("id", parsed.data.fotoId)
+    .eq("proyecto_id", parsed.data.proyectoId);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  revalidatePath(`/proyectos/${parsed.data.proyectoId}`);
+  if (parsed.data.fecha) {
+    revalidatePath(`/proyectos/${parsed.data.proyectoId}/parte/${parsed.data.fecha}`);
+  }
+}
+
 // ─── Eliminar registro de avance ──────────────────────────────────────────────
 
 const EliminarAvanceSchema = z.object({

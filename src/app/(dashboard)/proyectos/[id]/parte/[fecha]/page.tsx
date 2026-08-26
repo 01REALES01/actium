@@ -19,7 +19,12 @@ import { getParteCockpitDelDia } from "@/lib/data/partes-sst";
 import { getEmpleadosAsignados, getAvancesSemanaActual } from "@/lib/data/sst";
 import { getProyectoAvances, getProyecto, getProyectoMetas } from "@/lib/data/proyectos";
 import { hoyLocal } from "@/lib/fecha";
-import { getPerfilActual, puedeEditarParteDiario, puedeVerProyectos } from "@/lib/auth/roles";
+import {
+  getPerfilActual,
+  puedeEditarParteDiario,
+  puedeGestionarProyectos,
+  puedeVerProyectos,
+} from "@/lib/auth/roles";
 import { GraficaAsistencia, GraficaEventos } from "@/components/sst/parte-graficas";
 import { DailyProgressChart } from "@/components/projects/daily-progress-chart";
 import { ParteDescargarPDF, type PartePDFData } from "@/components/sst/parte-pdf";
@@ -392,7 +397,12 @@ export default async function ParteDiaProyectoPage({
       </div>
 
       {/* Fotos del día */}
-      <ParteDiaFotos fotos={d.fotos} />
+      <ParteDiaFotos
+        fotos={d.fotos}
+        proyectoId={params.id}
+        fecha={params.fecha}
+        puedeEditar={puedeGestionarProyectos(perfil?.rol)}
+      />
 
       {/* Observaciones de campo del día */}
       <div className="flex flex-col gap-4 rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">

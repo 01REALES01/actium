@@ -6,6 +6,7 @@ import { Camera, Upload, X, Loader2, ZoomIn } from "lucide-react";
 import { uploadFotoAction } from "@/lib/actions/proyectos";
 import type { FotoConUrl } from "@/lib/data/proyectos";
 import { ImageLightbox, type LightboxImage } from "@/components/ui/image-lightbox";
+import { BotonEliminarFoto } from "@/components/projects/boton-eliminar-foto";
 
 type Props = {
   fotos: FotoConUrl[];
@@ -41,6 +42,13 @@ export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subem
       setSelectedIndex(idx);
       setLightboxOpen(true);
     }
+  };
+
+  // El listado vive en estado local (para la subida optimista), así que el
+  // refresh del servidor no lo re-sincroniza: hay que quitarla también aquí.
+  const handleFotoEliminada = (fotoId: string) => {
+    setFotos((prev) => prev.filter((f) => f.id !== fotoId));
+    setLightboxOpen(false);
   };
 
   const handleOpenExtra = () => {
@@ -199,6 +207,14 @@ export function PhotoGallery({ fotos: initialFotos, proyectoId, empresaId, subem
                 </div>
               )}
               
+              {puedeEditar && foto.storage_path && (
+                <BotonEliminarFoto
+                  fotoId={foto.id}
+                  proyectoId={proyectoId}
+                  onEliminada={handleFotoEliminada}
+                />
+              )}
+
               {/* Overlay hover con icono de zoom */}
               {foto.signedUrl && (
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-center justify-center">
