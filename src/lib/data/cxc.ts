@@ -1,5 +1,12 @@
 import type { TypedSupabaseClient, Tables } from "@/types/database.types";
 import { sumarMovimientosPorCategoriaDelMes, CATEGORIAS_INGRESO } from "@/lib/data/presupuesto";
+import {
+  ESTADO_FILTRO_QUERY,
+  ORDEN_QUERY,
+  ORDEN_DEFAULT,
+  type EstadoFiltro,
+  type OrdenCuentas,
+} from "@/constants/cuentas";
 
 type Client = TypedSupabaseClient;
 
@@ -35,7 +42,7 @@ function marcarVencidas(
 
 export async function listCxC(
   supabase: Client,
-  opts: { proyectoId?: string } = {},
+  opts: { proyectoId?: string; estado?: EstadoFiltro; orden?: OrdenCuentas } = {},
 ): Promise<CxCConRelaciones[]> {
   let query = supabase
     .from("cuentas_por_cobrar")
@@ -43,7 +50,11 @@ export async function listCxC(
 
   if (opts.proyectoId) query = query.eq("proyecto_id", opts.proyectoId);
 
-  const { data, error } = await query.order("fecha_vencimiento", { ascending: true });
+  const estados = opts.estado ? ESTADO_FILTRO_QUERY[opts.estado] : null;
+  if (estados) query = query.in("estado", estados);
+
+  const orden = ORDEN_QUERY[opts.orden ?? ORDEN_DEFAULT];
+  const { data, error } = await query.order(orden.columna, { ascending: orden.ascending });
 
   if (error) throw error;
   return marcarVencidas(data ?? []);

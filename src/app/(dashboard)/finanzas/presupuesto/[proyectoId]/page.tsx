@@ -44,8 +44,9 @@ export default async function PresupuestoDetallePage({
     getRubrosBalance(supabase, params.proyectoId),
     getRubrosPorProyecto(supabase, params.proyectoId),
     listMovimientos(supabase, params.proyectoId),
-    listCxC(supabase, { proyectoId: params.proyectoId }),
-    listCxP(supabase, { proyectoId: params.proyectoId }),
+    // Aquí interesa la urgencia de cobro/pago, no el orden de registro.
+    listCxC(supabase, { proyectoId: params.proyectoId, orden: "vence_pronto" }),
+    listCxP(supabase, { proyectoId: params.proyectoId, orden: "vence_pronto" }),
   ]);
 
   const rubrosIngreso = rubros.filter((r) => r.categoria === "ingresos");

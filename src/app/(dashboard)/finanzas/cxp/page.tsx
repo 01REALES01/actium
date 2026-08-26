@@ -6,9 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeGestionarFinanzas } from "@/lib/auth/roles";
 import { listCxP, getCxPResumen } from "@/lib/data/cxp";
 import { CxPTable } from "@/components/finanzas/cxp-table";
+import { CuentasFilters } from "@/components/finanzas/cuentas-filters";
+import { parseEstadoFiltro, parseOrden } from "@/constants/cuentas";
 import { formatCOP } from "@/lib/format";
 
-export default async function CxPPage() {
+export default async function CxPPage({
+  searchParams,
+}: {
+  searchParams: { estado?: string; orden?: string };
+}) {
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
 
@@ -16,7 +22,13 @@ export default async function CxPPage() {
     redirect("/proyectos");
   }
 
-  const [cuentas, resumen] = await Promise.all([listCxP(supabase), getCxPResumen(supabase)]);
+  const estado = parseEstadoFiltro(searchParams.estado);
+  const orden = parseOrden(searchParams.orden);
+
+  const [cuentas, resumen] = await Promise.all([
+    listCxP(supabase, { estado, orden }),
+    getCxPResumen(supabase),
+  ]);
   const puedeEscribir = puedeGestionarFinanzas(perfil.rol);
 
   const kpis = [
@@ -56,7 +68,18 @@ export default async function CxPPage() {
         ))}
       </div>
 
-      <CxPTable cuentas={cuentas} mostrarProyecto puedeEscribir={puedeEscribir} />
+      <CuentasFilters estado={estado} orden={orden} total={cuentas.length} />
+
+      <CxPTable
+        cuentas={cuentas}
+        mostrarProyecto
+        puedeEscribir={puedeEscribir}
+        mensajeVacio={
+          estado === "todas"
+            ? "Aún no hay cuentas por pagar registradas."
+            : "Ninguna cuenta por pagar coincide con este filtro."
+        }
+      />
     </div>
   );
 }

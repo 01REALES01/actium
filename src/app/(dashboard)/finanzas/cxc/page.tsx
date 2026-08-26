@@ -6,9 +6,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeGestionarFinanzas } from "@/lib/auth/roles";
 import { listCxC, getCxCResumen } from "@/lib/data/cxc";
 import { CxCTable } from "@/components/finanzas/cxc-table";
+import { CuentasFilters } from "@/components/finanzas/cuentas-filters";
+import { parseEstadoFiltro, parseOrden } from "@/constants/cuentas";
 import { formatCOP } from "@/lib/format";
 
-export default async function CxCPage() {
+export default async function CxCPage({
+  searchParams,
+}: {
+  searchParams: { estado?: string; orden?: string };
+}) {
   const supabase = createClient();
   const perfil = await getPerfilActual(supabase);
 
@@ -16,7 +22,13 @@ export default async function CxCPage() {
     redirect("/proyectos");
   }
 
-  const [cuentas, resumen] = await Promise.all([listCxC(supabase), getCxCResumen(supabase)]);
+  const estado = parseEstadoFiltro(searchParams.estado);
+  const orden = parseOrden(searchParams.orden);
+
+  const [cuentas, resumen] = await Promise.all([
+    listCxC(supabase, { estado, orden }),
+    getCxCResumen(supabase),
+  ]);
   const puedeEscribir = puedeGestionarFinanzas(perfil.rol);
 
   const kpis = [
@@ -56,7 +68,18 @@ export default async function CxCPage() {
         ))}
       </div>
 
-      <CxCTable cuentas={cuentas} mostrarProyecto puedeEscribir={puedeEscribir} />
+      <CuentasFilters estado={estado} orden={orden} total={cuentas.length} />
+
+      <CxCTable
+        cuentas={cuentas}
+        mostrarProyecto
+        puedeEscribir={puedeEscribir}
+        mensajeVacio={
+          estado === "todas"
+            ? "Aún no hay cuentas por cobrar registradas."
+            : "Ninguna cuenta por cobrar coincide con este filtro."
+        }
+      />
     </div>
   );
 }

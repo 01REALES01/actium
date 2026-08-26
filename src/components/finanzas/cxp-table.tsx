@@ -27,15 +27,17 @@ export function CxPTable({
   cuentas,
   mostrarProyecto = false,
   puedeEscribir = false,
+  mensajeVacio = "Aún no hay cuentas por pagar registradas.",
 }: {
   cuentas: CxPConRelaciones[];
   mostrarProyecto?: boolean;
   puedeEscribir?: boolean;
+  mensajeVacio?: string;
 }) {
   if (cuentas.length === 0) {
     return (
       <p className="rounded-actium border border-dashed border-[--border-subtle] p-8 text-center text-sm text-[--text-secondary]">
-        Aún no hay cuentas por pagar registradas.
+        {mensajeVacio}
       </p>
     );
   }
