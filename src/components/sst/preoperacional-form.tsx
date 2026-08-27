@@ -17,6 +17,7 @@ import {
   Zap,
   BriefcaseMedical,
   HardHat,
+  FireExtinguisher,
   ClipboardCheck,
 } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
@@ -58,6 +59,7 @@ const ICONOS: Record<string, React.ComponentType<{ className?: string }>> = {
   Zap,
   BriefcaseMedical,
   HardHat,
+  FireExtinguisher,
 };
 
 function estadoInicial(): Record<string, EstadoHerramientaPreop> {

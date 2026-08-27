@@ -3,9 +3,12 @@
 // =============================================================================
 // Un solo permiso reúne la inspección preoperacional de varias herramientas.
 // Cada herramienta conserva la escala de su formato original —el taladro y las
-// extensiones califican Bueno/Malo, la pulidora responde Sí/No y la máquina de
-// soldar distingue buen estado, estado aceptable y mal estado—, porque así es
-// como el personal ya las diligencia en papel.
+// extensiones califican Bueno/Malo, la pulidora y los extintores responden
+// Sí/No, y la máquina de soldar distingue buen estado, estado aceptable y mal
+// estado—, porque así es como el personal ya las diligencia en papel. El
+// extintor se diligencia en papel por semana (columnas lunes a domingo); aquí
+// se inspecciona por día, como el resto de las herramientas: el registro
+// semanal queda como siete permisos diarios.
 //
 // De cada herramienta pueden inspeccionarse VARIOS equipos en el mismo permiso
 // (dos botiquines, tres taladros); cada equipo lleva su propia identificación,
@@ -299,6 +302,46 @@ const EXTENSIONES: HerramientaPreop = {
   ],
 };
 
+// ─── Extintores ──────────────────────────────────────────────────────────────
+
+const EXTINTOR: HerramientaPreop = {
+  id: "extintor",
+  nombre: "Extintores",
+  singular: "extintor",
+  subtitulo: "Inspección preoperacional de extintor",
+  icono: "FireExtinguisher",
+  escala: "si_no",
+  modo: "chequeo",
+  etiquetaCritica: "FUERA DE SERVICIO",
+  identificacion: [
+    { id: "codigo_equipo", label: "Código de equipo" },
+    { id: "numero", label: "N.º" },
+    { id: "capacidad", label: "Capacidad" },
+    { id: "tipo", label: "Tipo" },
+    { id: "agente", label: "Agente" },
+    { id: "tag", label: "TAG" },
+    { id: "lugar", label: "Lugar", full: true },
+    { id: "descripcion", label: "Descripción del equipo", full: true },
+  ],
+  items: [
+    { id: "manometro", texto: "Es legible la lectura del manómetro" },
+    { id: "presion", texto: "La presión del extintor es la adecuada" },
+    { id: "sello", texto: "El sello del extintor se conserva en buen estado" },
+    { id: "boquilla_manguera", texto: "La boquilla y manguera se observan en buen estado" },
+    { id: "manija", texto: "Está en buen estado su manija" },
+    {
+      id: "corrosion",
+      texto: "Se observan signos de corrosión en las partes metálicas del extintor",
+      criticoCuando: "si",
+    },
+    { id: "cilindro", texto: "Se conserva sin perforaciones, abolladuras y en buen estado el cilindro del extintor" },
+    { id: "seguro", texto: "El extintor conserva en buen estado su seguro" },
+    { id: "ubicacion", texto: "Se evaluó previamente la ubicación (soporte, visibilidad, acceso, señalización)" },
+    { id: "vigencia", texto: "Se encuentra vigente la fecha de inspección" },
+  ],
+  notas: ["La inspección debe hacerla el trabajador y el jefe inmediato del mismo."],
+};
+
 // ─── Máquina de soldar ──────────────────────────────────────────────────────
 
 const MAQUINA_SOLDAR: HerramientaPreop = {
@@ -410,12 +453,13 @@ const BOTIQUIN: HerramientaPreop = {
 // ─── Catálogo ───────────────────────────────────────────────────────────────
 
 export const HERRAMIENTAS_PREOP: HerramientaPreop[] = [
-  EPP,
-  TALADRO,
-  PULIDORA,
-  EXTENSIONES,
   MAQUINA_SOLDAR,
+  PULIDORA,
+  TALADRO,
+  EXTENSIONES,
+  EXTINTOR,
   BOTIQUIN,
+  EPP,
 ];
 
 export function getHerramientaPreop(id: string): HerramientaPreop | undefined {
