@@ -44,9 +44,10 @@ export default async function PresupuestoDetallePage({
     getRubrosBalance(supabase, params.proyectoId),
     getRubrosPorProyecto(supabase, params.proyectoId),
     listMovimientos(supabase, params.proyectoId),
-    // Aquí interesa la urgencia de cobro/pago, no el orden de registro.
-    listCxC(supabase, { proyectoId: params.proyectoId, orden: "vence_pronto" }),
-    listCxP(supabase, { proyectoId: params.proyectoId, orden: "vence_pronto" }),
+    // Solo pendientes/parciales; para CxC interesa la urgencia de vencimiento.
+    listCxC(supabase, { proyectoId: params.proyectoId, estado: "pendientes", orden: "vence_pronto" }),
+    // Solo pendientes/parciales, orden cronológico de registro (más reciente arriba).
+    listCxP(supabase, { proyectoId: params.proyectoId, estado: "pendientes", orden: "recientes" }),
   ]);
 
   const rubrosIngreso = rubros.filter((r) => r.categoria === "ingresos");
@@ -158,22 +159,28 @@ export default async function PresupuestoDetallePage({
       </div>
 
       <div>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Cuentas por cobrar</h2>
           {puedeFinanzas ? (
             <CxCFormDialog proyectoId={params.proyectoId} rubrosIngreso={rubrosIngreso} />
           ) : null}
         </div>
+        <p className="mb-4 text-xs text-[--text-secondary]">
+          Pendientes y parciales, ordenadas por vencimiento más próximo.
+        </p>
         <CxCTable cuentas={cxc} puedeEscribir={puedeFinanzas} />
       </div>
 
       <div>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-1 flex items-center justify-between">
           <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Cuentas por pagar</h2>
           {puedeFinanzas ? (
             <CxPFormDialog proyectoId={params.proyectoId} rubrosEgreso={rubrosEgreso} />
           ) : null}
         </div>
+        <p className="mb-4 text-xs text-[--text-secondary]">
+          Pendientes y parciales, ordenadas por fecha de registro más reciente.
+        </p>
         <CxPTable cuentas={cxp} puedeEscribir={puedeFinanzas} />
       </div>
     </div>
