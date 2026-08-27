@@ -76,6 +76,24 @@ export function puedeCrearFormularioSST(rol: UserRole | null | undefined): boole
 }
 
 /**
+ * Puede ENTRAR al módulo Inventario (Herramientas y EPP), en modo lectura.
+ * Por ahora solo `super_admin`: el inventario de herramientas no está segmentado
+ * por empresa (una unidad circula entre proyectos de distintos clientes), así
+ * que abrir la lectura a roles cliente expondría en qué obra de otra empresa
+ * está cada herramienta. Separado de `puedeGestionarInventario` para que abrir
+ * la lectura más adelante sea un cambio de una línea aquí (más relajar las
+ * policies de SELECT con `auth_puede_ver_proyecto`), no un rediseño.
+ */
+export function puedeVerInventario(rol: UserRole | null | undefined): boolean {
+  return esSuperAdmin(rol);
+}
+
+/** Puede crear, editar, asignar y devolver inventario (Herramientas y EPP). */
+export function puedeGestionarInventario(rol: UserRole | null | undefined): boolean {
+  return esSuperAdmin(rol);
+}
+
+/**
  * Puede editar los Partes Diarios (Bitácora).
  * Por petición, solo el super_admin puede editarlos.
  */
@@ -122,6 +140,7 @@ export type NavKey =
   | "personal"
   | "sst"
   | "finanzas"
+  | "inventario"
   | "admin";
 
 export type NavItemDef = {
@@ -136,6 +155,7 @@ const ALL_NAV: NavItemDef[] = [
   { key: "personal", label: "Personal", href: "/field-workers", icon: "HardHat" },
   { key: "sst", label: "Permisos", href: "/sst", icon: "ShieldAlert" },
   { key: "finanzas", label: "Finanzas", href: "/finanzas", icon: "Wallet" },
+  { key: "inventario", label: "Inventario", href: "/inventario", icon: "Package" },
   { key: "admin", label: "Administración", href: "/admin", icon: "ShieldCheck" },
 ];
 
@@ -143,7 +163,7 @@ const ALL_NAV: NavItemDef[] = [
 // para admin/financiero (ven cifras, no CTAs de escritura — ver
 // puedeGestionarPresupuesto); solo super_admin puede escribir.
 const NAV_BY_ROLE: Record<UserRole, NavKey[]> = {
-  super_admin: ["dashboard", "personal", "sst", "finanzas", "admin"],
+  super_admin: ["dashboard", "personal", "sst", "finanzas", "inventario", "admin"],
   admin: ["dashboard", "personal", "sst", "finanzas"],
   // El rol financiero solo opera Finanzas — no accede a ninguna otra sección.
   financiero: ["finanzas"],

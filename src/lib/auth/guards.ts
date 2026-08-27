@@ -4,6 +4,7 @@ import {
   esSuperAdmin,
   puedeGestionarFinanzas,
   puedeCrearFormularioSST,
+  puedeGestionarInventario,
   type PerfilUsuario,
 } from "@/lib/auth/roles";
 import type { TypedSupabaseClient } from "@/types/database.types";
@@ -63,6 +64,19 @@ export async function assertPuedeCrearFormularioSST(): Promise<GuardResult> {
   const result = await resolverPerfil();
   if (!puedeCrearFormularioSST(result.perfil.rol)) {
     throw new Error("No tiene permisos para diligenciar permisos SST.");
+  }
+  return result;
+}
+
+/**
+ * Exige permiso para gestionar Inventario (Herramientas y EPP): crear/editar
+ * catálogo y unidades, asignar, devolver y registrar movimientos de EPP. Por
+ * ahora solo `super_admin` (ver `puedeGestionarInventario`).
+ */
+export async function assertPuedeGestionarInventario(): Promise<GuardResult> {
+  const result = await resolverPerfil();
+  if (!puedeGestionarInventario(result.perfil.rol)) {
+    throw new Error("No tiene permisos para esta acción.");
   }
   return result;
 }

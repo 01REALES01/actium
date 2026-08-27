@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Calculator,
   Wallet,
+  Package,
   ChevronLeft,
   ChevronRight,
   type LucideIcon,
@@ -50,6 +51,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   ShieldAlert,
   Calculator,
   Wallet,
+  Package,
   ShieldCheck,
 };
 

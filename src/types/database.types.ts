@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -1406,6 +1406,155 @@ export type Database = {
           },
         ]
       }
+      epp_inventario: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          elemento_id: string | null
+          id: string
+          nombre: string
+          proyecto_id: string
+          stock_minimo: number
+          talla: string | null
+          unidad: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          elemento_id?: string | null
+          id?: string
+          nombre: string
+          proyecto_id: string
+          stock_minimo?: number
+          talla?: string | null
+          unidad?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          elemento_id?: string | null
+          id?: string
+          nombre?: string
+          proyecto_id?: string
+          stock_minimo?: number
+          talla?: string | null
+          unidad?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "epp_inventario_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_inventario_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_inventario_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "epp_inventario_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+        ]
+      }
+      epp_movimientos: {
+        Row: {
+          cantidad: number
+          created_at: string
+          empleado_id: string | null
+          entregado_a: string | null
+          fecha: string
+          formulario_id: string | null
+          id: string
+          inventario_id: string
+          motivo: string | null
+          registrado_por: string | null
+          tipo: Database["public"]["Enums"]["epp_movimiento_tipo"]
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          empleado_id?: string | null
+          entregado_a?: string | null
+          fecha?: string
+          formulario_id?: string | null
+          id?: string
+          inventario_id: string
+          motivo?: string | null
+          registrado_por?: string | null
+          tipo: Database["public"]["Enums"]["epp_movimiento_tipo"]
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          empleado_id?: string | null
+          entregado_a?: string | null
+          fecha?: string
+          formulario_id?: string | null
+          id?: string
+          inventario_id?: string
+          motivo?: string | null
+          registrado_por?: string | null
+          tipo?: Database["public"]["Enums"]["epp_movimiento_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "epp_movimientos_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_movimientos_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_movimientos_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "epp_inventario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_movimientos_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_saldos"
+            referencedColumns: ["inventario_id"]
+          },
+          {
+            foreignKeyName: "epp_movimientos_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       formulario_secuencias: {
         Row: {
           anio: number
@@ -1609,6 +1758,244 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_proyectos_finanzas"
             referencedColumns: ["proyecto_id"]
+          },
+        ]
+      }
+      herramienta_movimientos: {
+        Row: {
+          condicion_devolucion:
+            | Database["public"]["Enums"]["herramienta_condicion"]
+            | null
+          created_at: string
+          fecha_devolucion: string | null
+          fecha_salida: string
+          id: string
+          notas_devolucion: string | null
+          notas_salida: string | null
+          proyecto_id: string
+          registrado_por: string | null
+          responsable_id: string | null
+          responsable_nombre: string | null
+          unidad_id: string
+        }
+        Insert: {
+          condicion_devolucion?:
+            | Database["public"]["Enums"]["herramienta_condicion"]
+            | null
+          created_at?: string
+          fecha_devolucion?: string | null
+          fecha_salida?: string
+          id?: string
+          notas_devolucion?: string | null
+          notas_salida?: string | null
+          proyecto_id: string
+          registrado_por?: string | null
+          responsable_id?: string | null
+          responsable_nombre?: string | null
+          unidad_id: string
+        }
+        Update: {
+          condicion_devolucion?:
+            | Database["public"]["Enums"]["herramienta_condicion"]
+            | null
+          created_at?: string
+          fecha_devolucion?: string | null
+          fecha_salida?: string
+          id?: string
+          notas_devolucion?: string | null
+          notas_salida?: string | null
+          proyecto_id?: string
+          registrado_por?: string | null
+          responsable_id?: string | null
+          responsable_nombre?: string | null
+          unidad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herramienta_movimientos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_movimientos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "herramienta_movimientos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "herramienta_movimientos_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_movimientos_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_movimientos_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "herramienta_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      herramienta_unidades: {
+        Row: {
+          catalogo_id: string
+          codigo: string
+          costo_adquisicion: number | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          estado: Database["public"]["Enums"]["herramienta_estado"]
+          fecha_adquisicion: string | null
+          id: string
+          notas: string | null
+          proyecto_id: string | null
+          serial: string | null
+          updated_at: string
+        }
+        Insert: {
+          catalogo_id: string
+          codigo: string
+          costo_adquisicion?: number | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          estado?: Database["public"]["Enums"]["herramienta_estado"]
+          fecha_adquisicion?: string | null
+          id?: string
+          notas?: string | null
+          proyecto_id?: string | null
+          serial?: string | null
+          updated_at?: string
+        }
+        Update: {
+          catalogo_id?: string
+          codigo?: string
+          costo_adquisicion?: number | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          estado?: Database["public"]["Enums"]["herramienta_estado"]
+          fecha_adquisicion?: string | null
+          id?: string
+          notas?: string | null
+          proyecto_id?: string | null
+          serial?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herramienta_unidades_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "herramientas_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_unidades_catalogo_id_fkey"
+            columns: ["catalogo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_herramientas_disponibilidad"
+            referencedColumns: ["catalogo_id"]
+          },
+          {
+            foreignKeyName: "herramienta_unidades_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_unidades_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_unidades_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "herramienta_unidades_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+        ]
+      }
+      herramientas_catalogo: {
+        Row: {
+          activo: boolean
+          categoria: string | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          descripcion: string | null
+          foto_path: string | null
+          id: string
+          marca: string | null
+          nombre: string
+          unidad_medida: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          descripcion?: string | null
+          foto_path?: string | null
+          id?: string
+          marca?: string | null
+          nombre: string
+          unidad_medida?: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          descripcion?: string | null
+          foto_path?: string | null
+          id?: string
+          marca?: string | null
+          nombre?: string
+          unidad_medida?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herramientas_catalogo_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2511,6 +2898,44 @@ export type Database = {
       }
     }
     Views: {
+      vw_epp_saldos: {
+        Row: {
+          bajo_minimo: boolean | null
+          elemento_id: string | null
+          entregado: number | null
+          ingresado: number | null
+          inventario_id: string | null
+          nombre: string | null
+          proyecto_id: string | null
+          saldo: number | null
+          stock_minimo: number | null
+          talla: string | null
+          unidad: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "epp_inventario_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_inventario_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "epp_inventario_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+        ]
+      }
       vw_flujo_caja_quincenal: {
         Row: {
           categoria: Database["public"]["Enums"]["categoria_flujo"] | null
@@ -2544,6 +2969,22 @@ export type Database = {
             referencedColumns: ["proyecto_id"]
           },
         ]
+      }
+      vw_herramientas_disponibilidad: {
+        Row: {
+          activo: boolean | null
+          asignadas: number | null
+          catalogo_id: string | null
+          categoria: string | null
+          disponibles: number | null
+          en_mantenimiento: number | null
+          fuera_de_servicio: number | null
+          marca: string | null
+          nombre: string | null
+          total: number | null
+          unidad_medida: string | null
+        }
+        Relationships: []
       }
       vw_proyecto_resumen: {
         Row: {
@@ -2666,6 +3107,16 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      asignar_herramienta: {
+        Args: {
+          p_notas?: string
+          p_proyecto_id: string
+          p_responsable_id?: string
+          p_responsable_nombre?: string
+          p_unidad_id: string
+        }
+        Returns: string
+      }
       auth_empresa_id: { Args: never; Returns: string }
       auth_es_admin_o_superior: { Args: never; Returns: boolean }
       auth_es_financiero: { Args: never; Returns: boolean }
@@ -2727,6 +3178,14 @@ export type Database = {
         Returns: string
       }
       custom_access_token_hook: { Args: { event: Json }; Returns: Json }
+      devolver_herramienta: {
+        Args: {
+          p_condicion: Database["public"]["Enums"]["herramienta_condicion"]
+          p_notas?: string
+          p_unidad_id: string
+        }
+        Returns: string
+      }
       ejecutar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
@@ -2771,6 +3230,18 @@ export type Database = {
       }
       registrar_cobro_cxc: {
         Args: { p_cxc_id: string; p_fecha?: string; p_monto: number }
+        Returns: string
+      }
+      registrar_movimiento_epp: {
+        Args: {
+          p_cantidad: number
+          p_empleado_id?: string
+          p_entregado_a?: string
+          p_fecha?: string
+          p_inventario_id: string
+          p_motivo?: string
+          p_tipo: Database["public"]["Enums"]["epp_movimiento_tipo"]
+        }
         Returns: string
       }
       registrar_pago_cuota_cxp: {
@@ -2830,6 +3301,7 @@ export type Database = {
         | "certificacion_caliente"
         | "examen_medico"
         | "otro"
+      epp_movimiento_tipo: "ingreso" | "salida" | "ajuste"
       factura_estado: "pendiente" | "parcial" | "pagada" | "vencida" | "anulada"
       firma_momento: "inicio" | "fin"
       formulario_estado: "borrador" | "completado" | "firmado" | "archivado"
@@ -2837,8 +3309,15 @@ export type Database = {
         | "ats"
         | "permiso_altura"
         | "permiso_caliente"
-        | "preoperacional"
         | "entrega_epp"
+        | "preoperacional"
+      herramienta_condicion: "bueno" | "regular" | "malo"
+      herramienta_estado:
+        | "disponible"
+        | "asignada"
+        | "mantenimiento"
+        | "baja"
+        | "perdida"
       incidente_severidad: "leve" | "moderado" | "grave" | "critico"
       incidente_tipo: "incidente" | "accidente" | "casi_accidente"
       movimiento_estado:
@@ -3017,6 +3496,7 @@ export const Constants = {
         "examen_medico",
         "otro",
       ],
+      epp_movimiento_tipo: ["ingreso", "salida", "ajuste"],
       factura_estado: ["pendiente", "parcial", "pagada", "vencida", "anulada"],
       firma_momento: ["inicio", "fin"],
       formulario_estado: ["borrador", "completado", "firmado", "archivado"],
@@ -3024,8 +3504,16 @@ export const Constants = {
         "ats",
         "permiso_altura",
         "permiso_caliente",
-        "preoperacional",
         "entrega_epp",
+        "preoperacional",
+      ],
+      herramienta_condicion: ["bueno", "regular", "malo"],
+      herramienta_estado: [
+        "disponible",
+        "asignada",
+        "mantenimiento",
+        "baja",
+        "perdida",
       ],
       incidente_severidad: ["leve", "moderado", "grave", "critico"],
       incidente_tipo: ["incidente", "accidente", "casi_accidente"],
@@ -3074,3 +3562,6 @@ export type FacturaEstado = Enums<'factura_estado'>;
 export type DocumentoEmpleadoTipo = Enums<'documento_empleado_tipo'>;
 export type AusentismoTipo = Enums<'ausentismo_tipo'>;
 export type CuotaPeriodicidad = Enums<'cuota_periodicidad'>;
+export type HerramientaEstado = Enums<'herramienta_estado'>;
+export type HerramientaCondicion = Enums<'herramienta_condicion'>;
+export type EppMovimientoTipo = Enums<'epp_movimiento_tipo'>;
