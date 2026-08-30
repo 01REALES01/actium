@@ -18,9 +18,13 @@ import {
   BriefcaseMedical,
   HardHat,
   FireExtinguisher,
+  Anchor,
+  Construction,
   ClipboardCheck,
 } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
+import { FormularioFotos } from "./formulario-fotos";
+import type { FotoFormularioConUrl } from "@/lib/data/formularios-fotos";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -60,6 +64,8 @@ const ICONOS: Record<string, React.ComponentType<{ className?: string }>> = {
   BriefcaseMedical,
   HardHat,
   FireExtinguisher,
+  Anchor,
+  Construction,
 };
 
 function estadoInicial(): Record<string, EstadoHerramientaPreop> {
@@ -68,7 +74,14 @@ function estadoInicial(): Record<string, EstadoHerramientaPreop> {
   );
 }
 
-export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: string; nombre: string }[] }) {
+export function PreoperacionalForm({
+  proyectos = [],
+  puedeEliminarFotos = false,
+}: {
+  proyectos?: { id: string; nombre: string }[];
+  /** Borrar evidencia es más restrictivo que diligenciar: lo decide la página. */
+  puedeEliminarFotos?: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const borradorParam = searchParams.get("borradorId");
@@ -96,6 +109,9 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
   // 2. Herramientas inspeccionadas
   const [herramientas, setHerramientas] = useState<Record<string, EstadoHerramientaPreop>>(estadoInicial);
   const [observacionesGenerales, setObservacionesGenerales] = useState("");
+
+  // Registro fotográfico. Vive en su propia tabla, no en el payload del PDF.
+  const [fotos, setFotos] = useState<FotoFormularioConUrl[]>([]);
 
   // Firmas
   const [inspectorNombre, setInspectorNombre] = useState("");
@@ -180,6 +196,14 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
 
         if (res.pdfPath) setExistingPdfPath(res.pdfPath);
         if (res.proyectoId) setProyectoId(res.proyectoId);
+
+        // Las fotos no viven en el payload JSON: se leen de su propia tabla.
+        try {
+          const { listarFotosFormularioAction } = await import("@/lib/actions/formulario-fotos");
+          setFotos(await listarFotosFormularioAction(borradorParam!));
+        } catch (e) {
+          console.error("Error al cargar las fotos del borrador:", e);
+        }
 
         if (res.payload) {
           aplicarPayload(res.payload as PreoperacionalPDFData, { fallback: res.fallback });
@@ -358,6 +382,57 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
 
   // ─── Guardar borrador ───────────────────────────────────────────────────────
 
+  /**
+   * Persiste el borrador y devuelve su id. Lo comparten el botón de guardar y
+   * el registro fotográfico, que necesita una fila a la cual colgar las fotos.
+   */
+  const guardarBorrador = async (): Promise<string> => {
+    // El borrador guarda lo que hay en pantalla, sin los valores por defecto
+    // que solo aplican al emitir (empresa "ACTIUM", fecha de hoy).
+    const data: PreoperacionalPDFData = {
+      ...construirPayload(),
+      empresa: empresa.trim(),
+      fecha,
+    };
+
+    const formData = new FormData();
+    formData.append("payload", JSON.stringify(data));
+    formData.append("tipo", "preoperacional");
+    formData.append("proyectoId", proyectoId);
+    if (borradorId) formData.append("borradorId", borradorId);
+    if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
+    formData.append("area", data.area);
+    formData.append("ubicacion", data.ubicacion || "N/A");
+    formData.append("fechaInicio", data.fecha);
+
+    const { guardarBorradorAction } = await import("@/lib/actions/permisos-sst");
+    const res = await guardarBorradorAction(formData);
+
+    setBorradorId(res.id);
+    setExistingPdfPath(res.pdfPath);
+    return res.id;
+  };
+
+  /**
+   * Garantiza que exista la fila del formulario antes de adjuntar una foto.
+   * La inspección se diligencia contra un borrador que solo nace al guardarlo,
+   * así que la primera foto lo guarda por su cuenta en lugar de exigirle al
+   * inspector que recuerde pulsar "Guardar borrador" primero.
+   */
+  const asegurarBorrador = async (): Promise<string> => {
+    if (borradorId) return borradorId;
+
+    const bloqueantes = faltantesParaGuardar();
+    if (bloqueantes.length > 0) {
+      throw new Error(`Para adjuntar fotos falta ${listarFaltantes(bloqueantes)}.`);
+    }
+
+    const id = await guardarBorrador();
+    setAvisoPendiente(false);
+    setAvisoMsg("Se guardó el borrador para poder adjuntar las fotos.");
+    return id;
+  };
+
   const handleGuardarBorrador = async () => {
     setErrorMsg("");
     setAvisoMsg("");
@@ -371,29 +446,7 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
 
     setGuardandoBorrador(true);
     try {
-      // El borrador guarda lo que hay en pantalla, sin los valores por defecto
-      // que solo aplican al emitir (empresa "ACTIUM", fecha de hoy).
-      const data: PreoperacionalPDFData = {
-        ...construirPayload(),
-        empresa: empresa.trim(),
-        fecha,
-      };
-
-      const formData = new FormData();
-      formData.append("payload", JSON.stringify(data));
-      formData.append("tipo", "preoperacional");
-      formData.append("proyectoId", proyectoId);
-      if (borradorId) formData.append("borradorId", borradorId);
-      if (existingPdfPath) formData.append("existingPdfPath", existingPdfPath);
-      formData.append("area", data.area);
-      formData.append("ubicacion", data.ubicacion || "N/A");
-      formData.append("fechaInicio", data.fecha);
-
-      const { guardarBorradorAction } = await import("@/lib/actions/permisos-sst");
-      const res = await guardarBorradorAction(formData);
-
-      setBorradorId(res.id);
-      setExistingPdfPath(res.pdfPath);
+      await guardarBorrador();
 
       const pendientes = pendientesPorDiligenciar();
       setAvisoPendiente(pendientes.length > 0);
@@ -585,10 +638,20 @@ export function PreoperacionalForm({ proyectos = [] }: { proyectos?: { id: strin
         />
       </div>
 
+      {/* Registro fotográfico */}
+      <FormularioFotos
+        numero={HERRAMIENTAS_PREOP.length + 3}
+        formularioId={borradorId}
+        fotosIniciales={fotos}
+        puedeSubir
+        puedeEliminar={puedeEliminarFotos}
+        asegurarFormulario={asegurarBorrador}
+      />
+
       {/* Firmas */}
       <div className={CARD}>
         <h2 className={SECTION_TITLE_INLINE + " mb-6"}>
-          <span className={NUM}>{HERRAMIENTAS_PREOP.length + 3}</span> Firmas
+          <span className={NUM}>{HERRAMIENTAS_PREOP.length + 4}</span> Firmas
         </h2>
 
         <p className="mb-6 rounded-xl border border-white/5 bg-white/[0.02] p-4 text-[11px] leading-relaxed text-white/60">

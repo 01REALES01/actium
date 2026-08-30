@@ -153,7 +153,7 @@ export type NavItemDef = {
 const ALL_NAV: NavItemDef[] = [
   { key: "dashboard", label: "Proyectos", href: "/proyectos", icon: "FolderKanban" },
   { key: "personal", label: "Personal", href: "/field-workers", icon: "HardHat" },
-  { key: "sst", label: "Permisos", href: "/sst", icon: "ShieldAlert" },
+  { key: "sst", label: "SST", href: "/sst", icon: "ShieldAlert" },
   { key: "finanzas", label: "Finanzas", href: "/finanzas", icon: "Wallet" },
   { key: "inventario", label: "Inventario", href: "/inventario", icon: "Package" },
   { key: "admin", label: "Administración", href: "/admin", icon: "ShieldCheck" },

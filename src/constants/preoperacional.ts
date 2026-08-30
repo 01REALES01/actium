@@ -4,10 +4,11 @@
 // Un solo permiso reúne la inspección preoperacional de varias herramientas.
 // Cada herramienta conserva la escala de su formato original —el taladro y las
 // extensiones califican Bueno/Malo, la pulidora y los extintores responden
-// Sí/No, y la máquina de soldar distingue buen estado, estado aceptable y mal
-// estado—, porque así es como el personal ya las diligencia en papel. El
-// extintor se diligencia en papel por semana (columnas lunes a domingo); aquí
-// se inspecciona por día, como el resto de las herramientas: el registro
+// Sí/No, la máquina de soldar distingue buen estado, estado aceptable y mal
+// estado, y el arnés/eslinga y los andamios califican Conforme/No conforme—,
+// porque así es como el personal ya las diligencia en papel. El extintor se
+// diligencia en papel por semana (columnas lunes a domingo); aquí se
+// inspecciona por día, como el resto de las herramientas: el registro
 // semanal queda como siete permisos diarios.
 //
 // De cada herramienta pueden inspeccionarse VARIOS equipos en el mismo permiso
@@ -17,13 +18,18 @@
 // `unico` —los elementos de protección personal—: no se identifica ni se
 // repite, es un solo bloque por permiso.
 //
+// Regla de oro del arnés/eslinga y los andamios: un solo ítem No conforme deja
+// el equipo fuera de servicio (`etiquetaCritica`). El dictamen —APTO/NO APTO,
+// tarjeta verde/roja— no se captura aparte: se deriva de `esEquipoCritico`,
+// así es imposible firmar un equipo con hallazgos declarándolo apto.
+//
 // Agregar una nueva herramienta es agregar una entrada a HERRAMIENTAS_PREOP:
 // el formulario y el PDF se construyen a partir de este catálogo.
 // =============================================================================
 
 // ─── Escalas de calificación ────────────────────────────────────────────────
 
-export type EscalaId = "bueno_malo" | "si_no" | "estado_tres";
+export type EscalaId = "bueno_malo" | "si_no" | "estado_tres" | "conforme_nc";
 
 export type OpcionEscala = {
   id: string;
@@ -68,6 +74,16 @@ export const ESCALAS: Record<EscalaId, Escala> = {
     critico: "me",
     leyenda:
       "B.E.: nuevo o con poco uso · E.A.: con tiempo de servicio, cumple lo mínimo para seguir usándose · M.E.: debe retirarse de forma inmediata del área de trabajo",
+  },
+  conforme_nc: {
+    opciones: [
+      { id: "c", label: "Conforme", corto: "C" },
+      { id: "nc", label: "No conforme", corto: "NC" },
+      { id: "na", label: "No aplica", corto: "NA" },
+    ],
+    critico: "nc",
+    leyenda:
+      "C: conforme / buen estado · NC: no conforme / defectuoso · NA: no aplica. Un solo ítem NC inhabilita el equipo de inmediato.",
   },
 };
 
@@ -450,6 +466,184 @@ const BOTIQUIN: HerramientaPreop = {
   ],
 };
 
+// ─── Arnés y eslinga ─────────────────────────────────────────────────────────
+
+const ARNES_ESLINGA: HerramientaPreop = {
+  id: "arnes_eslinga",
+  nombre: "Arnés y eslinga",
+  singular: "conjunto de protección contra caídas",
+  subtitulo: "Inspección de arnés, eslingas y absorbedor",
+  icono: "Anchor",
+  escala: "conforme_nc",
+  modo: "chequeo",
+  etiquetaCritica: "NO APTO PARA USO",
+  identificacion: [
+    { id: "trabajador", label: "Trabajador / Usuario", full: true },
+    { id: "cedula", label: "Cédula / ID" },
+    { id: "marca", label: "Marca / Fabricante" },
+    { id: "modelo", label: "Modelo" },
+    { id: "sn_arnes", label: "SN arnés de cuerpo entero" },
+    { id: "sn_posicionamiento", label: "SN eslinga de posicionamiento" },
+    { id: "sn_absorbedor", label: "SN eslinga con absorbedor" },
+  ],
+  items: [
+    // 1. Arnés de seguridad
+    {
+      id: "cintas_reatas",
+      texto: "Cintas y reatas sin cortes, deshilachados, quemaduras, salpicaduras de soldadura o rigidez por químicos",
+      grupo: "Arnés de seguridad",
+    },
+    {
+      id: "costuras",
+      texto: "Costuras de seguridad con hilo continuo y contraste de color, sin hilos rotos, sueltos, desgastados o alterados",
+      grupo: "Arnés de seguridad",
+    },
+    {
+      id: "argollas_d",
+      texto: "Argollas en \"D\" sin fisuras, deformaciones, bordes cortantes, corrosión o desgaste mayor al 10% del espesor",
+      grupo: "Arnés de seguridad",
+    },
+    {
+      id: "hebillas_ajustadores",
+      texto: "Hebillas y ajustadores funcionan correctamente, sin deslizamiento involuntario",
+      grupo: "Arnés de seguridad",
+    },
+    {
+      id: "testigos_caida",
+      texto: "Testigo de caída intacto, sin signos de elongación o apertura por caídas previas",
+      grupo: "Arnés de seguridad",
+    },
+
+    // 2. Eslingas y absorbedores
+    {
+      id: "cuerpo_eslinga",
+      texto: "Cuerpo de la eslinga sin deshilachado, nudos, cortaduras o desgaste por abrasión/químicos",
+      grupo: "Eslingas y absorbedores",
+    },
+    {
+      id: "absorbedor_impacto",
+      texto: "Absorbedor de impacto con funda protectora intacta, sin aperturas ni rasgaduras",
+      grupo: "Eslingas y absorbedores",
+    },
+    {
+      id: "ganchos_mosquetones",
+      texto: "Ganchos y mosquetones con doble seguro automático funcional, cierran y traban completamente",
+      grupo: "Eslingas y absorbedores",
+    },
+    {
+      id: "casquillos_guardacabos",
+      texto: "Casquillos / guardacabos con terminales prensadas firmes, sin fisuras, holguras ni deformaciones",
+      grupo: "Eslingas y absorbedores",
+    },
+  ],
+  notas: [
+    "En caso de NO APTO, retirar el equipo y marcarlo fuera de servicio de inmediato: cortarlo o inhabilitarlo.",
+    "Registro obligatorio conforme a normativa de protección contra caídas (ANSI Z359 / OSHA / SG-SST).",
+  ],
+};
+
+// ─── Andamios ────────────────────────────────────────────────────────────────
+
+const ANDAMIOS: HerramientaPreop = {
+  id: "andamios",
+  nombre: "Andamios",
+  singular: "andamio",
+  subtitulo: "Inspección preoperacional de andamio",
+  icono: "Construction",
+  escala: "conforme_nc",
+  modo: "chequeo",
+  etiquetaCritica: "TARJETA ROJA — PROHIBIDO SU USO",
+  identificacion: [
+    { id: "ubicacion", label: "Ubicación / Sector", full: true },
+    { id: "tipo", label: "Tipo de andamio" },
+    { id: "altura", label: "Altura aprox. (m)" },
+    { id: "cuerpos", label: "N.º de cuerpos / niveles" },
+  ],
+  items: [
+    // 1. Base y apoyo de la estructura
+    {
+      id: "terreno",
+      texto: "Terreno nivelado, firme y compactado, sin riesgo de hundimiento",
+      grupo: "Base y apoyo de la estructura",
+    },
+    {
+      id: "niveladores",
+      texto: "Tornillos niveladores y bases regulables (platos/soleras de madera)",
+      grupo: "Base y apoyo de la estructura",
+    },
+    {
+      id: "ruedas_freno",
+      texto: "Ruedas con freno de seguridad operativo y bloqueado, si aplica",
+      grupo: "Base y apoyo de la estructura",
+    },
+
+    // 2. Estructura, tubos y elementos de unión
+    {
+      id: "verticales_horizontales",
+      texto: "Verticales, horizontales y diagonales libres de fisuras, abolladuras o corrosión",
+      grupo: "Estructura, tubos y elementos de unión",
+    },
+    {
+      id: "crucetas_diagonales",
+      texto: "Crucetas y diagonales completas instaladas en todos sus niveles",
+      grupo: "Estructura, tubos y elementos de unión",
+    },
+    {
+      id: "grapas_pines",
+      texto: "Grapas, rosetas, clavijas y pines de seguridad ajustados e intactos",
+      grupo: "Estructura, tubos y elementos de unión",
+    },
+    {
+      id: "arriostramiento",
+      texto: "Arriostramiento / anclaje a estructura fija (cada 4 m de altura aproximadamente)",
+      grupo: "Estructura, tubos y elementos de unión",
+    },
+
+    // 3. Plataformas de trabajo y accesos
+    {
+      id: "plataformas",
+      texto: "Plataformas metálicas/antideslizantes completas, sin huecos y aseguradas",
+      grupo: "Plataformas de trabajo y accesos",
+    },
+    {
+      id: "escaleras_acceso",
+      texto: "Escaleras de acceso internas completas con su escotilla de seguridad",
+      grupo: "Plataformas de trabajo y accesos",
+    },
+    {
+      id: "rodapies",
+      texto: "Rodapiés / guardapiés instalados en todo el perímetro de la plataforma",
+      grupo: "Plataformas de trabajo y accesos",
+    },
+
+    // 4. Barandas y dispositivos de seguridad
+    {
+      id: "barandas",
+      texto: "Baranda superior (1,00 m - 1,20 m) y baranda intermedia instaladas",
+      grupo: "Barandas y dispositivos de seguridad",
+    },
+    {
+      id: "punto_anclaje",
+      texto: "Punto de anclaje independiente para líneas de vida / arnés",
+      grupo: "Barandas y dispositivos de seguridad",
+    },
+    {
+      id: "lineas_alta_tension",
+      texto: "Ausencia de líneas eléctricas de alta tensión cercanas (distancia mínima de seguridad)",
+      grupo: "Barandas y dispositivos de seguridad",
+    },
+    {
+      id: "tarjeta_senalizacion",
+      texto: "Tarjeta de señalización visible",
+      grupo: "Barandas y dispositivos de seguridad",
+    },
+  ],
+  notas: [
+    "La tarjeta se estampa según el resultado: verde cuando el andamio queda conforme y apto para uso, roja cuando hay al menos un ítem no conforme, está en montaje o su uso está prohibido.",
+    "El inspector debe colocar la tarjeta física correspondiente antes de habilitar el andamio.",
+  ],
+};
+
 // ─── Catálogo ───────────────────────────────────────────────────────────────
 
 export const HERRAMIENTAS_PREOP: HerramientaPreop[] = [
@@ -460,6 +654,8 @@ export const HERRAMIENTAS_PREOP: HerramientaPreop[] = [
   EXTINTOR,
   BOTIQUIN,
   EPP,
+  ARNES_ESLINGA,
+  ANDAMIOS,
 ];
 
 export function getHerramientaPreop(id: string): HerramientaPreop | undefined {

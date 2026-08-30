@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
+import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/lib/auth/roles";
 import { PreoperacionalForm } from "@/components/sst/preoperacional-form";
 import { listProyectos } from "@/lib/data/proyectos";
 
@@ -47,7 +47,10 @@ export default async function PreoperacionalPage() {
       </div>
 
       <Suspense fallback={<div className="text-white/50 text-xs py-8">Cargando formulario...</div>}>
-        <PreoperacionalForm proyectos={proyectos} />
+        <PreoperacionalForm
+          proyectos={proyectos}
+          puedeEliminarFotos={puedeGestionarSST(perfil?.rol)}
+        />
       </Suspense>
     </div>
   );

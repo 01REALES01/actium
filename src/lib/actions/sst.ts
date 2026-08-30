@@ -45,7 +45,21 @@ export async function eliminarFormularioAction(formularioId: string): Promise<vo
       .remove([form.pdf_generado_path, form.pdf_generado_path.replace(/\.pdf$/, ".json")]);
   }
 
-  // 3. Eliminar el formulario (en cascada se borran los registros de las tablas hijas)
+  // 3. Borrar las fotos del registro fotográfico. El ON DELETE CASCADE limpia
+  // las filas de formulario_fotos, pero no los objetos del bucket: hay que
+  // recogerlos antes de que desaparezcan las rutas.
+  const dbFotos = createAdminClient();
+  const { data: fotos } = await dbFotos
+    .from("formulario_fotos")
+    .select("storage_path")
+    .eq("formulario_id", formularioId);
+
+  const rutasFotos = (fotos ?? []).map((f) => f.storage_path);
+  if (rutasFotos.length > 0) {
+    await dbFotos.storage.from("fotos-proyectos").remove(rutasFotos);
+  }
+
+  // 4. Eliminar el formulario (en cascada se borran los registros de las tablas hijas)
   const adminSupabase = createAdminClient();
   const { error } = await adminSupabase
     .from("formularios")
