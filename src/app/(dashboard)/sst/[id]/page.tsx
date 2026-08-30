@@ -7,6 +7,8 @@ import { getPerfilActual, puedeCrearFormularioSST, puedeGestionarSST } from "@/l
 import { PersonalEjecutor, type TrabajadorItem } from "@/components/sst/personal-ejecutor";
 import { AtsAcciones } from "@/components/sst/ats-acciones";
 import { BotonEliminarSST } from "@/components/sst/boton-eliminar-sst";
+import { FormularioFotos } from "@/components/sst/formulario-fotos";
+import { getFotosFormulario } from "@/lib/data/formularios-fotos";
 import type { Tables } from "@/types/database.types";
 import { RUTA_FORMULARIO_SST, NOMBRE_TIPO_SST, tieneCierre } from "@/lib/sst/tipos";
 
@@ -70,6 +72,25 @@ export default async function FormularioDetallePage({ params }: Props) {
         .single()
     : { data: null };
   const creador = creadorResult.data as { nombre: string; email: string } | null;
+
+  // Registro fotográfico. La tabla es genérica por formulario_id; por ahora la
+  // usan la inspección preoperacional y la charla de seguridad.
+  const esPreoperacional = form.tipo === "preoperacional";
+  const esCharlaSeguridad = form.tipo === "charla_seguridad";
+  const conFotos = esPreoperacional || esCharlaSeguridad;
+  const fotos = conFotos ? await getFotosFormulario(supabase, form.id) : [];
+
+  // Charla de seguridad: cabecera y asistentes.
+  let charla: Tables<"charla_seguridad"> | null = null;
+  let charlaAsistentes: Tables<"charla_asistentes">[] = [];
+  if (esCharlaSeguridad) {
+    const [charlaRes, asistentesRes] = await Promise.all([
+      supabase.from("charla_seguridad").select("*").eq("formulario_id", form.id).maybeSingle(),
+      supabase.from("charla_asistentes").select("*").eq("formulario_id", form.id).order("orden"),
+    ]);
+    charla = charlaRes.data as Tables<"charla_seguridad"> | null;
+    charlaAsistentes = (asistentesRes.data as Tables<"charla_asistentes">[]) ?? [];
+  }
 
   // Si es ATS, obtener pasos y trabajadores
   let atsPasos: any[] = [];
@@ -268,6 +289,106 @@ export default async function FormularioDetallePage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Charla de seguridad: temas y asistentes */}
+      {esCharlaSeguridad && charla && (
+        <div className="rounded-xl border border-white/5 bg-[#1A1A1A] p-6 shadow-2xl">
+          <h2 className="text-xs font-bold tracking-widest text-white/50 uppercase mb-6">Charla de seguridad</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div>
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Tema</p>
+              <p className="text-sm font-medium text-white/80 mt-0.5">{charla.tema}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Capacitador</p>
+              <p className="text-sm font-medium text-white/80 mt-0.5">
+                {charla.capacitador_nombre}
+                {charla.capacitador_cargo && <span className="text-white/30"> · {charla.capacitador_cargo}</span>}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Duración</p>
+              <p className="text-sm font-medium text-white/80 mt-0.5">
+                {charla.duracion_minutos ? `${charla.duracion_minutos} min` : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Resultado general</p>
+              <p className="text-sm font-medium text-white/80 mt-0.5">{charla.resultado_general || "—"}</p>
+            </div>
+          </div>
+
+          <h3 className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">
+            Asistentes ({charlaAsistentes.length})
+          </h3>
+          {charlaAsistentes.length === 0 ? (
+            <p className="text-xs text-white/40">No se registraron asistentes.</p>
+          ) : (
+            <>
+              {/* Móvil: tarjetas apiladas */}
+              <div className="space-y-2 sm:hidden">
+                {charlaAsistentes.map((a) => (
+                  <div key={a.id} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                    <p className="text-sm font-bold text-white">{a.nombre}</p>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5">
+                      {a.cargo || "Sin cargo"} · {a.empresa || "—"}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-[10px] uppercase tracking-widest">
+                      <span className={a.firmo ? "text-emerald-400" : "text-white/30"}>
+                        {a.firmo ? "Firmó" : "Sin firmar"}
+                      </span>
+                      {a.evaluacion && <span className="text-white/30">· {a.evaluacion}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Escritorio: tabla */}
+              <div className="hidden sm:block overflow-x-auto rounded-lg border border-white/5">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-actium-espresso text-white uppercase tracking-wider">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">N°</th>
+                      <th className="px-3 py-2 font-semibold">Nombre</th>
+                      <th className="px-3 py-2 font-semibold">Cargo</th>
+                      <th className="px-3 py-2 font-semibold">Empresa</th>
+                      <th className="px-3 py-2 font-semibold">Evaluación</th>
+                      <th className="px-3 py-2 font-semibold">Firmó</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {charlaAsistentes.map((a) => (
+                      <tr key={a.id} className="border-b border-white/5 text-white/70">
+                        <td className="px-3 py-2">{a.orden}</td>
+                        <td className="px-3 py-2 font-medium text-white">{a.nombre}</td>
+                        <td className="px-3 py-2">{a.cargo || "—"}</td>
+                        <td className="px-3 py-2">{a.empresa || "—"}</td>
+                        <td className="px-3 py-2">{a.evaluacion || "—"}</td>
+                        <td className="px-3 py-2">
+                          {a.firmo ? (
+                            <span className="text-emerald-400">Sí</span>
+                          ) : (
+                            <span className="text-white/30">No</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Registro fotográfico */}
+      {conFotos && (
+        <FormularioFotos
+          formularioId={form.id}
+          fotosIniciales={fotos}
+          puedeSubir={puedeGestionar}
+          puedeEliminar={puedeEliminar}
+        />
+      )}
 
       {/* ATS: Secuencia de Pasos */}
       {form.tipo === "ats" && atsPasos.length > 0 && (

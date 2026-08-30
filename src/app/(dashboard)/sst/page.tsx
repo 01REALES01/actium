@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   HardHat,
   ChevronRight,
+  Megaphone,
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -78,6 +79,7 @@ export default async function SstDashboardPage({
     permiso_caliente: <Flame className="h-4 w-4 text-danger" />,
     preoperacional: <ClipboardCheck className="h-4 w-4 text-actium-sandy" />,
     entrega_epp: <HardHat className="h-4 w-4 text-actium-amber" />,
+    charla_seguridad: <Megaphone className="h-4 w-4 text-info" />,
   };
 
   const tipoLabel = ETIQUETA_TIPO_SST;
@@ -123,6 +125,14 @@ export default async function SstDashboardPage({
       iconoBg: "bg-actium-amber/10 border-actium-amber/20 text-actium-amber",
       subtituloColor: "text-actium-amber",
     },
+    {
+      href: "/sst/charla-seguridad",
+      titulo: "Charla de Seguridad",
+      subtitulo: "Registro de Capacitación",
+      icono: <Megaphone className="h-6 w-6" strokeWidth={1.5} />,
+      iconoBg: "bg-info/10 border-info/20 text-info",
+      subtituloColor: "text-info",
+    },
   ];
 
   return (
@@ -130,7 +140,7 @@ export default async function SstDashboardPage({
       <div className="flex flex-col gap-4">
         <div>
           <h1 className="font-display text-[28px] tracking-tight text-text-primary uppercase md:text-[32px]">
-            Gestión de Permisos
+            Gestión SST
           </h1>
           <p className="mt-2 max-w-2xl text-sm font-normal text-text-secondary">
             Control de permisos de trabajo, análisis de seguridad y registros digitales en campo.

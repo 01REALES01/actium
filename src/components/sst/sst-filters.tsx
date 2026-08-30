@@ -41,6 +41,7 @@ export function SSTFilters({ currentTipo, currentEstado }: SSTFiltersProps) {
         <option value="permiso_caliente">Caliente</option>
         <option value="preoperacional">Preoperacional</option>
         <option value="entrega_epp">Entrega EPP</option>
+        <option value="charla_seguridad">Charla</option>
       </select>
 
       <label className="sr-only" htmlFor="filtro-estado-sst">

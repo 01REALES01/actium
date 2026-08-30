@@ -347,6 +347,63 @@ async function sincronizarEntregaEpp(db: any, formularioId: string, payloadStr: 
   }
 }
 
+// ─── Charla de seguridad: tabla hija ─────────────────────────────────────────
+
+/**
+ * Sincroniza la cabecera y los asistentes de la charla con lo que hay en el
+ * payload. A diferencia de ats/altura/caliente, aquí los asistentes pueden
+ * cambiar en cada guardado —se agregan o quitan mientras se diligencia—, así
+ * que se reescriben por completo en cada guardado de borrador y en la emisión
+ * final. Esto es lo que permite consultar qué charlas recibió un trabajador
+ * sin tener que abrir cada PDF. La firma (PNG) vive solo en el JSON: aquí se
+ * guarda únicamente el hecho de haber firmado.
+ */
+async function sincronizarCharlaSeguridad(db: any, formularioId: string, payloadStr: string): Promise<void> {
+  let data: any;
+  try {
+    data = JSON.parse(payloadStr);
+  } catch {
+    return;
+  }
+
+  const fecha = data.fecha || hoyLocal();
+
+  await db.from("charla_seguridad").upsert({
+    formulario_id: formularioId,
+    tipo_actividad: data.tipoActividad || null,
+    modalidad: data.modalidad || null,
+    tema: (data.tema || "").trim() || "Sin definir",
+    objetivo: (data.objetivo || "").trim() || null,
+    capacitador_nombre: (data.capacitadorNombre || "").trim() || "Sin definir",
+    capacitador_cargo: (data.capacitadorCargo || "").trim() || null,
+    lugar: (data.lugar || "").trim() || null,
+    fecha,
+    hora_inicio: data.horaInicio || null,
+    hora_fin: data.horaFin || null,
+    duracion_minutos: data.duracionMinutos || null,
+    resultado_general: data.resultadoGeneral || null,
+  });
+
+  await db.from("charla_asistentes").delete().eq("formulario_id", formularioId);
+
+  const asistentes: any[] = (data.asistentes ?? []).filter((a: any) => a.nombre?.trim());
+  if (asistentes.length > 0) {
+    await db.from("charla_asistentes").insert(
+      asistentes.map((a, i) => ({
+        formulario_id: formularioId,
+        empleado_id: a.empleadoId || null,
+        orden: i + 1,
+        nombre: a.nombre.trim(),
+        identificacion: (a.identificacion || "").trim() || null,
+        cargo: (a.cargo || "").trim() || null,
+        empresa: (a.empresa || "").trim() || null,
+        evaluacion: a.evaluacion || null,
+        firmo: Boolean(a.firma),
+      })),
+    );
+  }
+}
+
 export async function guardarPdfYDatosFormularioAction(formData: FormData): Promise<{
   id: string;
   pdfPath: string;
@@ -458,6 +515,8 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
 
     if (tipo === "entrega_epp") {
       await sincronizarEntregaEpp(db, existingId, payloadStr);
+    } else if (tipo === "charla_seguridad") {
+      await sincronizarCharlaSeguridad(db, existingId, payloadStr);
     }
   } else if (proyectoId) {
     // Modo creación con proyecto
@@ -491,6 +550,8 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
       await (db.from("ats_detalles") as any).insert({ formulario_id: formularioId });
     } else if (tipo === "entrega_epp") {
       await sincronizarEntregaEpp(db, formularioId, payloadStr);
+    } else if (tipo === "charla_seguridad") {
+      await sincronizarCharlaSeguridad(db, formularioId, payloadStr);
     }
   }
 
@@ -693,6 +754,8 @@ export async function guardarBorradorAction(formData: FormData): Promise<{
 
     if (tipo === "entrega_epp") {
       await sincronizarEntregaEpp(db, borradorId, payloadStr);
+    } else if (tipo === "charla_seguridad") {
+      await sincronizarCharlaSeguridad(db, borradorId, payloadStr);
     }
   } else {
     const { data: formRow, error: errInsert } = await (db.from("formularios") as any)
@@ -724,6 +787,8 @@ export async function guardarBorradorAction(formData: FormData): Promise<{
       await (db.from("ats_detalles") as any).insert({ formulario_id: formularioId });
     } else if (tipo === "entrega_epp") {
       await sincronizarEntregaEpp(db, formularioId, payloadStr);
+    } else if (tipo === "charla_seguridad") {
+      await sincronizarCharlaSeguridad(db, formularioId, payloadStr);
     }
   }
 

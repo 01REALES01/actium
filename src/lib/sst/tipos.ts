@@ -15,6 +15,7 @@ export const NOMBRE_TIPO_SST: Record<FormularioTipo, string> = {
   permiso_caliente: "Permiso de Trabajo en Caliente",
   preoperacional: "Inspecciones Preoperacionales",
   entrega_epp: "Formato Entrega EPP",
+  charla_seguridad: "Registro de Capacitación / Charla de Seguridad",
 };
 
 /** Rótulo corto, para tablas, filtros y tarjetas de la bitácora. */
@@ -24,6 +25,7 @@ export const ETIQUETA_TIPO_SST: Record<FormularioTipo, string> = {
   permiso_caliente: "Caliente",
   preoperacional: "Preoperacional",
   entrega_epp: "Entrega EPP",
+  charla_seguridad: "Charla",
 };
 
 /** Ruta del formulario de cada tipo, para continuar borradores o cerrar permisos. */
@@ -33,6 +35,7 @@ export const RUTA_FORMULARIO_SST: Record<FormularioTipo, string> = {
   permiso_caliente: "/sst/permiso-caliente",
   preoperacional: "/sst/preoperacional",
   entrega_epp: "/sst/entrega-epp",
+  charla_seguridad: "/sst/charla-seguridad",
 };
 
 /**
@@ -56,4 +59,5 @@ export const TIPOS_SST: FormularioTipo[] = [
   "permiso_caliente",
   "preoperacional",
   "entrega_epp",
+  "charla_seguridad",
 ];

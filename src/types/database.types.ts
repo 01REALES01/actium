@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   graphql_public: {
     Tables: {
@@ -728,6 +728,119 @@ export type Database = {
             foreignKeyName: "caliente_verificacion_formulario_id_fkey"
             columns: ["formulario_id"]
             isOneToOne: false
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charla_asistentes: {
+        Row: {
+          cargo: string | null
+          empleado_id: string | null
+          empresa: string | null
+          evaluacion: string | null
+          firmo: boolean
+          formulario_id: string
+          id: string
+          identificacion: string | null
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          cargo?: string | null
+          empleado_id?: string | null
+          empresa?: string | null
+          evaluacion?: string | null
+          firmo?: boolean
+          formulario_id: string
+          id?: string
+          identificacion?: string | null
+          nombre: string
+          orden: number
+        }
+        Update: {
+          cargo?: string | null
+          empleado_id?: string | null
+          empresa?: string | null
+          evaluacion?: string | null
+          firmo?: boolean
+          formulario_id?: string
+          id?: string
+          identificacion?: string | null
+          nombre?: string
+          orden?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charla_asistentes_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charla_asistentes_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "charla_seguridad"
+            referencedColumns: ["formulario_id"]
+          },
+        ]
+      }
+      charla_seguridad: {
+        Row: {
+          capacitador_cargo: string | null
+          capacitador_nombre: string
+          created_at: string
+          duracion_minutos: number | null
+          fecha: string
+          formulario_id: string
+          hora_fin: string | null
+          hora_inicio: string | null
+          lugar: string | null
+          modalidad: string | null
+          objetivo: string | null
+          resultado_general: string | null
+          tema: string
+          tipo_actividad: string | null
+        }
+        Insert: {
+          capacitador_cargo?: string | null
+          capacitador_nombre: string
+          created_at?: string
+          duracion_minutos?: number | null
+          fecha: string
+          formulario_id: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          lugar?: string | null
+          modalidad?: string | null
+          objetivo?: string | null
+          resultado_general?: string | null
+          tema: string
+          tipo_actividad?: string | null
+        }
+        Update: {
+          capacitador_cargo?: string | null
+          capacitador_nombre?: string
+          created_at?: string
+          duracion_minutos?: number | null
+          fecha?: string
+          formulario_id?: string
+          hora_fin?: string | null
+          hora_inicio?: string | null
+          lugar?: string | null
+          modalidad?: string | null
+          objetivo?: string | null
+          resultado_general?: string | null
+          tema?: string
+          tipo_actividad?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charla_seguridad_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: true
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
@@ -1549,6 +1662,54 @@ export type Database = {
           {
             foreignKeyName: "epp_movimientos_registrado_por_fkey"
             columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      formulario_fotos: {
+        Row: {
+          descripcion: string | null
+          formulario_id: string
+          id: string
+          nombre: string | null
+          storage_path: string
+          subido_por: string | null
+          tamano_bytes: number | null
+          uploaded_at: string
+        }
+        Insert: {
+          descripcion?: string | null
+          formulario_id: string
+          id?: string
+          nombre?: string | null
+          storage_path: string
+          subido_por?: string | null
+          tamano_bytes?: number | null
+          uploaded_at?: string
+        }
+        Update: {
+          descripcion?: string | null
+          formulario_id?: string
+          id?: string
+          nombre?: string | null
+          storage_path?: string
+          subido_por?: string | null
+          tamano_bytes?: number | null
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formulario_fotos_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "formularios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formulario_fotos_subido_por_fkey"
+            columns: ["subido_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -3311,6 +3472,7 @@ export type Database = {
         | "permiso_caliente"
         | "entrega_epp"
         | "preoperacional"
+        | "charla_seguridad"
       herramienta_condicion: "bueno" | "regular" | "malo"
       herramienta_estado:
         | "disponible"
@@ -3506,6 +3668,7 @@ export const Constants = {
         "permiso_caliente",
         "entrega_epp",
         "preoperacional",
+        "charla_seguridad",
       ],
       herramienta_condicion: ["bueno", "regular", "malo"],
       herramienta_estado: [
