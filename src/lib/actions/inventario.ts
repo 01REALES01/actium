@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { assertPuedeGestionarInventario } from "@/lib/auth/guards";
 import { revalidarInventario } from "@/lib/actions/revalidar-inventario";
+import { uploadPdfConteo } from "@/lib/storage";
 
 const HerramientaCondicionEnum = z.enum(["bueno", "regular", "malo"]);
 const EppMovimientoTipoEnum = z.enum(["ingreso", "salida", "ajuste"]);
@@ -89,25 +90,17 @@ export async function eliminarCatalogoAction(catalogoId: string): Promise<void> 
 
   const { supabase } = await assertPuedeGestionarInventario();
 
-  const { count, error: countError } = await supabase
-    .from("herramienta_unidades")
-    .select("id", { count: "exact", head: true })
-    .eq("catalogo_id", parsed.data)
-    .is("deleted_at", null);
+  const { error } = await supabase.rpc("eliminar_catalogo_herramienta", {
+    p_catalogo_id: parsed.data,
+  });
 
-  if (countError) throw new Error(countError.message);
-  if (count && count > 0) {
-    throw new Error(
-      "No es posible eliminar este tipo: todavía tiene unidades registradas. Elimínalas primero.",
-    );
+  if (error) {
+    if (error.code === "23514")
+      throw new Error("No es posible eliminar este tipo: todavía tiene unidades registradas. Elimínalas primero.");
+    if (error.code === "P0002") throw new Error("Catálogo no encontrado.");
+    throw new Error(error.message);
   }
 
-  const { error } = await supabase
-    .from("herramientas_catalogo")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", parsed.data);
-
-  if (error) throw new Error(error.message);
   revalidarInventario();
 }
 
@@ -225,25 +218,17 @@ export async function eliminarUnidadAction(unidadId: string): Promise<void> {
 
   const { supabase } = await assertPuedeGestionarInventario();
 
-  const { data: unidad, error: unidadError } = await supabase
-    .from("herramienta_unidades")
-    .select("estado")
-    .eq("id", parsed.data)
-    .is("deleted_at", null)
-    .maybeSingle();
+  const { error } = await supabase.rpc("eliminar_unidad_herramienta", {
+    p_unidad_id: parsed.data,
+  });
 
-  if (unidadError) throw new Error(unidadError.message);
-  if (!unidad) throw new Error("Herramienta no encontrada.");
-  if (unidad.estado === "asignada") {
-    throw new Error("La herramienta está asignada; debe devolverse antes de eliminarla.");
+  if (error) {
+    if (error.code === "23514")
+      throw new Error("La herramienta está asignada; debe devolverse antes de eliminarla.");
+    if (error.code === "P0002") throw new Error("Herramienta no encontrada.");
+    throw new Error(error.message);
   }
 
-  const { error } = await supabase
-    .from("herramienta_unidades")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", parsed.data);
-
-  if (error) throw new Error(error.message);
   revalidarInventario();
 }
 
@@ -310,6 +295,150 @@ export async function devolverHerramientaAction(
 
   revalidarInventario();
   return { id: data };
+}
+
+// ─── Conteos de herramientas (Hacer Inventario) ────────────────────────────
+
+const AbrirConteoSchema = z.object({
+  proyectoId: z.string().uuid().nullable(),
+});
+
+export async function abrirConteoAction(
+  input: z.infer<typeof AbrirConteoSchema>,
+): Promise<{ id: string }> {
+  const parsed = AbrirConteoSchema.safeParse(input);
+  if (!parsed.success) throw new Error(`Datos inválidos: ${parsed.error.message}`);
+
+  const { supabase } = await assertPuedeGestionarInventario();
+  const { data, error } = await supabase.rpc("abrir_conteo_herramientas", {
+    p_proyecto_id: parsed.data.proyectoId,
+  });
+
+  if (error) {
+    if (error.code === "23514") throw new Error(error.message);
+    if (error.code === "P0002") throw new Error("Proyecto no encontrado.");
+    throw new Error(error.message);
+  }
+  if (!data) throw new Error("La RPC no devolvió el id del conteo creado.");
+
+  revalidarInventario();
+  return { id: data };
+}
+
+const MarcarItemConteoSchema = z.object({
+  itemId: z.string().uuid(),
+  resultado: z.enum(["existe", "novedad", "faltante"]),
+  nota: z.string().max(300).optional(),
+});
+
+export async function marcarItemConteoAction(
+  input: z.infer<typeof MarcarItemConteoSchema>,
+): Promise<void> {
+  const parsed = MarcarItemConteoSchema.safeParse(input);
+  if (!parsed.success) throw new Error(`Datos inválidos: ${parsed.error.message}`);
+
+  const { supabase } = await assertPuedeGestionarInventario();
+  const { error } = await supabase.rpc("marcar_item_conteo", {
+    p_item_id: parsed.data.itemId,
+    p_resultado: parsed.data.resultado,
+    p_nota: parsed.data.nota ?? null,
+  });
+
+  if (error) {
+    if (error.code === "23514") throw new Error("Este conteo ya está cerrado y no admite cambios.");
+    if (error.code === "P0002") throw new Error("Ítem de conteo no encontrado.");
+    throw new Error(error.message);
+  }
+
+  revalidarInventario();
+}
+
+/**
+ * Cierra el conteo (exige todos los ítems marcados) y sube el acta en PDF ya
+ * generada en el cliente. El PDF se sube después de que la RPC confirma el
+ * cierre: no tiene sentido guardar un acta de un conteo que no pudo cerrarse.
+ */
+export async function cerrarConteoAction(formData: FormData): Promise<{ id: string }> {
+  const conteoId = z.string().uuid().parse(formData.get("conteoId"));
+  const responsableNombre = z.string().min(1).max(160).parse(formData.get("responsableNombre"));
+  const observacionesRaw = formData.get("observaciones");
+  const observaciones = z
+    .string()
+    .max(1000)
+    .optional()
+    .parse(typeof observacionesRaw === "string" && observacionesRaw ? observacionesRaw : undefined);
+  const pdfFile = formData.get("pdfFile");
+  if (!(pdfFile instanceof Blob)) throw new Error("Falta el PDF del acta.");
+
+  const { supabase } = await assertPuedeGestionarInventario();
+
+  const { error: cerrarError } = await supabase.rpc("cerrar_conteo_herramientas", {
+    p_conteo_id: conteoId,
+    p_responsable_nombre: responsableNombre,
+    p_observaciones: observaciones ?? null,
+  });
+
+  if (cerrarError) {
+    if (cerrarError.code === "23514") throw new Error(cerrarError.message);
+    if (cerrarError.code === "P0002") throw new Error("Conteo no encontrado.");
+    throw new Error(cerrarError.message);
+  }
+
+  const pdfPath = await uploadPdfConteo(supabase, pdfFile, { conteoId });
+
+  const { error: updateError } = await supabase
+    .from("herramienta_conteos")
+    .update({ pdf_path: pdfPath })
+    .eq("id", conteoId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  revalidarInventario();
+  return { id: conteoId };
+}
+
+export async function marcarFaltantesPerdidasAction(conteoId: string): Promise<{ afectadas: number }> {
+  const parsed = z.string().uuid().safeParse(conteoId);
+  if (!parsed.success) throw new Error("Identificador de conteo inválido.");
+
+  const { supabase } = await assertPuedeGestionarInventario();
+  const { data, error } = await supabase.rpc("marcar_faltantes_como_perdidas", {
+    p_conteo_id: parsed.data,
+  });
+
+  if (error) {
+    if (error.code === "23514") throw new Error(error.message);
+    if (error.code === "P0002") throw new Error("Conteo no encontrado.");
+    throw new Error(error.message);
+  }
+
+  revalidarInventario();
+  return { afectadas: data ?? 0 };
+}
+
+/** Elimina un conteo en borrador (cascada a sus ítems). Un conteo cerrado es el acta y no se borra. */
+export async function eliminarConteoAction(conteoId: string): Promise<void> {
+  const parsed = z.string().uuid().safeParse(conteoId);
+  if (!parsed.success) throw new Error("Identificador de conteo inválido.");
+
+  const { supabase } = await assertPuedeGestionarInventario();
+
+  const { data: conteo, error: conteoError } = await supabase
+    .from("herramienta_conteos")
+    .select("estado")
+    .eq("id", parsed.data)
+    .maybeSingle();
+
+  if (conteoError) throw new Error(conteoError.message);
+  if (!conteo) throw new Error("Conteo no encontrado.");
+  if (conteo.estado !== "borrador") {
+    throw new Error("Solo se puede eliminar un conteo que aún esté en progreso.");
+  }
+
+  const { error } = await supabase.from("herramienta_conteos").delete().eq("id", parsed.data);
+  if (error) throw new Error(error.message);
+
+  revalidarInventario();
 }
 
 // ─── EPP ────────────────────────────────────────────────────────────────────

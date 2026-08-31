@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Pencil, ClipboardList, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeEditarParteDiario, puedeVerProyectos } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeEditarParteDiario, puedeVerProyectos, puedeVerBitacora } from "@/lib/auth/roles";
 import { getProyecto, getProyectoAvances, getObservaciones, getFotos, getProyectoMetas } from "@/lib/data/proyectos";
 import {
   getSSTStats,
@@ -100,6 +100,8 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
 
   const puedeEditar = puedeGestionarProyectos(perfil?.rol);
   const puedeRegistrarParte = puedeEditarParteDiario(perfil?.rol);
+  const puedeVerRegistroAvance = puedeEditar || perfil?.rol === "cliente_principal";
+  const puedeVerBitacoraSST = puedeVerBitacora(perfil?.rol);
 
   // Combine avances and metas by date
   const combinedDataMap = new Map<string, { avance: number | null; proyectado: number | null }>();
@@ -189,13 +191,15 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
                 <span className="hidden sm:inline">Parte Hoy</span>
               </Link>
             )}
-            <Link
-              href={`/sst/bitacora`}
-              className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
-            >
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Bitácora</span>
-            </Link>
+            {puedeVerBitacoraSST && (
+              <Link
+                href={`/sst/bitacora`}
+                className="group flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/50 transition-all hover:bg-white/5 hover:text-white"
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Bitácora</span>
+              </Link>
+            )}
             {puedeEditar && (
               <ArchivarProyectoButton proyectoId={proyecto.id} proyectoNombre={proyecto.nombre} />
             )}
@@ -274,8 +278,8 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
         </div>
       </div>
 
-      {/* Tabla de registros de avance — solo super_admin */}
-      {puedeEditar && avances.length > 0 && (
+      {/* Tabla de registros de avance — super_admin (edita) y cliente_principal (solo lectura) */}
+      {puedeVerRegistroAvance && avances.length > 0 && (
         <div className="w-full">
           <RegistrosAvanceTable
             avances={avances as any}
@@ -286,7 +290,8 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
         </div>
       )}
 
-      {/* Últimos Partes (Historial Rápido) */}
+      {/* Últimos Partes (Historial Rápido) — módulo SST, oculto para roles sin acceso a Bitácora */}
+      {puedeVerBitacoraSST && (
       <div className="w-full">
         <div className="flex flex-col gap-6 rounded-3xl border-0 bg-white/[0.02] p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl group">
           <div className="absolute inset-0 bg-gradient-to-t from-white/[0.01] to-transparent pointer-events-none" />
@@ -343,6 +348,7 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
           </div>
         </div>
       </div>
+      )}
 
       {/* Galería fotográfica */}
       <div className="w-full">

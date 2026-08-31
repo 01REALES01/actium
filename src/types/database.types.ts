@@ -1922,6 +1922,145 @@ export type Database = {
           },
         ]
       }
+      herramienta_conteo_items: {
+        Row: {
+          catalogo_nombre: string
+          conteo_id: string
+          created_at: string
+          id: string
+          marcado_at: string | null
+          nota: string | null
+          resultado: Database["public"]["Enums"]["conteo_resultado"] | null
+          unidad_codigo: string
+          unidad_id: string
+        }
+        Insert: {
+          catalogo_nombre: string
+          conteo_id: string
+          created_at?: string
+          id?: string
+          marcado_at?: string | null
+          nota?: string | null
+          resultado?: Database["public"]["Enums"]["conteo_resultado"] | null
+          unidad_codigo: string
+          unidad_id: string
+        }
+        Update: {
+          catalogo_nombre?: string
+          conteo_id?: string
+          created_at?: string
+          id?: string
+          marcado_at?: string | null
+          nota?: string | null
+          resultado?: Database["public"]["Enums"]["conteo_resultado"] | null
+          unidad_codigo?: string
+          unidad_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herramienta_conteo_items_conteo_id_fkey"
+            columns: ["conteo_id"]
+            isOneToOne: false
+            referencedRelation: "herramienta_conteos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteo_items_conteo_id_fkey"
+            columns: ["conteo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conteos_resumen"
+            referencedColumns: ["conteo_id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteo_items_unidad_id_fkey"
+            columns: ["unidad_id"]
+            isOneToOne: false
+            referencedRelation: "herramienta_unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      herramienta_conteos: {
+        Row: {
+          cerrado_at: string | null
+          created_at: string
+          created_by: string | null
+          estado: Database["public"]["Enums"]["conteo_estado"]
+          fecha_conteo: string
+          id: string
+          observaciones: string | null
+          pdf_path: string | null
+          proyecto_id: string | null
+          responsable_id: string | null
+          responsable_nombre: string | null
+          updated_at: string
+        }
+        Insert: {
+          cerrado_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["conteo_estado"]
+          fecha_conteo?: string
+          id?: string
+          observaciones?: string | null
+          pdf_path?: string | null
+          proyecto_id?: string | null
+          responsable_id?: string | null
+          responsable_nombre?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cerrado_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado?: Database["public"]["Enums"]["conteo_estado"]
+          fecha_conteo?: string
+          id?: string
+          observaciones?: string | null
+          pdf_path?: string | null
+          proyecto_id?: string | null
+          responsable_id?: string | null
+          responsable_nombre?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herramienta_conteos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteos_responsable_id_fkey"
+            columns: ["responsable_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       herramienta_movimientos: {
         Row: {
           condicion_devolucion:
@@ -3059,6 +3198,42 @@ export type Database = {
       }
     }
     Views: {
+      vw_conteos_resumen: {
+        Row: {
+          conteo_id: string | null
+          estado: Database["public"]["Enums"]["conteo_estado"] | null
+          existentes: number | null
+          faltantes: number | null
+          fecha_conteo: string | null
+          novedades: number | null
+          proyecto_id: string | null
+          sin_marcar: number | null
+          total_items: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herramienta_conteos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "herramienta_conteos_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+        ]
+      }
       vw_epp_saldos: {
         Row: {
           bajo_minimo: boolean | null
@@ -3248,6 +3423,10 @@ export type Database = {
       }
     }
     Functions: {
+      abrir_conteo_herramientas: {
+        Args: { p_proyecto_id?: string }
+        Returns: string
+      }
       ajustar_techo_rubro: {
         Args: {
           p_justificacion: string
@@ -3307,6 +3486,14 @@ export type Database = {
       auth_tiene_acceso_subempresa: {
         Args: { p_empresa_id: string; p_subempresa_id: string }
         Returns: boolean
+      }
+      cerrar_conteo_herramientas: {
+        Args: {
+          p_conteo_id: string
+          p_observaciones?: string
+          p_responsable_nombre: string
+        }
+        Returns: undefined
       }
       cerrar_formulario_sst: {
         Args: { p_formulario_id: string }
@@ -3368,6 +3555,18 @@ export type Database = {
       fijar_presupuesto_proyecto: {
         Args: { p_monto?: number; p_proyecto_id: string }
         Returns: number
+      }
+      marcar_faltantes_como_perdidas: {
+        Args: { p_conteo_id: string }
+        Returns: number
+      }
+      marcar_item_conteo: {
+        Args: {
+          p_item_id: string
+          p_nota?: string
+          p_resultado: Database["public"]["Enums"]["conteo_resultado"]
+        }
+        Returns: undefined
       }
       path_empresa_id: { Args: { obj_path: string }; Returns: string }
       path_subempresa_id: { Args: { obj_path: string }; Returns: string }
@@ -3453,6 +3652,8 @@ export type Database = {
         | "gastos_financieros"
         | "ingresos"
       chequeo_resultado: "si" | "no" | "na"
+      conteo_estado: "borrador" | "cerrado"
+      conteo_resultado: "existe" | "novedad" | "faltante"
       cuota_periodicidad: "quincenal" | "mensual"
       documento_empleado_tipo:
         | "cedula"
@@ -3473,7 +3674,7 @@ export type Database = {
         | "entrega_epp"
         | "preoperacional"
         | "charla_seguridad"
-      herramienta_condicion: "bueno" | "regular" | "malo"
+      herramienta_condicion: "bueno" | "regular" | "malo" | "perdida"
       herramienta_estado:
         | "disponible"
         | "asignada"
@@ -3648,6 +3849,8 @@ export const Constants = {
         "ingresos",
       ],
       chequeo_resultado: ["si", "no", "na"],
+      conteo_estado: ["borrador", "cerrado"],
+      conteo_resultado: ["existe", "novedad", "faltante"],
       cuota_periodicidad: ["quincenal", "mensual"],
       documento_empleado_tipo: [
         "cedula",
@@ -3670,7 +3873,7 @@ export const Constants = {
         "preoperacional",
         "charla_seguridad",
       ],
-      herramienta_condicion: ["bueno", "regular", "malo"],
+      herramienta_condicion: ["bueno", "regular", "malo", "perdida"],
       herramienta_estado: [
         "disponible",
         "asignada",
@@ -3728,3 +3931,5 @@ export type CuotaPeriodicidad = Enums<'cuota_periodicidad'>;
 export type HerramientaEstado = Enums<'herramienta_estado'>;
 export type HerramientaCondicion = Enums<'herramienta_condicion'>;
 export type EppMovimientoTipo = Enums<'epp_movimiento_tipo'>;
+export type ConteoEstado = Enums<'conteo_estado'>;
+export type ConteoResultado = Enums<'conteo_resultado'>;

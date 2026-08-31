@@ -126,6 +126,14 @@ export function puedeVerProyectos(rol: UserRole | null | undefined): boolean {
   return rol !== "sst" && rol !== "financiero";
 }
 
+/**
+ * Puede acceder a la Bitácora SST (`/sst/bitacora`). Los roles cliente
+ * (cliente_principal, subcliente) y operativo no tienen acceso al módulo SST.
+ */
+export function puedeVerBitacora(rol: UserRole | null | undefined): boolean {
+  return rol === "super_admin" || rol === "admin" || rol === "sst";
+}
+
 /** Ruta de aterrizaje tras login o al denegar un módulo. */
 export function getRutaInicio(rol: string | null | undefined): string {
   if (rol === "sst") return "/sst";

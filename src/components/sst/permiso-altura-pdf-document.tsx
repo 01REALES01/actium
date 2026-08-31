@@ -77,14 +77,14 @@ const RED = ACTIUM_PDF.red;
 const GRAY = ACTIUM_PDF.gray;
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
+  page: { paddingTop: 30, paddingBottom: 34, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ESPRESSO, paddingBottom: 10, marginBottom: 14 },
   brand: { fontSize: 20, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, letterSpacing: 1 },
   brandLogo: { width: 118, height: 32, objectFit: "contain" },
   brandSub: { fontSize: 7, color: GRAY, letterSpacing: 2, marginTop: 2, textTransform: "uppercase" },
   docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 10 },
   // datos en grilla 2 columnas
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "50%", marginBottom: 6, paddingRight: 8 },
@@ -97,7 +97,7 @@ const s = StyleSheet.create({
   chipOn: { borderColor: ORANGE, backgroundColor: "#FDEDE4", color: ESPRESSO },
   obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
   // tablas
-  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden" },
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4 },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
   thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
   tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER },
@@ -114,7 +114,7 @@ const s = StyleSheet.create({
   footerText: { fontSize: 7, color: GRAY },
   // signatures table (Apertura / Cierre)
   legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginBottom: 10, textAlign: "justify" },
-  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 10 },
+  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 10 },
   sigThText: { color: ESPRESSO, fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, textAlign: "center" },
   sigTr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 40 },
   sigTdName: { fontSize: 7.5, padding: 5, color: "#3A3A3A", justifyContent: "center" },
@@ -153,7 +153,7 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
           </View>
         </View>
 
-        <Text style={{ fontSize: 6.5, color: GRAY, marginBottom: 14, textAlign: "justify", lineHeight: 1.3 }}>
+        <Text style={{ fontSize: 6.5, color: GRAY, marginBottom: 8, textAlign: "justify", lineHeight: 1.3 }}>
           Resolución 1409 de 2012, Artículo 17. El permiso de trabajo en alturas es un mecanismo que mediante la verificación y control previo de todos los aspectos relacionados en la presente resolución, tiene como objeto prevenir la ocurrencia de accidentes durante la realización de trabajos en alturas. Este permiso de trabajo debe ser emitido para trabajos ocasionales definidos por el coordinador de trabajo en alturas para los efectos de la aplicación de la presente resolución y puede ser diligenciado por el trabajador o por el empleador y debe ser revisado y verificado en el sitio de trabajo por el coordinador de trabajo en alturas.
         </Text>
 
@@ -174,7 +174,7 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
         {/* Personal ejecutor */}
         <Text style={s.sectionTitle}>Personal ejecutor</Text>
         <View style={s.table}>
-          <View style={s.trHead}>
+          <View style={s.trHead} fixed>
             <Text style={[s.thText, { width: "18%" }]}>Cédula</Text>
             <Text style={[s.thText, { width: "26%" }]}>Nombres y apellidos</Text>
             <Text style={[s.thText, { width: "22%" }]}>Capacitación / Cert.</Text>
@@ -185,7 +185,7 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
             <Text style={s.empty}>Sin personal ejecutor registrado.</Text>
           ) : (
             data.ejecutores.map((e, i) => (
-              <View key={i} style={s.tr}>
+              <View key={i} style={s.tr} wrap={false}>
                 <Text style={[s.td, { width: "18%" }]}>{e.cedula || "—"}</Text>
                 <Text style={[s.td, { width: "26%" }]}>{e.nombre || "—"}</Text>
                 <Text style={[s.td, { width: "22%" }]}>{e.capacitacion || "—"}</Text>
@@ -249,9 +249,9 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
         {data.eppOtros ? <Text style={s.obsBox}>Otros EPP (¿cuáles?): {data.eppOtros}</Text> : null}
 
         {/* 4. Lista de chequeo */}
-        <Text style={s.sectionTitle} break>4. Lista de verificación</Text>
+        <Text style={s.sectionTitle} minPresenceAhead={50}>4. Lista de verificación</Text>
         <View style={s.table}>
-          <View style={s.trHead}>
+          <View style={s.trHead} fixed>
             <Text style={[s.thText, { width: "82%" }]}>Ítem</Text>
             <Text style={[s.thText, { width: "18%", textAlign: "center" }]}>Respuesta</Text>
           </View>
@@ -269,7 +269,7 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
         </View>
 
         {/* Firmas y Compromiso */}
-        <Text style={s.sectionTitle} break>Firmas y Compromiso</Text>
+        <Text style={s.sectionTitle} minPresenceAhead={60}>Firmas y Compromiso</Text>
         <Text style={s.legalText}>
           Personalmente hemos verificado los puntos anteriores y consideramos seguro realizar el trabajo en altura.
           Como trabajador me comprometo a cumplir todas las medidas preventivas, suspender la labor si las condiciones cambian o ante cualquier alerta, y notificar al emisor al concluir el trabajo.
@@ -277,7 +277,7 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
 
         <View style={s.sigTable}>
           {/* Main header */}
-          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
+          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]} fixed>
             <Text style={[s.sigThText, { width: "50%", borderRightWidth: 1, borderRightColor: "#D1CFC9" }]}>INICIO DEL PERMISO</Text>
             <Text style={[s.sigThText, { width: "50%" }]}>FIN DEL PERMISO</Text>
           </View>
@@ -286,7 +286,7 @@ function PermisoAlturaDocument({ data }: { data: PermisoAlturaPDFData }) {
             <Text style={s.empty}>Sin personal ejecutor registrado.</Text>
           ) : (
             data.ejecutores.map((e, i) => (
-              <View key={`ej-${i}`} style={s.sigTr}>
+              <View key={`ej-${i}`} style={s.sigTr} wrap={false}>
                 <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
                   <Text>{e.nombre || "—"}</Text>
                   <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {e.cedula || "—"}</Text>

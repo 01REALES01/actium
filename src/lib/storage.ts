@@ -111,6 +111,26 @@ export async function uploadComprobanteMovimiento(
   return storagePath;
 }
 
+/**
+ * Sube el acta de un conteo de herramientas. Path propio (`conteos/{id}/...`),
+ * sin segmento de empresa: el bucket no está segmentado por tenant, igual que
+ * el resto del módulo Inventario (ver 20260828000000_conteos_herramientas.sql).
+ */
+export async function uploadPdfConteo(
+  supabase: Client,
+  pdfBlob: Blob,
+  opts: { conteoId: string },
+): Promise<string> {
+  const storagePath = `conteos/${opts.conteoId}/${crypto.randomUUID()}.pdf`;
+
+  const { error } = await supabase.storage
+    .from("pdfs-inventario")
+    .upload(storagePath, pdfBlob, { contentType: "application/pdf" });
+
+  if (error) throw error;
+  return storagePath;
+}
+
 export async function getSignedUrl(
   supabase: Client,
   bucket: string,

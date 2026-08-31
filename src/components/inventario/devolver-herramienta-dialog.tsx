@@ -17,8 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { devolverHerramientaAction } from "@/lib/actions/inventario";
-import { CONDICION_OPCIONES } from "@/constants/inventario";
-import type { HerramientaCondicion } from "@/types/database.types";
+import { CONDICION_OPCIONES, type CondicionDevolucion } from "@/constants/inventario";
 
 export function DevolverHerramientaDialog({
   unidadId,
@@ -34,7 +33,7 @@ export function DevolverHerramientaDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [condicion, setCondicion] = useState<HerramientaCondicion | "">("");
+  const [condicion, setCondicion] = useState<CondicionDevolucion | "">("");
   const [notas, setNotas] = useState("");
 
   function resetForm() {
@@ -90,7 +89,7 @@ export function DevolverHerramientaDialog({
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Condición de devolución</Label>
-            <Select value={condicion} onValueChange={(v) => setCondicion(v as HerramientaCondicion)}>
+            <Select value={condicion} onValueChange={(v) => setCondicion(v as CondicionDevolucion)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecciona la condición" />
               </SelectTrigger>

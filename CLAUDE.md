@@ -255,6 +255,7 @@ src/
 - Canvas de firma con disclaimer: *"Esta firma tiene carácter informativo y NO constituye firma electrónica certificada según la Ley 527 de 1999"*.
 - Auto-guardado cada 30s en estado borrador.
 - PDF profesional con logo Actium y paleta.
+- **Antes de crear o modificar cualquier PDF (`*-pdf-document.tsx`), lee [`PDF-PAGINACION.md`](./PDF-PAGINACION.md)** — reglas de paginación (`break` vs `wrap={false}` vs `minPresenceAhead`) para evitar páginas en blanco.
 
 ---
 

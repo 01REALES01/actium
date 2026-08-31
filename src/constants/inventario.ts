@@ -2,7 +2,13 @@
 // Compartido entre la capa de datos (servidor) y los selectores (cliente),
 // siguiendo el molde de src/constants/cuentas.ts.
 
-import type { HerramientaEstado, HerramientaCondicion, EppMovimientoTipo } from "@/types/database.types";
+import type {
+  HerramientaEstado,
+  HerramientaCondicion,
+  EppMovimientoTipo,
+  ConteoEstado,
+  ConteoResultado,
+} from "@/types/database.types";
 
 // ─── Herramientas ──────────────────────────────────────────────────────────
 
@@ -29,11 +35,18 @@ export const CONDICION_LABEL: Record<HerramientaCondicion, string> = {
   bueno: "Buen estado",
   regular: "Estado regular",
   malo: "Mal estado",
+  perdida: "Perdida",
 };
 
-export const CONDICION_OPCIONES: { value: HerramientaCondicion; label: string }[] = (
-  Object.keys(CONDICION_LABEL) as HerramientaCondicion[]
-).map((value) => ({ value, label: CONDICION_LABEL[value] }));
+// 'perdida' se fija desde marcar_faltantes_como_perdidas, no desde este
+// selector: el formulario de devolución solo ofrece las tres condiciones con
+// las que una herramienta SÍ vuelve.
+export type CondicionDevolucion = Exclude<HerramientaCondicion, "perdida">;
+
+const CONDICIONES_DEVOLUCION: CondicionDevolucion[] = ["bueno", "regular", "malo"];
+
+export const CONDICION_OPCIONES: { value: CondicionDevolucion; label: string }[] =
+  CONDICIONES_DEVOLUCION.map((value) => ({ value, label: CONDICION_LABEL[value] }));
 
 /** Categorías sugeridas para el catálogo. El campo admite texto libre. */
 export const CATEGORIAS_HERRAMIENTA = [
@@ -78,3 +91,25 @@ export const EPP_MOVIMIENTO_OPCIONES: { value: EppMovimientoTipo; label: string 
 ).map((value) => ({ value, label: EPP_MOVIMIENTO_LABEL[value] }));
 
 export const UNIDAD_EPP_OPCIONES = ["UND.", "PAR."] as const;
+
+// ─── Conteos de herramientas (Hacer Inventario) ────────────────────────────
+
+export const CONTEO_ESTADO_LABEL: Record<ConteoEstado, string> = {
+  borrador: "En progreso",
+  cerrado: "Cerrado",
+};
+
+export const RESULTADO_CONTEO_LABEL: Record<ConteoResultado, string> = {
+  existe: "Existe",
+  novedad: "Con novedad",
+  faltante: "No existe",
+};
+
+export const RESULTADO_CONTEO_VARIANT: Record<
+  ConteoResultado,
+  "success" | "warning" | "destructive"
+> = {
+  existe: "success",
+  novedad: "warning",
+  faltante: "destructive",
+};

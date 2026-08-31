@@ -112,7 +112,7 @@ const CONTENT_W = 515;
 // ─── Estilos PDF ──────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  page: { paddingTop: 34, paddingBottom: 46, paddingHorizontal: 40, fontSize: 9, color: INK, fontFamily: "Manrope" },
+  page: { paddingTop: 30, paddingBottom: 34, paddingHorizontal: 40, fontSize: 9, color: INK, fontFamily: "Manrope" },
 
   // Cabecera
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: COFFEE, paddingBottom: 10, marginBottom: 4 },

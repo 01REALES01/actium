@@ -64,12 +64,12 @@ const RED = ACTIUM_PDF.red;
 const GRAY = ACTIUM_PDF.gray;
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
+  page: { paddingTop: 30, paddingBottom: 34, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ESPRESSO, paddingBottom: 10, marginBottom: 14 },
   brandLogo: { width: 118, height: 32, objectFit: "contain" },
   docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 5, marginTop: 10 },
   // datos en grilla 2 columnas
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "50%", marginBottom: 6, paddingRight: 8 },
@@ -82,13 +82,13 @@ const s = StyleSheet.create({
   chipOn: { borderColor: ORANGE, backgroundColor: "#FDEDE4", color: ESPRESSO },
   obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
   // equipo
-  equipoHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: SEASHELL, borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, paddingVertical: 5, paddingHorizontal: 7, marginTop: 8, marginBottom: 5 },
-  equipoNombre: { fontSize: 8.5, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO },
-  sello: { fontSize: 7, fontFamily: "Manrope", fontWeight: 700, color: "#FFFFFF", backgroundColor: RED, borderRadius: 3, paddingVertical: 2, paddingHorizontal: 5, textTransform: "uppercase", letterSpacing: 0.5 },
+  equipoHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: SEASHELL, borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, paddingVertical: 5, paddingHorizontal: 7, marginTop: 7, marginBottom: 5 },
+  equipoNombre: { fontSize: 8.5, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, flex: 1, paddingRight: 8 },
+  sello: { fontSize: 7, fontFamily: "Manrope", fontWeight: 700, color: "#FFFFFF", backgroundColor: RED, borderRadius: 3, paddingVertical: 2, paddingHorizontal: 5, textTransform: "uppercase", letterSpacing: 0.5, flexShrink: 0 },
   selloOk: { backgroundColor: GREEN },
   noAplica: { fontSize: 8, color: GRAY, fontStyle: "italic", paddingVertical: 6 },
   // tablas
-  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden" },
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4 },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
   thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
   tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER },
@@ -99,7 +99,7 @@ const s = StyleSheet.create({
   nota: { fontSize: 6.5, color: GRAY, lineHeight: 1.35, marginTop: 5, textAlign: "justify" },
   // firmas — misma tabla que el resto de los permisos SST
   legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginBottom: 10, textAlign: "justify" },
-  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 10 },
+  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 10 },
   sigThText: { color: ESPRESSO, fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, textAlign: "center" },
   sigTr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 40 },
   sigTdName: { fontSize: 7.5, padding: 5, color: "#3A3A3A", justifyContent: "center" },
@@ -145,7 +145,7 @@ function EquipoChequeo({
 
   return (
     <View>
-      <View style={s.equipoHead} wrap={false}>
+      <View style={s.equipoHead} minPresenceAhead={70}>
         <Text style={s.equipoNombre}>{nombreEquipo(herramienta, equipo, indice)}</Text>
         <Text style={[s.sello, critico ? {} : s.selloOk]}>
           {critico ? herramienta.etiquetaCritica : "Apto para operar"}
@@ -153,14 +153,14 @@ function EquipoChequeo({
       </View>
 
       <View style={s.table}>
-        <View style={s.trHead}>
+        <View style={s.trHead} fixed>
           <Text style={[s.thText, { width: "78%" }]}>Aspecto a verificar</Text>
           <Text style={[s.thText, { width: "22%", textAlign: "center" }]}>Estado</Text>
         </View>
         {itemsPorGrupo(herramienta).map((grupo, gi) => (
-          <View key={grupo.grupo ?? gi} wrap={false}>
+          <View key={grupo.grupo ?? gi}>
             {grupo.grupo && (
-              <View style={s.tr}>
+              <View style={s.tr} minPresenceAhead={24}>
                 <Text style={[s.td, { width: "100%", fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, backgroundColor: SEASHELL, textTransform: "uppercase", fontSize: 7 }]}>
                   {grupo.grupo}
                 </Text>
@@ -169,7 +169,7 @@ function EquipoChequeo({
             {grupo.items.map(({ item, codigo }, i) => {
               const valor = equipo.respuestas[item.id] ?? "";
               return (
-                <View key={item.id} style={[s.tr, i % 2 === 1 ? s.trAlt : {}]}>
+                <View key={item.id} style={[s.tr, i % 2 === 1 ? s.trAlt : {}]} wrap={false}>
                   <Text style={[s.td, { width: "78%" }]}>
                     {codigo ? `${codigo} ${item.texto}` : item.texto}
                   </Text>
@@ -229,7 +229,7 @@ function EquipoInventario({
 
   return (
     <View>
-      <View style={s.equipoHead} wrap={false}>
+      <View style={s.equipoHead} minPresenceAhead={70}>
         <Text style={s.equipoNombre}>{nombreEquipo(herramienta, equipo, indice)}</Text>
         <Text style={[s.sello, critico ? {} : s.selloOk]}>
           {critico ? herramienta.etiquetaCritica : "Dotación completa"}
@@ -237,7 +237,7 @@ function EquipoInventario({
       </View>
 
       <View style={s.table}>
-        <View style={s.trHead}>
+        <View style={s.trHead} fixed>
           <Text style={[s.thText, { width: "46%" }]}>Elemento</Text>
           <Text style={[s.thText, { width: "16%" }]}>Presentación</Text>
           <Text style={[s.thText, { width: "11%", textAlign: "center" }]}>Requerida</Text>
@@ -310,7 +310,7 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
           </View>
         </View>
 
-        <Text style={{ fontSize: 6.5, color: GRAY, marginBottom: 14, textAlign: "justify", lineHeight: 1.3 }}>
+        <Text style={{ fontSize: 6.5, color: GRAY, marginBottom: 8, textAlign: "justify", lineHeight: 1.3 }}>
           La inspección preoperacional se realiza antes de iniciar la labor y sobre cada equipo que
           se va a utilizar. Todo equipo marcado como fuera de servicio debe retirarse de forma
           inmediata del área de trabajo para impedir que se continúe usando, y reportarse al
@@ -331,23 +331,16 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
           <Campo label="Trabajo ejecutado" value={data.trabajoEjecutado} full />
         </View>
 
-        {/* 2..n. Herramientas */}
-        {/* Cada herramienta con equipos abre página; las que no aplican son una
-            línea y siguen el flujo, para no dejar páginas casi vacías. */}
-        {(() => {
-          const conEquipos = HERRAMIENTAS_PREOP.filter((h) => {
-            const e = data.herramientas[h.id];
-            return !e?.noAplica && (e?.equipos?.length ?? 0) > 0;
-          }).map((h) => h.id);
-
-          return HERRAMIENTAS_PREOP.map((herramienta, indice) => {
+        {/* 2..n. Herramientas: fluyen sin salto de página forzado; el motor
+            decide dónde partir según el espacio disponible. */}
+        {HERRAMIENTAS_PREOP.map((herramienta, indice) => {
           const estado = data.herramientas[herramienta.id];
           const equipos = estado?.equipos ?? [];
           const aplica = !estado?.noAplica && equipos.length > 0;
 
           return (
-            <View key={herramienta.id} break={conEquipos.indexOf(herramienta.id) > 0 || undefined}>
-              <Text style={s.sectionTitle}>
+            <View key={herramienta.id}>
+              <Text style={s.sectionTitle} minPresenceAhead={50}>
                 {indice + 2}. {herramienta.nombre}
               </Text>
 
@@ -414,8 +407,7 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
               )}
             </View>
           );
-          });
-        })()}
+        })}
 
         {/* Observaciones generales */}
         {data.observacionesGenerales ? (
@@ -428,43 +420,43 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
         ) : null}
 
         {/* Firmas */}
-        <Text style={s.sectionTitle} break>
-          Firmas y compromiso
-        </Text>
-        <Text style={s.legalText}>{CERTIFICACION_OPERADOR}</Text>
+        <View wrap={false}>
+          <Text style={s.sectionTitle}>Firmas y compromiso</Text>
+          <Text style={s.legalText}>{CERTIFICACION_OPERADOR}</Text>
 
-        <View style={s.sigTable}>
-          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
-            <Text style={[s.sigThText, { width: "50%", borderRightWidth: 1, borderRightColor: "#D1CFC9" }]}>
-              INSPECCIONÓ / OPERADOR
-            </Text>
-            <Text style={[s.sigThText, { width: "50%" }]}>VERIFICÓ / SUPERVISOR SST</Text>
+          <View style={s.sigTable}>
+            <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
+              <Text style={[s.sigThText, { width: "50%", borderRightWidth: 1, borderRightColor: "#D1CFC9" }]}>
+                INSPECCIONÓ / OPERADOR
+              </Text>
+              <Text style={[s.sigThText, { width: "50%" }]}>VERIFICÓ / SUPERVISOR SST</Text>
+            </View>
+
+            <View style={[s.sigTr, { borderBottomWidth: 0 }]}>
+              <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                <Text>{data.inspectorNombre || "—"}</Text>
+                <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {data.inspectorCedula || "—"}</Text>
+              </View>
+              <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                {data.inspectorFirma ? <Image src={data.inspectorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
+              </View>
+              <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
+                <Text>{data.supervisorNombre || "—"}</Text>
+                <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {data.supervisorCedula || "—"}</Text>
+              </View>
+              <View style={[s.sigTdSign, { width: "25%" }]}>
+                {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                {data.supervisorFirma ? <Image src={data.supervisorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
+              </View>
+            </View>
           </View>
 
-          <View style={[s.sigTr, { borderBottomWidth: 0 }]}>
-            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
-              <Text>{data.inspectorNombre || "—"}</Text>
-              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {data.inspectorCedula || "—"}</Text>
-            </View>
-            <View style={[s.sigTdSign, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
-              {data.inspectorFirma ? <Image src={data.inspectorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
-            </View>
-            <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
-              <Text>{data.supervisorNombre || "—"}</Text>
-              <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {data.supervisorCedula || "—"}</Text>
-            </View>
-            <View style={[s.sigTdSign, { width: "25%" }]}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text */}
-              {data.supervisorFirma ? <Image src={data.supervisorFirma} style={s.sigImg} /> : <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>}
-            </View>
-          </View>
+          <Text style={s.disclaimer}>
+            Esta firma tiene carácter informativo y NO constituye firma electrónica certificada según
+            la Ley 527 de 1999.
+          </Text>
         </View>
-
-        <Text style={s.disclaimer}>
-          Esta firma tiene carácter informativo y NO constituye firma electrónica certificada según
-          la Ley 527 de 1999.
-        </Text>
 
         <View style={s.footer} fixed>
           <Text style={s.footerText}>Generado por Actium · {new Date().toLocaleString("es-CO")}</Text>

@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ClipboardCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeGestionarInventario } from "@/lib/auth/roles";
 import { listCatalogoHerramientas } from "@/lib/data/inventario";
 import { HerramientasTable } from "@/components/inventario/herramientas-table";
 import { CatalogoFormDialog } from "@/components/inventario/catalogo-form-dialog";
 import { InventarioFilters } from "@/components/inventario/inventario-filters";
+import { Button } from "@/components/ui/button";
 import { parseEstadoHerramientaFiltro } from "@/constants/inventario";
 
 export default async function HerramientasPage({
@@ -38,7 +39,17 @@ export default async function HerramientasPage({
             Catálogo maestro de Actium. Cada tipo agrupa las unidades físicas serializadas.
           </p>
         </div>
-        {puedeEscribir ? <CatalogoFormDialog modo="crear" /> : null}
+        {puedeEscribir ? (
+          <div className="flex flex-wrap gap-2">
+            <Link href="/inventario/herramientas/conteos">
+              <Button variant="secondary" className="min-h-[44px] gap-1.5">
+                <ClipboardCheck className="h-4 w-4" strokeWidth={1.5} />
+                Hacer inventario
+              </Button>
+            </Link>
+            <CatalogoFormDialog modo="crear" />
+          </div>
+        ) : null}
       </div>
 
       <InventarioFilters estado={estado} busqueda={busqueda} total={catalogo.length} />

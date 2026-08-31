@@ -73,14 +73,14 @@ const RED = ACTIUM_PDF.red;
 const GRAY = ACTIUM_PDF.gray;
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
+  page: { paddingTop: 30, paddingBottom: 34, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ESPRESSO, paddingBottom: 10, marginBottom: 14 },
   brand: { fontSize: 20, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, letterSpacing: 1 },
   brandLogo: { width: 118, height: 32, objectFit: "contain" },
   brandSub: { fontSize: 7, color: GRAY, letterSpacing: 2, marginTop: 2, textTransform: "uppercase" },
   docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 10 },
   subTitle: { fontSize: 8, fontFamily: "Manrope", fontWeight: 700, color: ORANGE, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 8, marginBottom: 4 },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "50%", marginBottom: 6, paddingRight: 8 },
@@ -91,7 +91,7 @@ const s = StyleSheet.create({
   chip: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, paddingVertical: 3, paddingHorizontal: 6, fontSize: 7.5, color: "#3A3A3A" },
   chipOn: { borderColor: ORANGE, backgroundColor: "#FDEDE4", color: ESPRESSO },
   obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
-  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 4 },
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 4 },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
   thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
   tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER },
@@ -107,7 +107,7 @@ const s = StyleSheet.create({
   footerText: { fontSize: 7, color: GRAY },
   // signatures table
   legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginBottom: 10, textAlign: "justify" },
-  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 10 },
+  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 10 },
   sigThText: { color: ESPRESSO, fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, textAlign: "center" },
   sigTr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 40 },
   sigTdName: { fontSize: 7.5, padding: 5, color: "#3A3A3A", justifyContent: "center" },
@@ -197,10 +197,10 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
         {/* 3. Lista de verificación */}
         <Text style={s.sectionTitle}>3. Lista de verificación</Text>
         {CHEQUEO_CALIENTE.map((sec) => (
-          <View key={sec.id} wrap={false}>
-            <Text style={s.subTitle}>{sec.titulo}</Text>
+          <View key={sec.id}>
+            <Text style={s.subTitle} minPresenceAhead={40}>{sec.titulo}</Text>
             <View style={s.table}>
-              <View style={s.trHead}>
+              <View style={s.trHead} fixed>
                 <Text style={[s.thText, { width: "82%" }]}>Ítem</Text>
                 <Text style={[s.thText, { width: "18%", textAlign: "center" }]}>Respuesta</Text>
               </View>
@@ -220,7 +220,7 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
         ))}
 
         {/* 4. Bloqueo de energías */}
-        <Text style={s.sectionTitle} break>4. Bloqueo de energías peligrosas</Text>
+        <Text style={s.sectionTitle} minPresenceAhead={50}>4. Bloqueo de energías peligrosas</Text>
         <View style={s.chipsRow}>
           {ENERGIAS_PELIGROSAS.map((en) => {
             const on = data.energias.includes(en.id);
@@ -251,7 +251,7 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
         </View>
 
         {/* Firmas y Compromiso */}
-        <Text style={s.sectionTitle} break>Firmas y Compromiso</Text>
+        <Text style={s.sectionTitle} minPresenceAhead={60}>Firmas y Compromiso</Text>
         <Text style={s.legalText}>
           Personalmente hemos verificado los puntos anteriores y consideramos seguro realizar el proceso.{"\n"}
           Como trabajador me comprometo a: dar por terminado el trabajo si durante la ejecución del mismo existen cambios en alguna de las condiciones: personales, locativas, de seguridad, climáticas o si escucho la señal de alarma, al igual me comprometo a avisar a la persona que me otorgo el permiso de trabajo cuando se termine la labor.
@@ -259,7 +259,7 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
 
         <View style={s.sigTable}>
           {/* Main header */}
-          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
+          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]} fixed>
             <Text style={[s.sigThText, { width: "50%", borderRightWidth: 1, borderRightColor: "#D1CFC9" }]}>INICIO DEL PERMISO</Text>
             <Text style={[s.sigThText, { width: "50%" }]}>FIN DEL PERMISO</Text>
           </View>
@@ -268,7 +268,7 @@ function PermisoCalienteDocument({ data }: { data: PermisoCalientePDFData }) {
             <Text style={s.empty}>Sin trabajadores registrados.</Text>
           ) : (
             data.trabajadores.map((t, i) => (
-              <View key={`t-${i}`} style={s.sigTr}>
+              <View key={`t-${i}`} style={s.sigTr} wrap={false}>
                 <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
                   <Text>{t.nombre || "—"}</Text>
                   <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {t.cedula || "—"}</Text>

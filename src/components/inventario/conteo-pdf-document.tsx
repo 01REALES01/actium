@@ -1,33 +1,28 @@
 "use client";
 
 import { Document, Page, View, Text, Image, StyleSheet, pdf } from "@react-pdf/renderer";
-import {
-  NOTA_LEGAL_EPP,
-  CONSTANCIA_TRABAJADOR_EPP,
-  filasEntregadas,
-  type EstadoElementoEpp,
-  type ElementoAdicionalEpp,
-} from "@/constants/entrega-epp";
 import { getLogoSrc } from "@/lib/pdf-logo";
 import { ACTIUM_PDF, registerActiumFonts } from "@/lib/pdf-fonts";
+import { RESULTADO_CONTEO_LABEL } from "@/constants/inventario";
+import type { ConteoResultado } from "@/types/database.types";
 
 registerActiumFonts();
 
-// ─── Tipo de datos del cargo (serializable) ──────────────────────────────────
+export type ConteoPDFItem = {
+  codigo: string;
+  nombre: string;
+  resultado: ConteoResultado;
+  nota: string;
+};
 
-export type EntregaEppPDFData = {
-  empresa: string;
-  obra: string;
-  area: string;
+export type ConteoPDFData = {
+  ambitoNombre: string;
+  empresaNombre: string | null;
   fecha: string;
-  empleadoId: string;
-  trabajadorNombre: string;
-  trabajadorCedula: string;
-  trabajadorCargo: string;
-  elementos: Record<string, EstadoElementoEpp>;
-  adicionales: ElementoAdicionalEpp[];
+  responsableNombre: string;
   observaciones: string;
-  trabajadorFirma: string;
+  items: ConteoPDFItem[];
+  firma: string;
 };
 
 const ESPRESSO = ACTIUM_PDF.espresso;
@@ -35,6 +30,8 @@ const SADDLE = ACTIUM_PDF.saddle;
 const SEASHELL = ACTIUM_PDF.seashell;
 const BEIGE_BORDER = ACTIUM_PDF.beigeBorder;
 const GRAY = ACTIUM_PDF.gray;
+const GREEN = ACTIUM_PDF.green;
+const RED = ACTIUM_PDF.red;
 
 const s = StyleSheet.create({
   page: { paddingTop: 30, paddingBottom: 34, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
@@ -42,13 +39,16 @@ const s = StyleSheet.create({
   brandLogo: { width: 118, height: 32, objectFit: "contain" },
   docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  legalBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 7.5, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 14, textAlign: "justify" },
   sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "50%", marginBottom: 6, paddingRight: 8 },
   fieldFull: { width: "100%", marginBottom: 6 },
   fieldLabel: { fontSize: 6.5, color: SADDLE, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "Manrope", fontWeight: 700, marginBottom: 2 },
   fieldValue: { fontSize: 9, color: "#282828" },
+  totales: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  totalBox: { flex: 1, borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 6, padding: 8, alignItems: "center" },
+  totalValor: { fontSize: 16, fontFamily: "Manrope", fontWeight: 700 },
+  totalLabel: { fontSize: 6.5, color: GRAY, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 },
   table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4 },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
   thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
@@ -58,7 +58,6 @@ const s = StyleSheet.create({
   tdCenter: { fontSize: 8, paddingVertical: 5, paddingHorizontal: 5, color: "#3A3A3A", textAlign: "center" },
   obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4 },
   vacio: { fontSize: 8, color: GRAY, fontStyle: "italic", paddingVertical: 8 },
-  legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginBottom: 10, textAlign: "justify" },
   sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 10 },
   sigThText: { color: ESPRESSO, fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, textAlign: "center" },
   sigTr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 55 },
@@ -79,11 +78,19 @@ function Campo({ label, value, full }: { label: string; value: string; full?: bo
   );
 }
 
-function EntregaEppDocument({ data }: { data: EntregaEppPDFData }) {
-  const filas = filasEntregadas(data.elementos, data.adicionales);
+function colorResultado(resultado: ConteoResultado): string {
+  if (resultado === "existe") return GREEN;
+  if (resultado === "novedad") return SADDLE;
+  return RED;
+}
+
+function ConteoDocument({ data }: { data: ConteoPDFData }) {
+  const existentes = data.items.filter((i) => i.resultado === "existe").length;
+  const novedades = data.items.filter((i) => i.resultado === "novedad").length;
+  const faltantes = data.items.filter((i) => i.resultado === "faltante");
 
   return (
-    <Document title={`Formato Entrega EPP ${data.trabajadorNombre} ${data.fecha}`}>
+    <Document title={`Acta de Inventario ${data.ambitoNombre} ${data.fecha}`}>
       <Page size="A4" style={s.page}>
         <View style={s.header} fixed>
           <View>
@@ -91,49 +98,74 @@ function EntregaEppDocument({ data }: { data: EntregaEppPDFData }) {
             <Image src={getLogoSrc()} style={s.brandLogo} />
           </View>
           <View>
-            <Text style={s.docTitle}>Formato Entrega EPP</Text>
-            <Text style={s.docMeta}>Elementos de protección personal</Text>
+            <Text style={s.docTitle}>Acta de Inventario de Herramientas</Text>
+            <Text style={s.docMeta}>{data.ambitoNombre}</Text>
             <Text style={s.docMeta}>{data.fecha || "—"}</Text>
           </View>
         </View>
 
-        <Text style={s.legalBox}>{NOTA_LEGAL_EPP}</Text>
-
-        {/* Identificación */}
         <Text style={s.sectionTitle}>Identificación</Text>
         <View style={s.grid}>
-          <Campo label="Nombre del trabajador" value={data.trabajadorNombre} />
-          <Campo label="Cédula" value={data.trabajadorCedula} />
-          <Campo label="Cargo" value={data.trabajadorCargo} />
-          <Campo label="Área" value={data.area} />
-          <Campo label="Obra" value={data.obra} />
+          <Campo label="Ámbito" value={data.ambitoNombre} />
+          <Campo label="Empresa" value={data.empresaNombre ?? "Actium (bodega)"} />
           <Campo label="Fecha" value={data.fecha} />
+          <Campo label="Responsable" value={data.responsableNombre} />
         </View>
 
-        {/* Elementos entregados */}
-        <Text style={s.sectionTitle}>Elementos entregados</Text>
-        {filas.length === 0 ? (
-          <Text style={s.vacio}>No se registraron elementos entregados en este cargo.</Text>
+        <Text style={s.sectionTitle}>Resultado del conteo</Text>
+        <View style={s.totales}>
+          <View style={s.totalBox}>
+            <Text style={[s.totalValor, { color: GREEN }]}>{existentes}</Text>
+            <Text style={s.totalLabel}>Existen</Text>
+          </View>
+          <View style={s.totalBox}>
+            <Text style={[s.totalValor, { color: SADDLE }]}>{novedades}</Text>
+            <Text style={s.totalLabel}>Con novedad</Text>
+          </View>
+          <View style={s.totalBox}>
+            <Text style={[s.totalValor, { color: RED }]}>{faltantes.length}</Text>
+            <Text style={s.totalLabel}>No existen</Text>
+          </View>
+        </View>
+
+        <Text style={s.sectionTitle}>Detalle del conteo</Text>
+        {data.items.length === 0 ? (
+          <Text style={s.vacio}>Este conteo no tiene herramientas registradas.</Text>
         ) : (
           <View style={s.table}>
             <View style={s.trHead} fixed>
-              <Text style={[s.thText, { width: "46%" }]}>Elemento entregado</Text>
-              <Text style={[s.thText, { width: "16%", textAlign: "center" }]}>Unidad</Text>
-              <Text style={[s.thText, { width: "16%", textAlign: "center" }]}>Cantidad</Text>
-              <Text style={[s.thText, { width: "22%", textAlign: "center" }]}>Fecha de recepción</Text>
+              <Text style={[s.thText, { width: "16%" }]}>Código</Text>
+              <Text style={[s.thText, { width: "34%" }]}>Herramienta</Text>
+              <Text style={[s.thText, { width: "18%", textAlign: "center" }]}>Resultado</Text>
+              <Text style={[s.thText, { width: "32%" }]}>Nota</Text>
             </View>
-            {filas.map((fila, i) => (
+            {data.items.map((item, i) => (
               <View key={i} style={[s.tr, i % 2 === 1 ? s.trAlt : {}]} wrap={false}>
-                <Text style={[s.td, { width: "46%" }]}>{fila.nombre}</Text>
-                <Text style={[s.tdCenter, { width: "16%" }]}>{fila.unidad}</Text>
-                <Text style={[s.tdCenter, { width: "16%" }]}>{fila.cantidad || "—"}</Text>
-                <Text style={[s.tdCenter, { width: "22%" }]}>{fila.fechaRecepcion || "—"}</Text>
+                <Text style={[s.td, { width: "16%" }]}>{item.codigo}</Text>
+                <Text style={[s.td, { width: "34%" }]}>{item.nombre}</Text>
+                <Text style={[s.tdCenter, { width: "18%", color: colorResultado(item.resultado), fontFamily: "Manrope", fontWeight: 700 }]}>
+                  {RESULTADO_CONTEO_LABEL[item.resultado]}
+                </Text>
+                <Text style={[s.td, { width: "32%" }]}>{item.nota || "—"}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* Observaciones */}
+        {faltantes.length > 0 ? (
+          <View>
+            <Text style={s.sectionTitle}>Herramientas faltantes</Text>
+            <View style={[s.obsBox, { borderColor: RED }]}>
+              {faltantes.map((item, i) => (
+                <Text key={i} style={{ marginBottom: i === faltantes.length - 1 ? 0 : 3 }}>
+                  {item.codigo} · {item.nombre}
+                  {item.nota ? ` — ${item.nota}` : ""}
+                </Text>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         {data.observaciones ? (
           <View>
             <Text style={s.sectionTitle}>Observaciones</Text>
@@ -143,24 +175,20 @@ function EntregaEppDocument({ data }: { data: EntregaEppPDFData }) {
           </View>
         ) : null}
 
-        {/* Constancia y firma */}
         <View wrap={false}>
-          <Text style={s.sectionTitle}>Constancia de recibido</Text>
-          <Text style={s.legalText}>{CONSTANCIA_TRABAJADOR_EPP}</Text>
-
+          <Text style={s.sectionTitle}>Constancia</Text>
           <View style={s.sigTable}>
             <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
-              <Text style={s.sigThText}>FIRMA DEL TRABAJADOR QUE RECIBE</Text>
+              <Text style={s.sigThText}>FIRMA DEL RESPONSABLE DEL CONTEO</Text>
             </View>
             <View style={[s.sigTr, { borderBottomWidth: 0 }]}>
               <View style={[s.sigTdName, { width: "50%" }]}>
-                <Text>{data.trabajadorNombre || "—"}</Text>
-                <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {data.trabajadorCedula || "—"}</Text>
+                <Text>{data.responsableNombre || "—"}</Text>
               </View>
               <View style={[s.sigTdSign, { width: "50%" }]}>
-                {data.trabajadorFirma ? (
+                {data.firma ? (
                   // eslint-disable-next-line jsx-a11y/alt-text
-                  <Image src={data.trabajadorFirma} style={s.sigImg} />
+                  <Image src={data.firma} style={s.sigImg} />
                 ) : (
                   <Text style={{ fontSize: 6, color: GRAY }}>Firma:</Text>
                 )}
@@ -186,6 +214,6 @@ function EntregaEppDocument({ data }: { data: EntregaEppPDFData }) {
   );
 }
 
-export async function buildEntregaEppPDFBlob(data: EntregaEppPDFData): Promise<Blob> {
-  return pdf(<EntregaEppDocument data={data} />).toBlob();
+export async function buildConteoPDFBlob(data: ConteoPDFData): Promise<Blob> {
+  return pdf(<ConteoDocument data={data} />).toBlob();
 }

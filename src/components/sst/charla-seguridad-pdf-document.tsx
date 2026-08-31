@@ -54,12 +54,12 @@ const BEIGE_BORDER = ACTIUM_PDF.beigeBorder;
 const GRAY = ACTIUM_PDF.gray;
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
+  page: { paddingTop: 30, paddingBottom: 34, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ESPRESSO, paddingBottom: 10, marginBottom: 14 },
   brandLogo: { width: 118, height: 32, objectFit: "contain" },
   docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "33.33%", marginBottom: 6, paddingRight: 8 },
   fieldHalf: { width: "50%", marginBottom: 6, paddingRight: 8 },
@@ -69,7 +69,7 @@ const s = StyleSheet.create({
   temaRow: { flexDirection: "row", marginBottom: 3 },
   temaNum: { fontSize: 8, color: SADDLE, fontFamily: "Manrope", fontWeight: 700, width: 16 },
   temaText: { fontSize: 8.5, color: "#3A3A3A", flex: 1 },
-  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden" },
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4 },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
   thText: { color: "#FFFFFF", fontSize: 6.5, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3, paddingVertical: 5, paddingHorizontal: 4 },
   tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 30 },
@@ -82,7 +82,7 @@ const s = StyleSheet.create({
   obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4 },
   vacio: { fontSize: 8, color: GRAY, fontStyle: "italic", paddingVertical: 8 },
   legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginTop: 10, marginBottom: 6, textAlign: "justify" },
-  sigTable: { flexDirection: "row", borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 10 },
+  sigTable: { flexDirection: "row", borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 10 },
   sigCol: { flex: 1, borderRightWidth: 1, borderRightColor: BEIGE_BORDER },
   sigColLast: { flex: 1 },
   sigHead: { backgroundColor: "#EBE6E0", paddingVertical: 5, alignItems: "center" },
@@ -176,7 +176,7 @@ function CharlaSeguridadDocument({ data }: { data: CharlaSeguridadPDFData }) {
         )}
 
         {/* Asistentes */}
-        <Text style={s.sectionTitle} break>
+        <Text style={s.sectionTitle} minPresenceAhead={50}>
           Asistentes
         </Text>
         {asistentes.length === 0 ? (
@@ -214,7 +214,7 @@ function CharlaSeguridadDocument({ data }: { data: CharlaSeguridadPDFData }) {
         )}
 
         {/* Verificación de comprensión */}
-        <Text style={s.sectionTitle} break>
+        <Text style={s.sectionTitle} minPresenceAhead={50}>
           Verificación de comprensión
         </Text>
         <View style={s.grid}>
@@ -255,20 +255,20 @@ function CharlaSeguridadDocument({ data }: { data: CharlaSeguridadPDFData }) {
         ) : null}
 
         {/* Firmas de cierre */}
-        <Text style={s.sectionTitle} break>
-          Firmas
-        </Text>
-        <View style={s.sigTable}>
-          <Firma titulo="FIRMA CAPACITADOR" nombre={data.capacitadorNombre} firma={data.capacitadorFirma} />
-          <Firma titulo="RESPONSABLE SST / VERIFICACIÓN" nombre={data.responsableSstNombre} firma={data.responsableSstFirma} />
-          <Firma titulo="RESPONSABLE DEL ÁREA" nombre={data.responsableAreaNombre} firma={data.responsableAreaFirma} />
-        </View>
+        <View wrap={false}>
+          <Text style={s.sectionTitle}>Firmas</Text>
+          <View style={s.sigTable}>
+            <Firma titulo="FIRMA CAPACITADOR" nombre={data.capacitadorNombre} firma={data.capacitadorFirma} />
+            <Firma titulo="RESPONSABLE SST / VERIFICACIÓN" nombre={data.responsableSstNombre} firma={data.responsableSstFirma} />
+            <Firma titulo="RESPONSABLE DEL ÁREA" nombre={data.responsableAreaNombre} firma={data.responsableAreaFirma} />
+          </View>
 
-        <Text style={s.legalText}>{NOTA_LEGAL_CHARLA}</Text>
-        <Text style={s.disclaimer}>
-          Las firmas de este registro tienen carácter informativo y NO constituyen firma electrónica
-          certificada según la Ley 527 de 1999.
-        </Text>
+          <Text style={s.legalText}>{NOTA_LEGAL_CHARLA}</Text>
+          <Text style={s.disclaimer}>
+            Las firmas de este registro tienen carácter informativo y NO constituyen firma electrónica
+            certificada según la Ley 527 de 1999.
+          </Text>
+        </View>
 
         <View style={s.footer} fixed>
           <Text style={s.footerText}>Generado por Actium · {new Date().toLocaleString("es-CO")}</Text>

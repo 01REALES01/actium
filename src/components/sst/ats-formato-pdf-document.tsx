@@ -71,12 +71,12 @@ const GRAY = ACTIUM_PDF.gray;
 // Hoja de estilos compartida con permiso-altura / permiso-caliente:
 // mismo encabezado, secciones, grilla, chips, tablas y pie de página.
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 48, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
+  page: { paddingTop: 30, paddingBottom: 34, paddingHorizontal: 40, fontSize: 9, color: "#282828", fontFamily: "Manrope" },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomWidth: 2, borderBottomColor: ESPRESSO, paddingBottom: 10, marginBottom: 14 },
   brandLogo: { width: 118, height: 32, objectFit: "contain" },
   docTitle: { fontSize: 11, fontFamily: "Manrope", fontWeight: 700, color: "#282828", textAlign: "right" },
   docMeta: { fontSize: 8, color: GRAY, textAlign: "right", marginTop: 3 },
-  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 14 },
+  sectionTitle: { fontSize: 9, fontFamily: "Manrope", fontWeight: 700, color: ESPRESSO, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, marginTop: 10 },
   // datos en grilla 2 columnas
   grid: { flexDirection: "row", flexWrap: "wrap" },
   field: { width: "50%", marginBottom: 6, paddingRight: 8 },
@@ -89,7 +89,7 @@ const s = StyleSheet.create({
   chipOn: { borderColor: ORANGE, backgroundColor: "#FDEDE4", color: ESPRESSO },
   obsBox: { borderWidth: 1, borderColor: BEIGE_BORDER, backgroundColor: SEASHELL, borderRadius: 6, padding: 8, fontSize: 9, color: "#3A3A3A", lineHeight: 1.4, marginBottom: 4 },
   // tablas
-  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 4 },
+  table: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 4 },
   trHead: { flexDirection: "row", backgroundColor: ESPRESSO },
   thText: { color: "#FFFFFF", fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, paddingHorizontal: 5 },
   tr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER },
@@ -108,7 +108,7 @@ const s = StyleSheet.create({
   footerText: { fontSize: 7, color: GRAY },
   // signatures table (Apertura / Cierre)
   legalText: { fontSize: 7.5, color: "#3A3A3A", fontStyle: "italic", lineHeight: 1.4, marginBottom: 10, textAlign: "justify" },
-  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, overflow: "hidden", marginBottom: 10 },
+  sigTable: { borderWidth: 1, borderColor: BEIGE_BORDER, borderRadius: 4, marginBottom: 10 },
   sigThText: { color: ESPRESSO, fontSize: 7, fontFamily: "Manrope", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, paddingVertical: 5, textAlign: "center" },
   sigTr: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: BEIGE_BORDER, minHeight: 40 },
   sigTdName: { fontSize: 7.5, padding: 5, color: "#3A3A3A", justifyContent: "center" },
@@ -196,7 +196,7 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
         {/* 3. Equipos y herramientas */}
         <Text style={s.sectionTitle}>3. Equipos y herramientas a utilizar</Text>
         <View style={s.table}>
-          <View style={s.trHead}>
+          <View style={s.trHead} fixed>
             <Text style={[s.thText, { width: "28%" }]}>Categoría</Text>
             <Text style={[s.thText, { width: "72%" }]}>Detalle</Text>
           </View>
@@ -214,7 +214,7 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
         {/* Personal ejecutor */}
         <Text style={s.sectionTitle}>Personal ejecutor</Text>
         <View style={s.table}>
-          <View style={s.trHead}>
+          <View style={s.trHead} fixed>
             <Text style={[s.thText, { width: "30%" }]}>Cédula</Text>
             <Text style={[s.thText, { width: "70%" }]}>Nombres y apellidos</Text>
           </View>
@@ -222,7 +222,7 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
             <Text style={s.empty}>Sin personal ejecutor registrado.</Text>
           ) : (
             data.ejecutores.map((e, i) => (
-              <View key={i} style={s.tr}>
+              <View key={i} style={s.tr} wrap={false}>
                 <Text style={[s.td, { width: "30%" }]}>{e.cedula || "—"}</Text>
                 <Text style={[s.td, { width: "70%" }]}>{e.nombre || "—"}</Text>
               </View>
@@ -231,9 +231,9 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
         </View>
 
         {/* 4. Análisis de la tarea */}
-        <Text style={s.sectionTitle} break>4. Análisis de la tarea</Text>
+        <Text style={s.sectionTitle} minPresenceAhead={50}>4. Análisis de la tarea</Text>
         <View style={s.table}>
-          <View style={s.trHead}>
+          <View style={s.trHead} fixed>
             <Text style={[s.thText, { width: "60%" }]}>Pregunta</Text>
             <Text style={[s.thText, { width: "40%" }]}>Respuesta</Text>
           </View>
@@ -248,7 +248,7 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
         {/* 5. Pasos de la tarea */}
         <Text style={s.sectionTitle}>5. Pasos detallados de la tarea</Text>
         <View style={s.table}>
-          <View style={s.trHead}>
+          <View style={s.trHead} fixed>
             <Text style={[s.thText, { width: "25%" }]}>Paso</Text>
             <Text style={[s.thText, { width: "25%" }]}>Peligros</Text>
             <Text style={[s.thText, { width: "20%" }]}>Consecuencias</Text>
@@ -284,7 +284,7 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
         />
 
         {/* Firmas y Compromiso */}
-        <Text style={s.sectionTitle} break>Firmas y Compromiso</Text>
+        <Text style={s.sectionTitle} minPresenceAhead={60}>Firmas y Compromiso</Text>
         <Text style={s.legalText}>
           Personalmente hemos analizado y evaluado los pasos del trabajo, peligros y controles requeridos, y consideramos seguro realizar la labor.
           Como trabajadores nos comprometemos a cumplir con las medidas de control establecidas, suspender el trabajo si surgen nuevos riesgos y reportar el cierre de la actividad al finalizar.
@@ -292,7 +292,7 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
 
         <View style={s.sigTable}>
           {/* Main header */}
-          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]}>
+          <View style={[s.trHead, { backgroundColor: "#EBE6E0" }]} fixed>
             <Text style={[s.sigThText, { width: "50%", borderRightWidth: 1, borderRightColor: "#D1CFC9" }]}>INICIO DEL TRABAJO (APERTURA)</Text>
             <Text style={[s.sigThText, { width: "50%" }]}>FIN DEL TRABAJO (CIERRE)</Text>
           </View>
@@ -301,7 +301,7 @@ function AtsFormatoDocument({ data }: { data: AtsFormatoPDFData }) {
             <Text style={s.empty}>Sin ejecutores registrados.</Text>
           ) : (
             data.ejecutores.map((e, i) => (
-              <View key={`ej-${i}`} style={s.sigTr}>
+              <View key={`ej-${i}`} style={s.sigTr} wrap={false}>
                 <View style={[s.sigTdName, { width: "25%", borderRightWidth: 1, borderRightColor: "#F0EBE5" }]}>
                   <Text>{e.nombre || "—"}</Text>
                   <Text style={{ fontSize: 6, color: GRAY, marginTop: 2 }}>C.C. {e.cedula || "—"}</Text>

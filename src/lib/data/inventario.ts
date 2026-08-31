@@ -7,6 +7,18 @@ import {
   type EstadoHerramientaFiltro,
 } from "@/constants/inventario";
 
+export type ConteoResumen = Tables<"vw_conteos_resumen">;
+
+export type ItemConteo = Tables<"herramienta_conteo_items">;
+
+export type AmbitoConteo = {
+  /** null = bodega */
+  proyectoId: string | null;
+  nombre: string;
+  empresaNombre: string | null;
+  totalHerramientas: number;
+};
+
 type Client = TypedSupabaseClient;
 
 export type CatalogoConDisponibilidad = Tables<"vw_herramientas_disponibilidad">;
@@ -228,4 +240,104 @@ export async function getProyectoNombre(
 
   if (error) throw error;
   return data as unknown as ProyectoConEmpresa | null;
+}
+
+// ─── Conteos de herramientas (Hacer Inventario) ─────────────────────────────
+
+/**
+ * Ámbitos disponibles para abrir un conteo: cada proyecto con al menos una
+ * unidad asignada, más la Bodega (unidades disponibles o en mantenimiento sin
+ * proyecto). Es la mirada "qué herramientas tiene cada obra" que no existía
+ * en el resto del módulo, orientado por catálogo.
+ */
+export async function listAmbitosConteo(supabase: Client): Promise<AmbitoConteo[]> {
+  const { data, error } = await supabase
+    .from("herramienta_unidades")
+    .select("proyecto_id, estado, proyectos:proyecto_id (nombre, empresas:empresa_id (nombre))")
+    .is("deleted_at", null)
+    .in("estado", ["asignada", "disponible", "mantenimiento"]);
+
+  if (error) throw error;
+
+  let bodega = 0;
+  const porProyecto = new Map<string, { nombre: string; empresaNombre: string | null; total: number }>();
+
+  for (const u of data ?? []) {
+    if (u.estado === "asignada" && u.proyecto_id) {
+      const proyecto = u.proyectos as unknown as { nombre: string; empresas: { nombre: string } | null } | null;
+      const actual = porProyecto.get(u.proyecto_id) ?? {
+        nombre: proyecto?.nombre ?? "Proyecto",
+        empresaNombre: proyecto?.empresas?.nombre ?? null,
+        total: 0,
+      };
+      actual.total += 1;
+      porProyecto.set(u.proyecto_id, actual);
+    } else if (!u.proyecto_id && (u.estado === "disponible" || u.estado === "mantenimiento")) {
+      bodega += 1;
+    }
+  }
+
+  const ambitos: AmbitoConteo[] = Array.from(porProyecto.entries()).map(([proyectoId, v]) => ({
+    proyectoId,
+    nombre: v.nombre,
+    empresaNombre: v.empresaNombre,
+    totalHerramientas: v.total,
+  }));
+  ambitos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  if (bodega > 0) {
+    ambitos.unshift({ proyectoId: null, nombre: "Bodega", empresaNombre: null, totalHerramientas: bodega });
+  }
+
+  return ambitos;
+}
+
+export async function listConteos(supabase: Client): Promise<ConteoResumen[]> {
+  const { data, error } = await supabase
+    .from("vw_conteos_resumen")
+    .select("*")
+    .order("fecha_conteo", { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getConteo(
+  supabase: Client,
+  conteoId: string,
+): Promise<Tables<"herramienta_conteos"> | null> {
+  const { data, error } = await supabase
+    .from("herramienta_conteos")
+    .select("*")
+    .eq("id", conteoId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getConteoResumen(
+  supabase: Client,
+  conteoId: string,
+): Promise<ConteoResumen | null> {
+  const { data, error } = await supabase
+    .from("vw_conteos_resumen")
+    .select("*")
+    .eq("conteo_id", conteoId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function listItemsConteo(supabase: Client, conteoId: string): Promise<ItemConteo[]> {
+  const { data, error } = await supabase
+    .from("herramienta_conteo_items")
+    .select("*")
+    .eq("conteo_id", conteoId)
+    .order("catalogo_nombre", { ascending: true })
+    .order("unidad_codigo", { ascending: true });
+
+  if (error) throw error;
+  return data ?? [];
 }
