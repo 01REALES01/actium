@@ -93,6 +93,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "altura_detalles_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: true
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       altura_epp_chequeo: {
@@ -122,6 +129,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "altura_epp_chequeo_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       altura_lista_chequeo: {
@@ -150,6 +164,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "altura_lista_chequeo_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -199,6 +220,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "altura_personal_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       ats_analisis_riesgo: {
@@ -230,6 +258,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ats_analisis_riesgo_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -269,6 +304,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ats_detalles_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: true
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       ats_equipos: {
@@ -297,6 +339,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ats_equipos_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -335,6 +384,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ats_pasos_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -377,6 +433,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ats_trabajadores_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -523,6 +586,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "caliente_area_trabajo_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       caliente_cierre: {
@@ -551,6 +621,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caliente_cierre_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -599,6 +676,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "caliente_detalles_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: true
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       caliente_epp: {
@@ -627,6 +711,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caliente_epp_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -673,6 +764,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "caliente_firmas_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       caliente_planeacion: {
@@ -702,6 +800,13 @@ export type Database = {
             referencedRelation: "formularios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "caliente_planeacion_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
         ]
       }
       caliente_verificacion: {
@@ -730,6 +835,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "caliente_verificacion_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -843,6 +955,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charla_seguridad_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: true
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -1441,6 +1560,7 @@ export type Database = {
           fecha_recepcion: string
           formulario_id: string
           id: string
+          inventario_id: string | null
           unidad: string
         }
         Insert: {
@@ -1450,6 +1570,7 @@ export type Database = {
           fecha_recepcion: string
           formulario_id: string
           id?: string
+          inventario_id?: string | null
           unidad: string
         }
         Update: {
@@ -1459,6 +1580,7 @@ export type Database = {
           fecha_recepcion?: string
           formulario_id?: string
           id?: string
+          inventario_id?: string | null
           unidad?: string
         }
         Relationships: [
@@ -1468,6 +1590,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "epp_entregas"
             referencedColumns: ["formulario_id"]
+          },
+          {
+            foreignKeyName: "epp_entrega_items_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "epp_inventario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_entrega_items_inventario_id_fkey"
+            columns: ["inventario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_saldos"
+            referencedColumns: ["inventario_id"]
           },
         ]
       }
@@ -1516,6 +1652,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "epp_entregas_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: true
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
         ]
       }
@@ -1646,6 +1789,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "epp_movimientos_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
+          },
+          {
             foreignKeyName: "epp_movimientos_inventario_id_fkey"
             columns: ["inventario_id"]
             isOneToOne: false
@@ -1671,7 +1821,9 @@ export type Database = {
       formulario_fotos: {
         Row: {
           descripcion: string | null
+          equipo_uid: string | null
           formulario_id: string
+          herramienta_id: string | null
           id: string
           nombre: string | null
           storage_path: string
@@ -1681,7 +1833,9 @@ export type Database = {
         }
         Insert: {
           descripcion?: string | null
+          equipo_uid?: string | null
           formulario_id: string
+          herramienta_id?: string | null
           id?: string
           nombre?: string | null
           storage_path: string
@@ -1691,7 +1845,9 @@ export type Database = {
         }
         Update: {
           descripcion?: string | null
+          equipo_uid?: string | null
           formulario_id?: string
+          herramienta_id?: string | null
           id?: string
           nombre?: string | null
           storage_path?: string
@@ -1706,6 +1862,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "formularios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formulario_fotos_formulario_id_fkey"
+            columns: ["formulario_id"]
+            isOneToOne: false
+            referencedRelation: "vw_epp_entregas_no_conciliadas"
+            referencedColumns: ["formulario_id"]
           },
           {
             foreignKeyName: "formulario_fotos_subido_por_fkey"
@@ -1759,6 +1922,8 @@ export type Database = {
           firmado_at: string | null
           id: string
           pdf_generado_path: string | null
+          pdf_regenerado_at: string | null
+          pdf_regenerado_por: string | null
           proyecto_id: string
           subempresa_id: string
           tipo: Database["public"]["Enums"]["formulario_tipo"]
@@ -1778,6 +1943,8 @@ export type Database = {
           firmado_at?: string | null
           id?: string
           pdf_generado_path?: string | null
+          pdf_regenerado_at?: string | null
+          pdf_regenerado_por?: string | null
           proyecto_id: string
           subempresa_id: string
           tipo: Database["public"]["Enums"]["formulario_tipo"]
@@ -1797,6 +1964,8 @@ export type Database = {
           firmado_at?: string | null
           id?: string
           pdf_generado_path?: string | null
+          pdf_regenerado_at?: string | null
+          pdf_regenerado_por?: string | null
           proyecto_id?: string
           subempresa_id?: string
           tipo?: Database["public"]["Enums"]["formulario_tipo"]
@@ -1816,6 +1985,13 @@ export type Database = {
             columns: ["empresa_id"]
             isOneToOne: false
             referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formularios_pdf_regenerado_por_fkey"
+            columns: ["pdf_regenerado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
           {
@@ -3234,11 +3410,57 @@ export type Database = {
           },
         ]
       }
+      vw_epp_entregas_no_conciliadas: {
+        Row: {
+          cantidad: number | null
+          codigo_consecutivo: string | null
+          elemento: string | null
+          elemento_id: string | null
+          empleado_id: string | null
+          fecha_entrega: string | null
+          formulario_id: string | null
+          item_id: string | null
+          proyecto_id: string | null
+          trabajador_nombre: string | null
+          unidad: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "epp_entregas_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formularios_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "proyectos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "formularios_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyecto_resumen"
+            referencedColumns: ["proyecto_id"]
+          },
+          {
+            foreignKeyName: "formularios_proyecto_id_fkey"
+            columns: ["proyecto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_proyectos_finanzas"
+            referencedColumns: ["proyecto_id"]
+          },
+        ]
+      }
       vw_epp_saldos: {
         Row: {
           bajo_minimo: boolean | null
           elemento_id: string | null
           entregado: number | null
+          entregado_por_cargo: number | null
           ingresado: number | null
           inventario_id: string | null
           nombre: string | null
@@ -3409,13 +3631,6 @@ export type Database = {
             foreignKeyName: "rubros_proyecto_id_fkey"
             columns: ["proyecto_id"]
             isOneToOne: false
-            referencedRelation: "vw_proyecto_resumen"
-            referencedColumns: ["proyecto_id"]
-          },
-          {
-            foreignKeyName: "rubros_proyecto_id_fkey"
-            columns: ["proyecto_id"]
-            isOneToOne: false
             referencedRelation: "vw_proyectos_finanzas"
             referencedColumns: ["proyecto_id"]
           },
@@ -3442,6 +3657,10 @@ export type Database = {
       anular_cxp: {
         Args: { p_cxp_id: string; p_motivo?: string }
         Returns: undefined
+      }
+      aplicar_salidas_epp_formulario: {
+        Args: { p_formulario_id: string }
+        Returns: number
       }
       aprobar_movimiento: {
         Args: { p_movimiento_id: string }
@@ -3538,6 +3757,10 @@ export type Database = {
         Args: { p_movimiento_id: string }
         Returns: undefined
       }
+      eliminar_catalogo_herramienta: {
+        Args: { p_catalogo_id: string }
+        Returns: undefined
+      }
       eliminar_cxc: { Args: { p_cxc_id: string }; Returns: undefined }
       eliminar_cxp: { Args: { p_cxp_id: string }; Returns: undefined }
       eliminar_empleado_definitivo: {
@@ -3550,6 +3773,10 @@ export type Database = {
       }
       eliminar_proyecto_definitivo: {
         Args: { p_proyecto_id: string }
+        Returns: undefined
+      }
+      eliminar_unidad_herramienta: {
+        Args: { p_unidad_id: string }
         Returns: undefined
       }
       fijar_presupuesto_proyecto: {

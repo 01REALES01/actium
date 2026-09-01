@@ -31,6 +31,7 @@ import {
 import type { EntregaEppPDFData } from "./entrega-epp-pdf-document";
 import { listarFaltantes } from "@/lib/sst/faltantes";
 import { hoyLocal } from "@/lib/fecha";
+import type { EppSaldoRow } from "@/lib/data/inventario";
 
 const CARD = "rounded-xl border border-white/5 bg-[#1A1A1A] p-5 sm:p-6 shadow-2xl";
 const SECTION_TITLE_INLINE = "flex items-center gap-2 text-sm font-bold tracking-widest text-[#F25C05] uppercase";
@@ -68,6 +69,35 @@ type FilaEppEstado = {
   avisoMsg: string;
 };
 
+/**
+ * Agrupa los saldos de EPP del proyecto por elemento del catálogo, para
+ * saber contra qué ítem(es) del inventario puede conciliarse cada fila del
+ * cargo. Las tallas distintas del mismo elemento producen varias entradas.
+ */
+function agruparPorElemento(inventarioProyecto: EppSaldoRow[]): Map<string, EppSaldoRow[]> {
+  const mapa = new Map<string, EppSaldoRow[]>();
+  for (const fila of inventarioProyecto) {
+    if (!fila.elemento_id) continue;
+    const actual = mapa.get(fila.elemento_id) ?? [];
+    actual.push(fila);
+    mapa.set(fila.elemento_id, actual);
+  }
+  return mapa;
+}
+
+/**
+ * Resuelve con qué ítem del inventario debe quedar conciliada una fila:
+ * conserva la selección actual si sigue siendo válida, la auto-selecciona
+ * cuando hay una sola coincidencia posible, o la deja en null (sin
+ * conciliar) cuando hay varias tallas o ninguna coincidencia — nunca bloquea
+ * la firma, solo determina si esa fila descontará stock al firmar.
+ */
+function resolverInventarioId(matches: EppSaldoRow[], actual: string | null | undefined): string | null {
+  if (actual && matches.some((m) => m.inventario_id === actual)) return actual;
+  if (matches.length === 1) return matches[0].inventario_id;
+  return null;
+}
+
 function filaVacia(empleado: EmpleadoOptEpp): FilaEppEstado {
   return {
     elementos: estadoInicialEpp(),
@@ -92,9 +122,12 @@ function filaVacia(empleado: EmpleadoOptEpp): FilaEppEstado {
 export function EntregaEppForm({
   proyectos = [],
   empleados = [],
+  inventario = [],
 }: {
   proyectos?: { id: string; nombre: string }[];
   empleados?: EmpleadoOptEpp[];
+  /** Saldos de EPP de los proyectos accesibles, para conciliar cada elemento entregado con su ítem de inventario. */
+  inventario?: EppSaldoRow[];
 }) {
   const searchParams = useSearchParams();
   const borradorParam = searchParams.get("borradorId");
@@ -118,6 +151,11 @@ export function EntregaEppForm({
   const trabajadoresDisponibles = useMemo(
     () => (proyectoId ? empleados.filter((e) => e.proyectoIds.includes(proyectoId)) : []),
     [proyectoId, empleados],
+  );
+
+  const inventarioPorElemento = useMemo(
+    () => agruparPorElemento(proyectoId ? inventario.filter((r) => r.proyecto_id === proyectoId) : []),
+    [proyectoId, inventario],
   );
 
   const completados = trabajadoresDisponibles.filter((e) => filas[e.id]?.estado === "completado").length;
@@ -178,10 +216,18 @@ export function EntregaEppForm({
     const pending = pendingBorradorRef.current;
     if (pending && base[pending.empleadoId]) {
       const empleado = trabajadoresDisponibles.find((e) => e.id === pending.empleadoId)!;
+      const inventarioProyectoPendiente = agruparPorElemento(
+        pending.payload ? inventario.filter((r) => r.proyecto_id === proyectoId) : [],
+      );
       const elementosBase = estadoInicialEpp();
       for (const el of ELEMENTOS_EPP) {
         const guardado = pending.payload.elementos?.[el.id];
-        if (guardado) elementosBase[el.id] = { ...guardado };
+        if (!guardado) continue;
+        const matches = inventarioProyectoPendiente.get(el.id) ?? [];
+        elementosBase[el.id] = {
+          ...guardado,
+          inventarioId: guardado.entregado ? resolverInventarioId(matches, guardado.inventarioId) : null,
+        };
       }
       base[pending.empleadoId] = {
         ...filaVacia(empleado),
@@ -226,7 +272,15 @@ export function EntregaEppForm({
       const elementosBase = estadoInicialEpp();
       for (const el of ELEMENTOS_EPP) {
         const guardado = payload.elementos?.[el.id];
-        if (guardado) elementosBase[el.id] = { ...guardado };
+        if (!guardado) continue;
+        // El cargo copiado puede venir de otra obra: la conciliación con el
+        // inventario se recalcula siempre contra el proyecto actual, nunca
+        // se arrastra del cargo de origen.
+        const matches = inventarioPorElemento.get(el.id) ?? [];
+        elementosBase[el.id] = {
+          ...guardado,
+          inventarioId: guardado.entregado ? resolverInventarioId(matches, null) : null,
+        };
       }
 
       setFilas((prev) => {
@@ -488,6 +542,7 @@ export function EntregaEppForm({
                   fila={fila}
                   fecha={fecha}
                   hoy={hoy}
+                  inventarioPorElemento={inventarioPorElemento}
                   onToggleExpand={() => setFilaState(empleado.id, { expandido: !fila.expandido })}
                   onToggleElemento={(elId) =>
                     setFilas((prev) => {
@@ -495,6 +550,7 @@ export function EntregaEppForm({
                       if (!f) return prev;
                       const actual = f.elementos[elId];
                       const entregado = !actual.entregado;
+                      const matches = inventarioPorElemento.get(elId) ?? [];
                       return {
                         ...prev,
                         [empleado.id]: {
@@ -505,6 +561,7 @@ export function EntregaEppForm({
                               entregado,
                               cantidad: entregado && !actual.cantidad ? "1" : actual.cantidad,
                               fechaRecepcion: entregado && !actual.fechaRecepcion ? fecha || hoy : actual.fechaRecepcion,
+                              inventarioId: entregado ? resolverInventarioId(matches, actual.inventarioId) : null,
                             },
                           },
                         },
@@ -518,6 +575,16 @@ export function EntregaEppForm({
                       return {
                         ...prev,
                         [empleado.id]: { ...f, elementos: { ...f.elementos, [elId]: { ...f.elementos[elId], [campo]: valor } } },
+                      };
+                    })
+                  }
+                  onSeleccionarInventario={(elId, inventarioId) =>
+                    setFilas((prev) => {
+                      const f = prev[empleado.id];
+                      if (!f) return prev;
+                      return {
+                        ...prev,
+                        [empleado.id]: { ...f, elementos: { ...f.elementos, [elId]: { ...f.elementos[elId], inventarioId } } },
                       };
                     })
                   }
@@ -570,9 +637,11 @@ function FilaTrabajadorEpp({
   fila,
   fecha,
   hoy,
+  inventarioPorElemento,
   onToggleExpand,
   onToggleElemento,
   onActualizarElemento,
+  onSeleccionarInventario,
   onAgregarAdicional,
   onEliminarAdicional,
   onActualizarAdicional,
@@ -589,9 +658,11 @@ function FilaTrabajadorEpp({
   fila: FilaEppEstado;
   fecha: string;
   hoy: string;
+  inventarioPorElemento: Map<string, EppSaldoRow[]>;
   onToggleExpand: () => void;
   onToggleElemento: (elId: string) => void;
   onActualizarElemento: (elId: string, campo: "cantidad" | "fechaRecepcion", valor: string) => void;
+  onSeleccionarInventario: (elId: string, inventarioId: string | null) => void;
   onAgregarAdicional: () => void;
   onEliminarAdicional: (adId: number) => void;
   onActualizarAdicional: (adId: number, cambio: Partial<ElementoAdicionalEpp>) => void;
@@ -658,53 +729,64 @@ function FilaTrabajadorEpp({
           <div className="space-y-2">
             {ELEMENTOS_EPP.map((el) => {
               const estado = fila.elementos[el.id];
+              const matches = inventarioPorElemento.get(el.id) ?? [];
               return (
                 <div
                   key={el.id}
-                  className={`flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between ${
+                  className={`flex flex-col gap-3 rounded-lg border p-3 ${
                     estado.entregado ? "border-[#F25C05]/30 bg-[#F25C05]/[0.04]" : "border-white/5 bg-white/[0.02]"
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => onToggleElemento(el.id)}
-                    className="flex min-h-[44px] flex-1 items-center gap-3 text-left"
-                  >
-                    <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border ${
-                        estado.entregado ? "border-[#F25C05] bg-[#F25C05]" : "border-white/20"
-                      }`}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={() => onToggleElemento(el.id)}
+                      className="flex min-h-[44px] flex-1 items-center gap-3 text-left"
                     >
-                      {estado.entregado && <HardHat className="h-3.5 w-3.5 text-white" />}
-                    </span>
-                    <span>
-                      <span className="block text-xs font-medium text-white">{el.nombre}</span>
-                      <span className="block text-[10px] uppercase tracking-widest text-white/30">{el.unidad}</span>
-                    </span>
-                  </button>
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border ${
+                          estado.entregado ? "border-[#F25C05] bg-[#F25C05]" : "border-white/20"
+                        }`}
+                      >
+                        {estado.entregado && <HardHat className="h-3.5 w-3.5 text-white" />}
+                      </span>
+                      <span>
+                        <span className="block text-xs font-medium text-white">{el.nombre}</span>
+                        <span className="block text-[10px] uppercase tracking-widest text-white/30">{el.unidad}</span>
+                      </span>
+                    </button>
+                    {estado.entregado && (
+                      <div className="flex gap-2 sm:shrink-0">
+                        <div className="flex-1 space-y-1 sm:w-24 sm:flex-none">
+                          <Label className="text-[9px] uppercase tracking-widest text-white/40">Cantidad</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            inputMode="numeric"
+                            value={estado.cantidad}
+                            onChange={(e) => onActualizarElemento(el.id, "cantidad", e.target.value)}
+                            className="h-11 bg-white/5 border-white/10 text-white rounded-lg"
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1 sm:w-40 sm:flex-none">
+                          <Label className="text-[9px] uppercase tracking-widest text-white/40">Fecha de recepción</Label>
+                          <Input
+                            type="date"
+                            value={estado.fechaRecepcion}
+                            onChange={(e) => onActualizarElemento(el.id, "fechaRecepcion", e.target.value)}
+                            className="h-11 bg-white/5 border-white/10 text-white rounded-lg"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   {estado.entregado && (
-                    <div className="flex gap-2 sm:shrink-0">
-                      <div className="flex-1 space-y-1 sm:w-24 sm:flex-none">
-                        <Label className="text-[9px] uppercase tracking-widest text-white/40">Cantidad</Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          inputMode="numeric"
-                          value={estado.cantidad}
-                          onChange={(e) => onActualizarElemento(el.id, "cantidad", e.target.value)}
-                          className="h-11 bg-white/5 border-white/10 text-white rounded-lg"
-                        />
-                      </div>
-                      <div className="flex-1 space-y-1 sm:w-40 sm:flex-none">
-                        <Label className="text-[9px] uppercase tracking-widest text-white/40">Fecha de recepción</Label>
-                        <Input
-                          type="date"
-                          value={estado.fechaRecepcion}
-                          onChange={(e) => onActualizarElemento(el.id, "fechaRecepcion", e.target.value)}
-                          className="h-11 bg-white/5 border-white/10 text-white rounded-lg"
-                        />
-                      </div>
-                    </div>
+                    <ConciliacionInventarioEpp
+                      elementoId={el.id}
+                      matches={matches}
+                      estado={estado}
+                      onSeleccionar={(inventarioId) => onSeleccionarInventario(el.id, inventarioId)}
+                    />
                   )}
                 </div>
               );
@@ -843,6 +925,72 @@ function FilaTrabajadorEpp({
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Con qué ítem del inventario del proyecto queda conciliado un elemento
+ * entregado. Nunca bloquea: solo informa (una sola coincidencia), pide elegir
+ * (varias tallas) o advierte que la entrega quedará sin conciliar (ninguna
+ * coincidencia, o saldo insuficiente para lo que se está entregando).
+ */
+function ConciliacionInventarioEpp({
+  elementoId,
+  matches,
+  estado,
+  onSeleccionar,
+}: {
+  elementoId: string;
+  matches: EppSaldoRow[];
+  estado: EstadoElementoEpp;
+  onSeleccionar: (inventarioId: string | null) => void;
+}) {
+  if (matches.length === 0) {
+    return (
+      <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[10px] leading-relaxed text-amber-400">
+        Este elemento no está registrado en el inventario del proyecto. La entrega quedará sin conciliar.
+      </p>
+    );
+  }
+
+  const seleccionado = matches.find((m) => m.inventario_id === estado.inventarioId) ?? (matches.length === 1 ? matches[0] : null);
+  const saldoInsuficiente = seleccionado !== null && Number(estado.cantidad || 0) > (seleccionado.saldo ?? 0);
+
+  if (matches.length === 1) {
+    return (
+      <p className="text-[10px] leading-relaxed text-white/40">
+        Descuenta de: {seleccionado!.nombre}
+        {seleccionado!.talla ? ` · Talla ${seleccionado!.talla}` : ""} · saldo {seleccionado!.saldo ?? 0}
+        {saldoInsuficiente && (
+          <span className="text-amber-400"> — saldo insuficiente, la entrega quedará registrada igual.</span>
+        )}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <Label className="text-[9px] uppercase tracking-widest text-white/40">Descontar del ítem de inventario</Label>
+      <select
+        value={estado.inventarioId || ""}
+        onChange={(e) => onSeleccionar(e.target.value || null)}
+        className={FIELD + " h-11 w-full px-3 text-xs"}
+      >
+        <option value="">Seleccione la talla...</option>
+        {matches.map((m) => (
+          <option key={m.inventario_id ?? `${elementoId}-sin-id`} value={m.inventario_id ?? ""}>
+            {m.talla ? `Talla ${m.talla}` : m.nombre} · saldo {m.saldo ?? 0}
+          </option>
+        ))}
+      </select>
+      {!estado.inventarioId ? (
+        <p className="text-[10px] text-amber-400">Sin talla seleccionada, la entrega quedará sin conciliar.</p>
+      ) : (
+        saldoInsuficiente && (
+          <p className="text-[10px] text-amber-400">Saldo insuficiente, la entrega quedará registrada igual.</p>
+        )
       )}
     </div>
   );

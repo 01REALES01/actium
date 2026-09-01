@@ -6,6 +6,7 @@ import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import { limpiarDatosPersonales, type FallbackFormularioSST } from "@/lib/sst/prefill";
 import { hoyLocal } from "@/lib/fecha";
 import { ELEMENTOS_EPP } from "@/constants/entrega-epp";
+import { revalidarInventario } from "@/lib/actions/revalidar-inventario";
 import type { FormularioTipo } from "@/types/database.types";
 
 export async function crearPermisoAlturaAction(data: {
@@ -322,15 +323,38 @@ async function sincronizarEntregaEpp(db: any, formularioId: string, payloadStr: 
 
   await db.from("epp_entrega_items").delete().eq("formulario_id", formularioId);
 
-  const filas: { elemento_id: string; elemento: string; unidad: string; cantidad: string; fechaRecepcion: string }[] = [];
+  const filas: {
+    elemento_id: string;
+    elemento: string;
+    unidad: string;
+    cantidad: string;
+    fechaRecepcion: string;
+    inventarioId: string | null;
+  }[] = [];
   for (const el of ELEMENTOS_EPP) {
     const estado = data.elementos?.[el.id];
     if (!estado?.entregado || !estado.cantidad || !estado.fechaRecepcion) continue;
-    filas.push({ elemento_id: el.id, elemento: el.nombre, unidad: el.unidad, cantidad: estado.cantidad, fechaRecepcion: estado.fechaRecepcion });
+    filas.push({
+      elemento_id: el.id,
+      elemento: el.nombre,
+      unidad: el.unidad,
+      cantidad: estado.cantidad,
+      fechaRecepcion: estado.fechaRecepcion,
+      inventarioId: estado.inventarioId || null,
+    });
   }
   for (const ad of data.adicionales ?? []) {
     if (!ad.nombre?.trim() || !ad.cantidad || !ad.fechaRecepcion) continue;
-    filas.push({ elemento_id: "adicional", elemento: ad.nombre.trim(), unidad: ad.unidad, cantidad: ad.cantidad, fechaRecepcion: ad.fechaRecepcion });
+    // Las filas libres nunca se concilian con el inventario: no tienen
+    // equivalente en el catálogo ELEMENTOS_EPP.
+    filas.push({
+      elemento_id: "adicional",
+      elemento: ad.nombre.trim(),
+      unidad: ad.unidad,
+      cantidad: ad.cantidad,
+      fechaRecepcion: ad.fechaRecepcion,
+      inventarioId: null,
+    });
   }
 
   if (filas.length > 0) {
@@ -342,6 +366,7 @@ async function sincronizarEntregaEpp(db: any, formularioId: string, payloadStr: 
         unidad: f.unidad,
         cantidad: Number(f.cantidad),
         fecha_recepcion: f.fechaRecepcion,
+        inventario_id: f.inventarioId,
       })),
     );
   }
@@ -515,6 +540,7 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
 
     if (tipo === "entrega_epp") {
       await sincronizarEntregaEpp(db, existingId, payloadStr);
+      await aplicarDescuentoEpp(supabase, existingId);
     } else if (tipo === "charla_seguridad") {
       await sincronizarCharlaSeguridad(db, existingId, payloadStr);
     }
@@ -550,6 +576,7 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
       await (db.from("ats_detalles") as any).insert({ formulario_id: formularioId });
     } else if (tipo === "entrega_epp") {
       await sincronizarEntregaEpp(db, formularioId, payloadStr);
+      await aplicarDescuentoEpp(supabase, formularioId);
     } else if (tipo === "charla_seguridad") {
       await sincronizarCharlaSeguridad(db, formularioId, payloadStr);
     }
@@ -559,8 +586,95 @@ export async function guardarPdfYDatosFormularioAction(formData: FormData): Prom
   if (formularioId) revalidatePath(`/sst/${formularioId}`);
   revalidatePath("/sst/bitacora");
   if (proyectoId) revalidatePath(`/sst/bitacora/${proyectoId}`);
+  if (tipo === "entrega_epp") revalidarInventario();
 
   return { id: formularioId, pdfPath: storagePath };
+}
+
+/**
+ * Descuenta del inventario del proyecto los elementos del cargo que quedaron
+ * conciliados con un ítem (ver `aplicar_salidas_epp_formulario`). Se invoca
+ * con el cliente ligado al JWT del usuario (no el admin `db` de arriba): la
+ * RPC es SECURITY DEFINER pero su guard interno lee `auth_rol()` del llamador
+ * para exigir super_admin o sst, y eso solo existe bajo el JWT real — con el
+ * service role de `createAdminClient()` no hay claim de rol que evaluar.
+ *
+ * La entrega física ya ocurrió al firmarse el cargo: si el descuento falla
+ * (elemento sin conciliar en todo el cargo, error de la RPC, etc.) NO se
+ * revierte la firma — el cargo queda firmado igual y el hallazgo se puede
+ * seguir desde el panel de vacíos de Inventario. Perder la firma sería peor
+ * que un descuento pendiente.
+ */
+async function aplicarDescuentoEpp(supabase: any, formularioId: string): Promise<void> {
+  const { error } = await supabase.rpc("aplicar_salidas_epp_formulario", { p_formulario_id: formularioId });
+  if (error) {
+    console.error("[entrega_epp] No fue posible descontar el inventario del cargo", formularioId, error);
+  }
+}
+
+/**
+ * Reemplaza el PDF de un formulario YA FIRMADO, sin tocar su firma.
+ *
+ * Existe para el caso del preoperacional: se puede agregar la foto de un
+ * equipo después de emitido, y el documento debe reflejarla. A diferencia de
+ * `guardarPdfYDatosFormularioAction`, que siempre sella `estado: "firmado"` y
+ * `firmado_at: now()`, esta acción NUNCA toca esas dos columnas — solo
+ * reemplaza el archivo en su mismo `pdf_generado_path` (por eso el enlace no
+ * cambia) y deja constancia de la regeneración en `pdf_regenerado_at` /
+ * `pdf_regenerado_por`. Usar la acción genérica para este caso falsificaría la
+ * fecha real de la firma, que es justo el dato que un formulario SST no puede
+ * perder.
+ */
+export async function regenerarPdfFormularioAction(formData: FormData): Promise<{
+  pdfPath: string;
+}> {
+  const supabase = createClient();
+  const perfil = await getPerfilActual(supabase);
+  if (!perfil) throw new Error("No autenticado");
+  if (!puedeCrearFormularioSST(perfil.rol)) {
+    throw new Error("No tiene permisos para gestionar formularios SST.");
+  }
+
+  const formularioId = (formData.get("formularioId") as string) || "";
+  if (!formularioId) throw new Error("Formulario requerido.");
+
+  const pdfFile = formData.get("pdfFile") as File;
+  if (!pdfFile) throw new Error("Archivo PDF requerido.");
+
+  const db = createAdminClient();
+
+  const { data: form, error: formError } = await (db.from("formularios") as any)
+    .select("pdf_generado_path")
+    .eq("id", formularioId)
+    .single();
+
+  if (formError || !form?.pdf_generado_path) {
+    throw new Error("Este formulario aún no tiene un PDF generado que regenerar.");
+  }
+
+  const pdfBytes = await pdfFile.arrayBuffer();
+  const { error: errPdf } = await db.storage
+    .from("pdfs-formularios")
+    .upload(form.pdf_generado_path, Buffer.from(pdfBytes), {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+
+  if (errPdf) {
+    throw new Error(`Error reemplazando el PDF: ${errPdf.message}`);
+  }
+
+  const { error: errUpd } = await (db.from("formularios") as any)
+    .update({
+      pdf_regenerado_at: new Date().toISOString(),
+      pdf_regenerado_por: perfil.id,
+    })
+    .eq("id", formularioId);
+
+  if (errUpd) throw new Error(`Error registrando la regeneración: ${errUpd.message}`);
+
+  revalidatePath(`/sst/${formularioId}`);
+  return { pdfPath: form.pdf_generado_path as string };
 }
 
 // ─── Reutilizar el último permiso ────────────────────────────────────────────

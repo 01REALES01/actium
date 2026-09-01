@@ -4,9 +4,15 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, puedeGestionarInventario } from "@/lib/auth/roles";
-import { getProyectoNombre, listEppProyecto, getEppResumen } from "@/lib/data/inventario";
+import {
+  getProyectoNombre,
+  listEppProyecto,
+  getEppResumen,
+  listEntregasEppNoConciliadas,
+} from "@/lib/data/inventario";
 import { EppStockTable } from "@/components/inventario/epp-stock-table";
 import { EppItemFormDialog } from "@/components/inventario/epp-item-form-dialog";
+import { EppNoConciliadasTable } from "@/components/inventario/epp-no-conciliadas-table";
 
 export default async function EppProyectoPage({
   params,
@@ -20,9 +26,10 @@ export default async function EppProyectoPage({
   const proyecto = await getProyectoNombre(supabase, params.proyectoId);
   if (!proyecto) notFound();
 
-  const [items, resumen] = await Promise.all([
+  const [items, resumen, noConciliadas] = await Promise.all([
     listEppProyecto(supabase, params.proyectoId),
     getEppResumen(supabase, params.proyectoId),
+    listEntregasEppNoConciliadas(supabase, params.proyectoId),
   ]);
 
   return (
@@ -78,6 +85,8 @@ export default async function EppProyectoPage({
       </div>
 
       <EppStockTable proyectoId={proyecto.id} items={items} puedeEscribir={puedeEscribir} />
+
+      <EppNoConciliadasTable entregas={noConciliadas} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { getPerfilActual, puedeCrearFormularioSST } from "@/lib/auth/roles";
 import { EntregaEppForm, type EmpleadoOptEpp } from "@/components/sst/entrega-epp-form";
 import { listProyectos } from "@/lib/data/proyectos";
 import { listEmpleados } from "@/lib/data/sst";
+import { listEppSaldosAccesibles } from "@/lib/data/inventario";
 
 export default async function EntregaEppPage() {
   const supabase = createClient();
@@ -17,9 +18,10 @@ export default async function EntregaEppPage() {
     redirect("/sst");
   }
 
-  const [proyectosRaw, empleadosRaw] = await Promise.all([
+  const [proyectosRaw, empleadosRaw, inventario] = await Promise.all([
     listProyectos(supabase),
     listEmpleados(supabase),
+    listEppSaldosAccesibles(supabase),
   ]);
 
   const proyectos = proyectosRaw.map((p) => ({ id: p.id, nombre: p.nombre }));
@@ -61,7 +63,7 @@ export default async function EntregaEppPage() {
       </div>
 
       <Suspense fallback={<div className="text-white/50 text-xs py-8">Cargando formulario...</div>}>
-        <EntregaEppForm proyectos={proyectos} empleados={empleados} />
+        <EntregaEppForm proyectos={proyectos} empleados={empleados} inventario={inventario} />
       </Suspense>
     </div>
   );

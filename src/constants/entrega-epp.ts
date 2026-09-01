@@ -46,6 +46,14 @@ export type EstadoElementoEpp = {
   entregado: boolean;
   cantidad: string;
   fechaRecepcion: string;
+  /**
+   * Ítem de epp_inventario del que se descuenta esta fila al firmar el
+   * cargo. NULL = no se encontró un ítem del inventario del proyecto que
+   * coincida (o el proyecto aún no tiene ese elemento registrado): la
+   * entrega queda sin conciliar, visible en el panel de vacíos de
+   * Inventario, pero la firma nunca se bloquea por esto.
+   */
+  inventarioId: string | null;
 };
 
 /** Fila libre, para las casillas en blanco del formato original. */
@@ -59,7 +67,7 @@ export type ElementoAdicionalEpp = {
 
 export function estadoInicialEpp(): Record<string, EstadoElementoEpp> {
   return Object.fromEntries(
-    ELEMENTOS_EPP.map((el) => [el.id, { entregado: false, cantidad: "", fechaRecepcion: "" }]),
+    ELEMENTOS_EPP.map((el) => [el.id, { entregado: false, cantidad: "", fechaRecepcion: "", inventarioId: null }]),
   );
 }
 

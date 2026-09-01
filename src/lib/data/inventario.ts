@@ -201,6 +201,19 @@ export async function listEppProyecto(supabase: Client, proyectoId: string): Pro
   return data ?? [];
 }
 
+/**
+ * Saldos de EPP de todos los proyectos a los que el usuario autenticado
+ * tiene acceso — la RLS de epp_inventario/epp_movimientos los acota (ver
+ * 20260831000002_epp_descuento_por_cargo.sql: super_admin ve todos, sst solo
+ * los suyos). Para el selector de "descontar de" del formato de entrega, que
+ * elige el proyecto dentro del propio formulario.
+ */
+export async function listEppSaldosAccesibles(supabase: Client): Promise<EppSaldoRow[]> {
+  const { data, error } = await supabase.from("vw_epp_saldos").select("*").order("nombre", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function getEppResumen(
   supabase: Client,
   proyectoId: string,
@@ -213,16 +226,45 @@ export async function getEppResumen(
   };
 }
 
+export type EppMovimientoConRelaciones = Tables<"epp_movimientos"> & {
+  empleados: Pick<Tables<"empleados">, "nombre"> | null;
+  formularios: Pick<Tables<"formularios">, "codigo_consecutivo"> | null;
+};
+
 export async function listMovimientosEpp(
   supabase: Client,
   inventarioId: string,
-): Promise<Tables<"epp_movimientos">[]> {
+): Promise<EppMovimientoConRelaciones[]> {
+  // Trae el trabajador y el código del cargo que originó cada salida (cuando
+  // aplica), para que la trazabilidad se lea de un vistazo: quién recibió,
+  // cuándo, y con qué formulario firmado queda respaldado.
   const { data, error } = await supabase
     .from("epp_movimientos")
-    .select("*")
+    .select("*, empleados:empleado_id (nombre), formularios:formulario_id (codigo_consecutivo)")
     .eq("inventario_id", inventarioId)
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as unknown as EppMovimientoConRelaciones[];
+}
+
+export type EntregaNoConciliada = Tables<"vw_epp_entregas_no_conciliadas">;
+
+/**
+ * Elementos de cargos de EPP firmados que no quedaron vinculados a ningún
+ * ítem del inventario del proyecto: no descontaron stock. Es el panel de
+ * vacíos que el cliente audita contra el conteo físico.
+ */
+export async function listEntregasEppNoConciliadas(
+  supabase: Client,
+  proyectoId: string,
+): Promise<EntregaNoConciliada[]> {
+  const { data, error } = await supabase
+    .from("vw_epp_entregas_no_conciliadas")
+    .select("*")
+    .eq("proyecto_id", proyectoId)
+    .order("fecha_entrega", { ascending: false });
 
   if (error) throw error;
   return data ?? [];
