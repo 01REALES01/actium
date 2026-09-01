@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { SignaturePad } from "./signature-pad";
 import { FormularioFotos } from "./formulario-fotos";
+import { EquipoFoto } from "./equipo-foto";
 import type { FotoFormularioConUrl } from "@/lib/data/formularios-fotos";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +112,34 @@ export function PreoperacionalForm({
   const [observacionesGenerales, setObservacionesGenerales] = useState("");
 
   // Registro fotográfico. Vive en su propia tabla, no en el payload del PDF.
+  // Incluye tanto las fotos generales (herramienta_id/equipo_uid nulos, para
+  // la galería suelta) como las de cada equipo.
   const [fotos, setFotos] = useState<FotoFormularioConUrl[]>([]);
+
+  const fotoDeEquipo = (herramientaId: string, equipoUid: string) =>
+    fotos.find((f) => f.herramienta_id === herramientaId && f.equipo_uid === equipoUid);
+
+  const handleFotoEquipoSubida = (foto: FotoFormularioConUrl) =>
+    setFotos((prev) => [
+      foto,
+      ...prev.filter((f) => !(f.herramienta_id === foto.herramienta_id && f.equipo_uid === foto.equipo_uid)),
+    ]);
+
+  const handleFotoEquipoEliminada = (fotoId: string) =>
+    setFotos((prev) => prev.filter((f) => f.id !== fotoId));
+
+  /** Equipos registrados sin foto: el aviso que hace "opcional" auditable, sin bloquear. */
+  const equiposSinFoto = (): number => {
+    let total = 0;
+    for (const herramienta of HERRAMIENTAS_PREOP) {
+      const estado = herramientas[herramienta.id];
+      if (estado.noAplica) continue;
+      for (const equipo of estado.equipos) {
+        if (!fotoDeEquipo(herramienta.id, equipo.uid)) total += 1;
+      }
+    }
+    return total;
+  };
 
   // Firmas
   const [inspectorNombre, setInspectorNombre] = useState("");
@@ -122,6 +150,7 @@ export function PreoperacionalForm({
   const [supervisorFirma, setSupervisorFirma] = useState("");
 
   const [generando, setGenerando] = useState(false);
+  const [progresoFotos, setProgresoFotos] = useState<{ hechas: number; total: number } | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   const hoy = hoyLocal();
@@ -164,6 +193,12 @@ export function PreoperacionalForm({
         equipos: (guardada.equipos ?? []).map((equipo) => ({
           ...equipoVacio(),
           ...equipo,
+          // Al copiar con "Rellenar con el último" (sinFirmas) cada equipo
+          // recibe un uid nuevo: la foto de ayer es evidencia de ayer, no
+          // puede aparecer atada al equipo de hoy. Al retomar un borrador
+          // propio se conserva el uid guardado; si el payload es de antes de
+          // esta función (sin uid), `equipoVacio()` ya aportó uno por encima.
+          uid: opciones?.sinFirmas ? crypto.randomUUID() : equipo.uid || crypto.randomUUID(),
           respuestas: { ...(equipo.respuestas ?? {}) },
           inventario: { ...(equipo.inventario ?? {}) },
           observaciones: equipo.observaciones || "",
@@ -342,6 +377,11 @@ export function PreoperacionalForm({
 
     faltan.push(...criticosSinObservacion());
 
+    const sinFoto = equiposSinFoto();
+    if (sinFoto > 0) {
+      faltan.push(`${contar(sinFoto, "equipo", "equipos")} sin registro fotográfico`);
+    }
+
     if (!inspectorNombre.trim()) faltan.push("nombre de quien inspecciona");
     if (!inspectorFirma) faltan.push("firma de quien inspecciona");
     if (!supervisorNombre.trim()) faltan.push("nombre del supervisor");
@@ -413,6 +453,12 @@ export function PreoperacionalForm({
     return res.id;
   };
 
+  // Con la foto de galería general esta carrera era improbable (un solo botón
+  // "Tomar foto"); con una foto por equipo hay hasta 19 botones en pantalla, y
+  // dos toques casi simultáneos sin memoizar crearían dos borradores. La
+  // promesa en curso se reutiliza en vez de disparar `guardarBorrador` de nuevo.
+  const asegurandoBorradorRef = useRef<Promise<string> | null>(null);
+
   /**
    * Garantiza que exista la fila del formulario antes de adjuntar una foto.
    * La inspección se diligencia contra un borrador que solo nace al guardarlo,
@@ -421,16 +467,26 @@ export function PreoperacionalForm({
    */
   const asegurarBorrador = async (): Promise<string> => {
     if (borradorId) return borradorId;
+    if (asegurandoBorradorRef.current) return asegurandoBorradorRef.current;
 
-    const bloqueantes = faltantesParaGuardar();
-    if (bloqueantes.length > 0) {
-      throw new Error(`Para adjuntar fotos falta ${listarFaltantes(bloqueantes)}.`);
+    const promesa = (async () => {
+      const bloqueantes = faltantesParaGuardar();
+      if (bloqueantes.length > 0) {
+        throw new Error(`Para adjuntar fotos falta ${listarFaltantes(bloqueantes)}.`);
+      }
+
+      const id = await guardarBorrador();
+      setAvisoPendiente(false);
+      setAvisoMsg("Se guardó el borrador para poder adjuntar las fotos.");
+      return id;
+    })();
+
+    asegurandoBorradorRef.current = promesa;
+    try {
+      return await promesa;
+    } finally {
+      asegurandoBorradorRef.current = null;
     }
-
-    const id = await guardarBorrador();
-    setAvisoPendiente(false);
-    setAvisoMsg("Se guardó el borrador para poder adjuntar las fotos.");
-    return id;
   };
 
   const handleGuardarBorrador = async () => {
@@ -489,12 +545,43 @@ export function PreoperacionalForm({
       return;
     }
 
+    // La foto nunca bloquea emitir, pero si faltan hay que confirmarlo: es lo
+    // que hace auditable haberla dejado opcional en vez de obligatoria.
+    const sinFoto = equiposSinFoto();
+    if (sinFoto > 0) {
+      const confirmar = window.confirm(
+        `${contar(sinFoto, "equipo queda", "equipos quedan")} sin registro fotográfico. ¿Emitir la inspección de todos modos?`,
+      );
+      if (!confirmar) return;
+    }
+
     setGenerando(true);
     try {
       const data = construirPayload();
 
+      // El mapa de fotos se arma en el momento de emitir y no se guarda en el
+      // payload: son varias descargas y reencodados (una por equipo con foto),
+      // así que se avisa el avance para que no parezca colgado en un celular.
+      const conFoto = fotos.filter((f) => f.herramienta_id && f.equipo_uid && f.signedUrl);
+      const mapaFotos: Record<string, string> = {};
+      if (conFoto.length > 0) {
+        const { aDataUrlParaPdf } = await import("@/lib/imagen");
+        for (let i = 0; i < conFoto.length; i++) {
+          setProgresoFotos({ hechas: i, total: conFoto.length });
+          const f = conFoto[i];
+          try {
+            const res = await fetch(f.signedUrl as string);
+            const blob = await res.blob();
+            mapaFotos[`${f.herramienta_id}:${f.equipo_uid}`] = await aDataUrlParaPdf(blob);
+          } catch (e) {
+            console.error(`No fue posible preparar la foto de ${f.herramienta_id}:${f.equipo_uid}`, e);
+          }
+        }
+        setProgresoFotos(null);
+      }
+
       const { buildPreoperacionalPDFBlob } = await import("./preoperacional-pdf-document");
-      const blob = await buildPreoperacionalPDFBlob(data);
+      const blob = await buildPreoperacionalPDFBlob(data, mapaFotos);
 
       const formData = new FormData();
       formData.append("pdfFile", blob, "instrucciones-preoperacionales.pdf");
@@ -526,6 +613,7 @@ export function PreoperacionalForm({
     } catch (err: any) {
       setErrorMsg(err?.message || "No fue posible generar el PDF. Intenta de nuevo.");
     } finally {
+      setProgresoFotos(null);
       setGenerando(false);
     }
   };
@@ -622,6 +710,13 @@ export function PreoperacionalForm({
           onEliminar={(i) => eliminarEquipo(herramienta.id, i)}
           onToggleNoAplica={() => toggleNoAplica(herramienta.id)}
           onActualizar={(i, cambio) => actualizarEquipo(herramienta.id, i, cambio)}
+          formularioId={borradorId}
+          asegurarFormulario={asegurarBorrador}
+          fotoDeEquipo={fotoDeEquipo}
+          onFotoSubida={handleFotoEquipoSubida}
+          onFotoEliminada={handleFotoEquipoEliminada}
+          puedeSubirFotos
+          puedeEliminarFotos={puedeEliminarFotos}
         />
       ))}
 
@@ -638,11 +733,13 @@ export function PreoperacionalForm({
         />
       </div>
 
-      {/* Registro fotográfico */}
+      {/* Registro fotográfico general: lo que no es de un equipo concreto
+          (el frente de trabajo, una condición del área). No sale en el PDF —
+          la foto de cada equipo sí, y vive junto a su equipo más arriba. */}
       <FormularioFotos
         numero={HERRAMIENTAS_PREOP.length + 3}
         formularioId={borradorId}
-        fotosIniciales={fotos}
+        fotosIniciales={fotos.filter((f) => !f.herramienta_id)}
         puedeSubir
         puedeEliminar={puedeEliminarFotos}
         asegurarFormulario={asegurarBorrador}
@@ -712,7 +809,12 @@ export function PreoperacionalForm({
           <button type="button" onClick={handleGenerar} disabled={generando || guardandoBorrador}
             className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-[#F25C05] px-10 text-sm font-bold text-white transition-all hover:bg-[#F25C05]/90 shadow-lg shadow-[#F25C05]/20 disabled:opacity-50 disabled:cursor-not-allowed">
             {generando ? (
-              <><Loader2 className="h-5 w-5 animate-spin" /> Generando...</>
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {progresoFotos
+                  ? `Preparando fotos ${progresoFotos.hechas + 1} de ${progresoFotos.total}...`
+                  : "Generando..."}
+              </>
             ) : (
               <><Download className="h-5 w-5" /> Generar inspección en PDF</>
             )}
@@ -743,6 +845,13 @@ function SeccionHerramienta({
   onEliminar,
   onToggleNoAplica,
   onActualizar,
+  formularioId,
+  asegurarFormulario,
+  fotoDeEquipo,
+  onFotoSubida,
+  onFotoEliminada,
+  puedeSubirFotos,
+  puedeEliminarFotos,
 }: {
   herramienta: HerramientaPreop;
   numero: number;
@@ -752,6 +861,13 @@ function SeccionHerramienta({
   onEliminar: (indice: number) => void;
   onToggleNoAplica: () => void;
   onActualizar: (indice: number, cambio: (e: EquipoPreop) => EquipoPreop) => void;
+  formularioId: string | null;
+  asegurarFormulario: () => Promise<string>;
+  fotoDeEquipo: (herramientaId: string, equipoUid: string) => FotoFormularioConUrl | undefined;
+  onFotoSubida: (foto: FotoFormularioConUrl) => void;
+  onFotoEliminada: (fotoId: string) => void;
+  puedeSubirFotos: boolean;
+  puedeEliminarFotos: boolean;
 }) {
   const Icono = ICONOS[herramienta.icono] ?? ClipboardCheck;
   const cantidad = estado.equipos.length;
@@ -818,13 +934,20 @@ function SeccionHerramienta({
 
           {estado.equipos.map((equipo, i) => (
             <EquipoCard
-              key={i}
+              key={equipo.uid}
               herramienta={herramienta}
               equipo={equipo}
               indice={i}
               hoy={hoy}
               onEliminar={() => onEliminar(i)}
               onActualizar={(cambio) => onActualizar(i, cambio)}
+              foto={fotoDeEquipo(herramienta.id, equipo.uid)}
+              formularioId={formularioId}
+              asegurarFormulario={asegurarFormulario}
+              onFotoSubida={onFotoSubida}
+              onFotoEliminada={onFotoEliminada}
+              puedeSubirFotos={puedeSubirFotos}
+              puedeEliminarFotos={puedeEliminarFotos}
             />
           ))}
         </div>
@@ -846,6 +969,13 @@ function EquipoCard({
   hoy,
   onEliminar,
   onActualizar,
+  foto,
+  formularioId,
+  asegurarFormulario,
+  onFotoSubida,
+  onFotoEliminada,
+  puedeSubirFotos,
+  puedeEliminarFotos,
 }: {
   herramienta: HerramientaPreop;
   equipo: EquipoPreop;
@@ -853,6 +983,13 @@ function EquipoCard({
   hoy: string;
   onEliminar: () => void;
   onActualizar: (cambio: (e: EquipoPreop) => EquipoPreop) => void;
+  foto?: FotoFormularioConUrl;
+  formularioId: string | null;
+  asegurarFormulario: () => Promise<string>;
+  onFotoSubida: (foto: FotoFormularioConUrl) => void;
+  onFotoEliminada: (fotoId: string) => void;
+  puedeSubirFotos: boolean;
+  puedeEliminarFotos: boolean;
 }) {
   const critico = esEquipoCritico(herramienta, equipo, hoy);
   const faltantes = elementosFaltantes(herramienta, equipo).map((el) => el.id);
@@ -877,6 +1014,26 @@ function EquipoCard({
       return { ...e, inventario: { ...e.inventario, [id]: { ...anterior, [campo]: valor } } };
     });
 
+  const etiqueta = herramienta.unico ? herramienta.nombre : `${herramienta.nombre} ${indice + 1}`;
+
+  /** Si el equipo tenía foto, se borra con él: no debe quedar huérfana en el bucket. */
+  const handleEliminar = async () => {
+    if (foto) {
+      const confirmar = window.confirm(
+        `Este equipo tiene una foto de registro. Al eliminarlo también se elimina la foto. ¿Continuar?`,
+      );
+      if (!confirmar) return;
+      try {
+        const { eliminarFotoFormularioAction } = await import("@/lib/actions/formulario-fotos");
+        await eliminarFotoFormularioAction({ fotoId: foto.id });
+        onFotoEliminada(foto.id);
+      } catch (err) {
+        console.error("No fue posible eliminar la foto del equipo removido:", err);
+      }
+    }
+    onEliminar();
+  };
+
   return (
     <div
       className={`rounded-xl border p-4 sm:p-5 transition-colors ${
@@ -886,7 +1043,7 @@ function EquipoCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-widest text-white">
-            {herramienta.unico ? herramienta.nombre : `${herramienta.nombre} ${indice + 1}`}
+            {etiqueta}
           </span>
           {critico ? (
             <span className="flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-red-400">
@@ -902,7 +1059,7 @@ function EquipoCard({
         {!herramienta.unico && (
           <button
             type="button"
-            onClick={onEliminar}
+            onClick={handleEliminar}
             className="flex h-11 items-center justify-center gap-1.5 rounded-lg px-3 text-[10px] font-bold uppercase tracking-widest text-red-400 transition-colors hover:bg-red-400/10 sm:w-auto"
             aria-label={`Eliminar ${herramienta.singular} ${indice + 1}`}
           >
@@ -1072,6 +1229,24 @@ function EquipoCard({
                 : `Indique qué se encontró en ${contar(criticos, "ítem", "ítems")} en estado crítico y qué acción se tomó.`
               : "Novedades del equipo (opcional)."
           }
+        />
+      </div>
+
+      {/* Registro fotográfico del equipo: "una pieza, una foto". Nunca bloquea
+          diligenciar ni emitir; el aviso de equipos sin foto vive en el
+          resumen de pendientes. */}
+      <div className="mt-5">
+        <EquipoFoto
+          herramientaId={herramienta.id}
+          equipoUid={equipo.uid}
+          etiqueta={etiqueta}
+          foto={foto}
+          formularioId={formularioId}
+          asegurarFormulario={asegurarFormulario}
+          puedeSubir={puedeSubirFotos}
+          puedeEliminar={puedeEliminarFotos}
+          onSubida={onFotoSubida}
+          onEliminada={onFotoEliminada}
         />
       </div>
     </div>

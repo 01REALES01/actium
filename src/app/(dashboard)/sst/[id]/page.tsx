@@ -8,6 +8,7 @@ import { PersonalEjecutor, type TrabajadorItem } from "@/components/sst/personal
 import { AtsAcciones } from "@/components/sst/ats-acciones";
 import { BotonEliminarSST } from "@/components/sst/boton-eliminar-sst";
 import { FormularioFotos } from "@/components/sst/formulario-fotos";
+import { RegenerarPreoperacionalPdf } from "@/components/sst/regenerar-preoperacional-pdf";
 import { getFotosFormulario } from "@/lib/data/formularios-fotos";
 import type { Tables } from "@/types/database.types";
 import { RUTA_FORMULARIO_SST, NOMBRE_TIPO_SST, tieneCierre } from "@/lib/sst/tipos";
@@ -79,6 +80,12 @@ export default async function FormularioDetallePage({ params }: Props) {
   const esCharlaSeguridad = form.tipo === "charla_seguridad";
   const conFotos = esPreoperacional || esCharlaSeguridad;
   const fotos = conFotos ? await getFotosFormulario(supabase, form.id) : [];
+  // La galería suelta solo muestra fotos generales: las de equipo del
+  // preoperacional ya salen bajo cada equipo en el PDF, mostrarlas también
+  // aquí sin ese contexto sería redundante y confuso.
+  const fotosGenerales = fotos.filter((f) => !f.herramienta_id);
+  const puedeRegenerarPdf =
+    esPreoperacional && form.estado === "firmado" && Boolean(form.pdf_generado_path) && puedeGestionar;
 
   // Charla de seguridad: cabecera y asistentes.
   let charla: Tables<"charla_seguridad"> | null = null;
@@ -380,11 +387,25 @@ export default async function FormularioDetallePage({ params }: Props) {
         </div>
       )}
 
-      {/* Registro fotográfico */}
+      {/* Regenerar PDF: solo aplica al preoperacional firmado, cuando se
+          agregó una foto de equipo después de la emisión. */}
+      {puedeRegenerarPdf && (
+        <RegenerarPreoperacionalPdf
+          formularioId={form.id}
+          usuarioNombre={perfil?.nombre || "Actium"}
+          ultimaRegeneracion={
+            form.pdf_regenerado_at
+              ? new Date(form.pdf_regenerado_at).toLocaleString("es-CO")
+              : null
+          }
+        />
+      )}
+
+      {/* Registro fotográfico general (no atado a un equipo específico) */}
       {conFotos && (
         <FormularioFotos
           formularioId={form.id}
-          fotosIniciales={fotos}
+          fotosIniciales={fotosGenerales}
           puedeSubir={puedeGestionar}
           puedeEliminar={puedeEliminar}
         />

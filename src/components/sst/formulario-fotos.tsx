@@ -131,6 +131,8 @@ export function FormularioFotos({
         tamano_bytes: original.size,
         subido_por: null,
         uploaded_at: new Date().toISOString(),
+        herramienta_id: null,
+        equipo_uid: null,
         signedUrl: objectUrl,
       };
       setFotos((prev) => [optimista, ...prev]);

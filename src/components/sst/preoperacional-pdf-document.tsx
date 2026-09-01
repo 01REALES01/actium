@@ -54,6 +54,12 @@ export type PreoperacionalPDFData = {
   supervisorFirma: string;
 };
 
+/** `${herramientaId}:${equipoUid}` → data URL de la foto de ese equipo. */
+export type FotosEquipoPDF = Record<string, string>;
+
+/** Fecha de una eventual regeneración (agregar una foto tras firmar el PDF). */
+export type RegeneracionPDF = { fecha: string; usuario: string } | null;
+
 const ORANGE = ACTIUM_PDF.orange;
 const ESPRESSO = ACTIUM_PDF.espresso;
 const SADDLE = ACTIUM_PDF.saddle;
@@ -108,6 +114,10 @@ const s = StyleSheet.create({
   disclaimer: { fontSize: 6.5, color: GRAY, fontStyle: "italic", marginTop: 8, lineHeight: 1.3 },
   footer: { position: "absolute", bottom: 22, left: 40, right: 40, flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#E5E0DA", paddingTop: 6 },
   footerText: { fontSize: 7, color: GRAY },
+  // registro fotográfico por equipo
+  fotoEquipoWrap: { marginTop: 5, marginBottom: 2 },
+  fotoEquipo: { width: 200, height: 134, objectFit: "cover", borderRadius: 4, borderWidth: 0.5, borderColor: BEIGE_BORDER },
+  sinFoto: { fontSize: 7, color: GRAY, fontStyle: "italic" },
 });
 
 /** Verde para lo conforme, naranja para lo aceptable, rojo para lo crítico. */
@@ -128,6 +138,25 @@ function Campo({ label, value, full }: { label: string; value: string; full?: bo
   );
 }
 
+/**
+ * Registro fotográfico de un equipo: la evidencia de "una pieza, una foto".
+ * La ausencia se imprime en vez de omitirse — es lo que hace auditable haber
+ * dejado la foto como opcional en vez de obligatoria.
+ */
+function FotoEquipo({ url }: { url?: string }) {
+  return (
+    <View style={s.fotoEquipoWrap} wrap={false}>
+      <Text style={s.fieldLabel}>Registro fotográfico</Text>
+      {url ? (
+        // eslint-disable-next-line jsx-a11y/alt-text
+        <Image src={url} style={s.fotoEquipo} />
+      ) : (
+        <Text style={s.sinFoto}>Sin registro fotográfico.</Text>
+      )}
+    </View>
+  );
+}
+
 // ─── Bloque de un equipo ─────────────────────────────────────────────────────
 
 function EquipoChequeo({
@@ -135,11 +164,13 @@ function EquipoChequeo({
   equipo,
   indice,
   hoy,
+  fotoUrl,
 }: {
   herramienta: HerramientaPreop;
   equipo: EquipoPreop;
   indice: number;
   hoy: string;
+  fotoUrl?: string;
 }) {
   const critico = esEquipoCritico(herramienta, equipo, hoy);
 
@@ -208,6 +239,8 @@ function EquipoChequeo({
           </View>
         </View>
       ) : null}
+
+      <FotoEquipo url={fotoUrl} />
     </View>
   );
 }
@@ -217,11 +250,13 @@ function EquipoInventario({
   equipo,
   indice,
   hoy,
+  fotoUrl,
 }: {
   herramienta: HerramientaPreop;
   equipo: EquipoPreop;
   indice: number;
   hoy: string;
+  fotoUrl?: string;
 }) {
   const faltantes = elementosFaltantes(herramienta, equipo).map((el) => el.id);
   const vencidos = elementosVencidos(herramienta, equipo, hoy).map((el) => el.id);
@@ -286,13 +321,23 @@ function EquipoInventario({
           </View>
         </View>
       ) : null}
+
+      <FotoEquipo url={fotoUrl} />
     </View>
   );
 }
 
 // ─── Documento ───────────────────────────────────────────────────────────────
 
-function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
+function PreoperacionalDocument({
+  data,
+  fotos,
+  regeneracion,
+}: {
+  data: PreoperacionalPDFData;
+  fotos: FotosEquipoPDF;
+  regeneracion: RegeneracionPDF;
+}) {
   const hoy = data.fecha || new Date().toISOString().split("T")[0];
 
   return (
@@ -362,6 +407,7 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
                         equipo={equipo}
                         indice={i}
                         hoy={hoy}
+                        fotoUrl={fotos[`${herramienta.id}:${equipo.uid}`]}
                       />
                     ) : (
                       <EquipoChequeo
@@ -370,6 +416,7 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
                         equipo={equipo}
                         indice={i}
                         hoy={hoy}
+                        fotoUrl={fotos[`${herramienta.id}:${equipo.uid}`]}
                       />
                     ),
                   )}
@@ -459,7 +506,11 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
         </View>
 
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>Generado por Actium · {new Date().toLocaleString("es-CO")}</Text>
+          <Text style={s.footerText}>
+            {regeneracion
+              ? `Documento regenerado el ${regeneracion.fecha} por ${regeneracion.usuario}`
+              : `Generado por Actium · ${new Date().toLocaleString("es-CO")}`}
+          </Text>
           <Text
             style={s.footerText}
             render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}
@@ -470,6 +521,18 @@ function PreoperacionalDocument({ data }: { data: PreoperacionalPDFData }) {
   );
 }
 
-export async function buildPreoperacionalPDFBlob(data: PreoperacionalPDFData): Promise<Blob> {
-  return pdf(<PreoperacionalDocument data={data} />).toBlob();
+/**
+ * `fotos` mapea `${herramientaId}:${equipoUid}` → data URL, construido en el
+ * momento de emitir/regenerar. Nunca se persiste en el JSON de respaldo del
+ * formulario: con 19 equipos serían varios MB en base64 duplicando el
+ * storage. `regeneracion` solo se pasa al reemplazar el PDF de un formulario
+ * ya firmado (ver `regenerarPdfFormularioAction`), para que el pie del
+ * documento nunca se confunda con el original.
+ */
+export async function buildPreoperacionalPDFBlob(
+  data: PreoperacionalPDFData,
+  fotos: FotosEquipoPDF = {},
+  regeneracion: RegeneracionPDF = null,
+): Promise<Blob> {
+  return pdf(<PreoperacionalDocument data={data} fotos={fotos} regeneracion={regeneracion} />).toBlob();
 }

@@ -710,6 +710,14 @@ export const CERTIFICACION_OPERADOR =
 // pueda evaluarlas sin arrastrar @react-pdf/renderer al bundle principal.
 
 export type EquipoPreop = {
+  /**
+   * Identifica el equipo de forma estable para atarle una foto en
+   * `formulario_fotos` (columna `equipo_uid`). Se genera una vez, en
+   * `equipoVacio()`, y viaja con el equipo dentro del payload guardado —
+   * nunca se reasigna salvo al copiar una inspección anterior con "Rellenar
+   * con el último", donde la evidencia de ayer no debe heredarse.
+   */
+  uid: string;
   /** Campos de `identificacion` de la herramienta: id del campo → valor. */
   identificacion: Record<string, string>;
   /** Id del ítem → id de la opción de la escala. */
@@ -727,7 +735,7 @@ export type EstadoHerramientaPreop = {
 };
 
 export function equipoVacio(): EquipoPreop {
-  return { identificacion: {}, respuestas: {}, epp: [], inventario: {}, observaciones: "" };
+  return { uid: crypto.randomUUID(), identificacion: {}, respuestas: {}, epp: [], inventario: {}, observaciones: "" };
 }
 
 /** Ítems calificados con el valor crítico de la escala (malo / no / mal estado). */

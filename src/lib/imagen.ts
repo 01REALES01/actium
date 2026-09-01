@@ -85,3 +85,60 @@ function nombreJpeg(nombre: string): string {
   const base = nombre.replace(/\.[^./\\]+$/, "");
   return `${base || "foto"}.jpg`;
 }
+
+/**
+ * Reescala una imagen ya subida a un tamaño adecuado para incrustarla en un
+ * PDF y la devuelve como data URL.
+ *
+ * Existe por separado de `comprimirImagen`: esta última prepara el archivo
+ * para la subida (1600 px, deja el original si ya es pequeño), pero en el PDF
+ * la foto de un equipo se muestra a ~200 pt de ancho — 900 px de fuente sobra,
+ * y bajar a ese tamaño es lo que evita que un preoperacional de 19 equipos
+ * (el caso real más grande medido en producción) genere un PDF de varios MB.
+ * `@react-pdf/renderer` incrusta la imagen a su resolución original sin
+ * importar el tamaño con que se dibuja, así que sin este paso el reescalado
+ * nunca ocurriría.
+ */
+export async function aDataUrlParaPdf(
+  origen: Blob,
+  { maxLado = 900, calidad = 0.7 }: OpcionesCompresion = {},
+): Promise<string> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(origen);
+  } catch {
+    return blobADataUrl(origen);
+  }
+
+  try {
+    const escala = Math.min(1, maxLado / Math.max(bitmap.width, bitmap.height));
+    const ancho = Math.round(bitmap.width * escala);
+    const alto = Math.round(bitmap.height * escala);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = ancho;
+    canvas.height = alto;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return blobADataUrl(origen);
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, ancho, alto);
+    ctx.drawImage(bitmap, 0, 0, ancho, alto);
+
+    return canvas.toDataURL("image/jpeg", calidad);
+  } catch {
+    return blobADataUrl(origen);
+  } finally {
+    bitmap.close();
+  }
+}
+
+function blobADataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
