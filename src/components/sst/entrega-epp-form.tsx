@@ -50,6 +50,9 @@ export type EmpleadoOptEpp = {
 
 let adicionalSeq = 0;
 
+/** Valor del selector de una fila adicional que habilita el nombre a mano. */
+const ADICIONAL_TEXTO_LIBRE = "__texto__";
+
 type FilaEppEstado = {
   elementos: Record<string, EstadoElementoEpp>;
   adicionales: ElementoAdicionalEpp[];
@@ -155,6 +158,15 @@ export function EntregaEppForm({
 
   const inventarioPorElemento = useMemo(
     () => agruparPorElemento(proyectoId ? inventario.filter((r) => r.proyecto_id === proyectoId) : []),
+    [proyectoId, inventario],
+  );
+
+  // Ítems del inventario del proyecto que no pertenecen al catálogo del
+  // formato (arnés, careta de soldadura, ...): son los que puede elegir una
+  // fila adicional para descontar stock, en vez de escribir un nombre libre.
+  const inventarioFueraCatalogo = useMemo(
+    () =>
+      (proyectoId ? inventario.filter((r) => r.proyecto_id === proyectoId) : []).filter((r) => !r.elemento_id),
     [proyectoId, inventario],
   );
 
@@ -543,6 +555,7 @@ export function EntregaEppForm({
                   fecha={fecha}
                   hoy={hoy}
                   inventarioPorElemento={inventarioPorElemento}
+                  inventarioFueraCatalogo={inventarioFueraCatalogo}
                   onToggleExpand={() => setFilaState(empleado.id, { expandido: !fila.expandido })}
                   onToggleElemento={(elId) =>
                     setFilas((prev) => {
@@ -638,6 +651,7 @@ function FilaTrabajadorEpp({
   fecha,
   hoy,
   inventarioPorElemento,
+  inventarioFueraCatalogo,
   onToggleExpand,
   onToggleElemento,
   onActualizarElemento,
@@ -659,6 +673,7 @@ function FilaTrabajadorEpp({
   fecha: string;
   hoy: string;
   inventarioPorElemento: Map<string, EppSaldoRow[]>;
+  inventarioFueraCatalogo: EppSaldoRow[];
   onToggleExpand: () => void;
   onToggleElemento: (elId: string) => void;
   onActualizarElemento: (elId: string, campo: "cantidad" | "fechaRecepcion", valor: string) => void;
@@ -792,17 +807,67 @@ function FilaTrabajadorEpp({
               );
             })}
 
-            {fila.adicionales.map((ad) => (
+            {fila.adicionales.map((ad) => {
+              const inventarioSeleccionado = ad.inventarioId
+                ? inventarioFueraCatalogo.find((it) => it.inventario_id === ad.inventarioId)
+                : null;
+              const saldoInsuficiente = inventarioSeleccionado != null && Number(ad.cantidad || 0) > (inventarioSeleccionado.saldo ?? 0);
+
+              return (
               <div key={ad.id} className="flex flex-col gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 space-y-1">
                     <Label className="text-[9px] uppercase tracking-widest text-white/40">Elemento adicional</Label>
-                    <Input
-                      value={ad.nombre}
-                      onChange={(e) => onActualizarAdicional(ad.id, { nombre: e.target.value })}
-                      className="h-11 bg-white/5 border-white/10 text-white rounded-lg"
-                      placeholder="Nombre del elemento"
-                    />
+                    {inventarioFueraCatalogo.length > 0 ? (
+                      <select
+                        value={ad.inventarioId ?? ADICIONAL_TEXTO_LIBRE}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === ADICIONAL_TEXTO_LIBRE) {
+                            onActualizarAdicional(ad.id, { inventarioId: null });
+                            return;
+                          }
+                          const item = inventarioFueraCatalogo.find((it) => it.inventario_id === value);
+                          if (!item) return;
+                          onActualizarAdicional(ad.id, {
+                            inventarioId: item.inventario_id,
+                            nombre: item.nombre ?? "",
+                            unidad: (item.unidad as "UND." | "PAR.") ?? "UND.",
+                          });
+                        }}
+                        className={FIELD + " h-11 w-full px-3 text-xs"}
+                      >
+                        <option value={ADICIONAL_TEXTO_LIBRE}>Otro (escribir)</option>
+                        {inventarioFueraCatalogo.map((it) => (
+                          <option key={it.inventario_id} value={it.inventario_id ?? ""}>
+                            {it.nombre}
+                            {it.talla ? ` · talla ${it.talla}` : ""} · saldo {it.saldo ?? 0}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                    {ad.inventarioId ? null : (
+                      <Input
+                        value={ad.nombre}
+                        onChange={(e) => onActualizarAdicional(ad.id, { nombre: e.target.value })}
+                        className="h-11 bg-white/5 border-white/10 text-white rounded-lg"
+                        placeholder="Nombre del elemento"
+                      />
+                    )}
+                    {inventarioSeleccionado ? (
+                      <p className="text-[10px] leading-relaxed text-white/40">
+                        Descuenta de: {inventarioSeleccionado.nombre}
+                        {inventarioSeleccionado.talla ? ` · Talla ${inventarioSeleccionado.talla}` : ""} · saldo{" "}
+                        {inventarioSeleccionado.saldo ?? 0}
+                        {saldoInsuficiente && (
+                          <span className="text-amber-400"> — saldo insuficiente, la entrega quedará registrada igual.</span>
+                        )}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] leading-relaxed text-amber-400">
+                        Este elemento se registra solo en el cargo y no descuenta inventario.
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -819,7 +884,8 @@ function FilaTrabajadorEpp({
                     <select
                       value={ad.unidad}
                       onChange={(e) => onActualizarAdicional(ad.id, { unidad: e.target.value as "UND." | "PAR." })}
-                      className={FIELD + " h-11 w-full px-2 text-xs"}
+                      disabled={!!ad.inventarioId}
+                      className={FIELD + " h-11 w-full px-2 text-xs disabled:opacity-60"}
                     >
                       <option value="UND.">UND.</option>
                       <option value="PAR.">PAR.</option>
@@ -847,7 +913,8 @@ function FilaTrabajadorEpp({
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <button

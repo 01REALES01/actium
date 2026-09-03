@@ -345,15 +345,17 @@ async function sincronizarEntregaEpp(db: any, formularioId: string, payloadStr: 
   }
   for (const ad of data.adicionales ?? []) {
     if (!ad.nombre?.trim() || !ad.cantidad || !ad.fechaRecepcion) continue;
-    // Las filas libres nunca se concilian con el inventario: no tienen
-    // equivalente en el catálogo ELEMENTOS_EPP.
+    // Las filas libres pueden conciliarse con un ítem del inventario del
+    // proyecto que no pertenezca al catálogo ELEMENTOS_EPP (arnés, careta de
+    // soldadura, ...), elegido desde el formulario. Si se escribió el nombre
+    // a mano, inventarioId llega null y la fila no descuenta, como siempre.
     filas.push({
       elemento_id: "adicional",
       elemento: ad.nombre.trim(),
       unidad: ad.unidad,
       cantidad: ad.cantidad,
       fechaRecepcion: ad.fechaRecepcion,
-      inventarioId: null,
+      inventarioId: ad.inventarioId || null,
     });
   }
 

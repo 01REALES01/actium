@@ -18,8 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { crearItemEppAction, editarItemEppAction } from "@/lib/actions/inventario";
 import type { EppSaldoRow } from "@/lib/data/inventario";
+import { ELEMENTOS_EPP, elementoEppPorId, normalizarNombreElemento } from "@/constants/entrega-epp";
 
 type Modo = "crear" | "editar";
+
+/** Valor especial del selector de catálogo para habilitar el texto libre. */
+const OTRO = "__otro__";
 
 export function EppItemFormDialog({
   modo,
@@ -35,19 +39,40 @@ export function EppItemFormDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Si el ítem ya tiene elemento_id, arranca en esa entrada del catálogo. Si
+  // no lo tiene pero el nombre coincide con el catálogo (ítems heredados de
+  // antes de este selector), se preselecciona igual: corregir el vínculo
+  // queda en un solo guardado en vez de tener que recordar el nombre exacto.
+  const elementoInicial = item?.elemento_id ?? (item?.nombre ? normalizarNombreElemento(item.nombre) : null);
+
+  const [elementoId, setElementoId] = useState<string>(elementoInicial ?? (modo === "crear" ? "" : OTRO));
   const [nombre, setNombre] = useState(item?.nombre ?? "");
   const [unidad, setUnidad] = useState<"UND." | "PAR.">((item?.unidad as "UND." | "PAR.") ?? "UND.");
   const [talla, setTalla] = useState(item?.talla ?? "");
   const [stockMinimo, setStockMinimo] = useState(item?.stock_minimo != null ? String(item.stock_minimo) : "0");
 
+  const esCatalogo = elementoId !== OTRO && elementoId !== "";
+
   function resetForm() {
     if (modo === "crear") {
+      setElementoId("");
       setNombre("");
       setUnidad("UND.");
       setTalla("");
       setStockMinimo("0");
     }
     setError(null);
+  }
+
+  function handleElementoChange(value: string) {
+    setElementoId(value);
+    if (value !== OTRO) {
+      const el = elementoEppPorId(value);
+      if (el) {
+        setNombre(el.nombre);
+        setUnidad(el.unidad);
+      }
+    }
   }
 
   function handleOpenChange(next: boolean) {
@@ -60,6 +85,10 @@ export function EppItemFormDialog({
     e.preventDefault();
     setError(null);
 
+    if (!elementoId) {
+      setError("Selecciona el elemento del catálogo, o \"Otro elemento\" para escribir el nombre.");
+      return;
+    }
     if (!nombre.trim()) {
       setError("El nombre del elemento es obligatorio.");
       return;
@@ -72,10 +101,11 @@ export function EppItemFormDialog({
         unidad,
         talla: talla.trim() || undefined,
         stockMinimo: stockMinimo ? Number(stockMinimo) : 0,
+        elementoId: esCatalogo ? elementoId : null,
       };
 
       if (modo === "crear") {
-        await crearItemEppAction({ proyectoId, ...payload });
+        await crearItemEppAction({ proyectoId, ...payload, elementoId: payload.elementoId ?? undefined });
       } else if (item) {
         await editarItemEppAction({ inventarioId: item.inventario_id!, ...payload });
       }
@@ -117,14 +147,39 @@ export function EppItemFormDialog({
 
         <form onSubmit={onSubmit} className="flex max-h-[70vh] flex-col gap-4 overflow-y-auto">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="epp-nombre">Nombre</Label>
-            <Input id="epp-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Casco" required />
+            <Label htmlFor="epp-elemento">Elemento</Label>
+            <Select value={elementoId} onValueChange={handleElementoChange}>
+              <SelectTrigger id="epp-elemento">
+                <SelectValue placeholder="Selecciona un elemento..." />
+              </SelectTrigger>
+              <SelectContent>
+                {ELEMENTOS_EPP.map((el) => (
+                  <SelectItem key={el.id} value={el.id}>
+                    {el.nombre}
+                  </SelectItem>
+                ))}
+                <SelectItem value={OTRO}>Otro elemento</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-[--text-muted]">
+              Elegir un elemento del formato garantiza que la entrega correspondiente descuente este ítem al firmarse.
+            </p>
           </div>
+
+          {esCatalogo ? null : (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="epp-nombre">Nombre</Label>
+              <Input id="epp-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Arnés de seguridad" required />
+              <p className="text-xs text-warning">
+                Este elemento no está en el formato de entrega de EPP. Podrá descontarse desde una fila adicional del cargo.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label>Unidad</Label>
-              <Select value={unidad} onValueChange={(v) => setUnidad(v as "UND." | "PAR.")}>
+              <Select value={unidad} onValueChange={(v) => setUnidad(v as "UND." | "PAR.")} disabled={esCatalogo}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

@@ -488,6 +488,7 @@ const EditarItemEppSchema = z.object({
   unidad: z.enum(["UND.", "PAR."]).optional(),
   talla: z.string().max(20).optional(),
   stockMinimo: z.number().int().nonnegative().optional(),
+  elementoId: z.string().max(60).nullable().optional(),
 });
 
 export async function editarItemEppAction(
@@ -504,6 +505,7 @@ export async function editarItemEppAction(
       unidad: parsed.data.unidad ?? "UND.",
       talla: parsed.data.talla ?? null,
       stock_minimo: parsed.data.stockMinimo ?? 0,
+      elemento_id: parsed.data.elementoId ?? null,
     })
     .eq("id", parsed.data.inventarioId);
 

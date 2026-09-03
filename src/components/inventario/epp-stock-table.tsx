@@ -36,6 +36,11 @@ export function EppStockTable({
               </div>
               {it.bajo_minimo ? <Badge variant="warning">Bajo mínimo</Badge> : null}
             </div>
+            {!it.elemento_id ? (
+              <p className="mt-2 text-xs text-warning" title="Este elemento no se descontará al firmar un cargo de entrega hasta vincularlo.">
+                Sin vincular al formato
+              </p>
+            ) : null}
             <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
               <div>
                 <p className="text-[--text-muted]">Ingresado</p>
@@ -83,6 +88,14 @@ export function EppStockTable({
                     <Badge variant="warning" className="ml-2">
                       Bajo mínimo
                     </Badge>
+                  ) : null}
+                  {!it.elemento_id ? (
+                    <span
+                      className="ml-2 text-xs font-normal text-warning"
+                      title="Este elemento no se descontará al firmar un cargo de entrega hasta vincularlo."
+                    >
+                      Sin vincular al formato
+                    </span>
                   ) : null}
                 </td>
                 <td className="px-4 py-3 text-[--text-secondary]">{it.unidad}</td>

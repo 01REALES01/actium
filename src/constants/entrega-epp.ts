@@ -32,6 +32,24 @@ export const ELEMENTOS_EPP: ElementoEpp[] = [
   { id: "zapato", nombre: "Zapato punta de acero", unidad: "PAR." },
 ];
 
+/** Busca una entrada del catálogo por su id. */
+export function elementoEppPorId(id: string): ElementoEpp | undefined {
+  return ELEMENTOS_EPP.find((el) => el.id === id);
+}
+
+/**
+ * Resuelve el id del catálogo a partir de un nombre libre, normalizando
+ * mayúsculas/espacios (misma comparación exacta que usa el backfill de la
+ * migración 20260903000000_epp_vinculo_catalogo.sql). Devuelve null si el
+ * nombre no coincide con ningún elemento del formato — no es un fuzzy match,
+ * solo evita pedirle al usuario que re-elija algo que ya escribió igual.
+ */
+export function normalizarNombreElemento(nombre: string): string | null {
+  const normalizado = nombre.trim().toLowerCase();
+  const encontrado = ELEMENTOS_EPP.find((el) => el.nombre.trim().toLowerCase() === normalizado);
+  return encontrado?.id ?? null;
+}
+
 /** Base legal que se imprime en el PDF, en normativa colombiana. */
 export const NOTA_LEGAL_EPP =
   "El empleador debe suministrar a sus trabajadores los elementos de protección personal adecuados al tipo de labor y a los riesgos específicos presentes en el desempeño de sus funciones, conforme al Decreto 1072 de 2015 (artículo 2.2.4.6.24) y a la Resolución 2400 de 1979 (artículo 176).";
@@ -63,6 +81,13 @@ export type ElementoAdicionalEpp = {
   unidad: UnidadEpp;
   cantidad: string;
   fechaRecepcion: string;
+  /**
+   * Ítem de epp_inventario del que se descuenta esta fila, cuando el
+   * elemento elegido no pertenece a ELEMENTOS_EPP pero sí existe en el
+   * inventario del proyecto (p. ej. arnés, careta de soldadura). NULL cuando
+   * el nombre se escribió a mano: esas filas nunca descuentan.
+   */
+  inventarioId: string | null;
 };
 
 export function estadoInicialEpp(): Record<string, EstadoElementoEpp> {
@@ -72,7 +97,7 @@ export function estadoInicialEpp(): Record<string, EstadoElementoEpp> {
 }
 
 export function elementoAdicionalVacio(id: number): ElementoAdicionalEpp {
-  return { id, nombre: "", unidad: "UND.", cantidad: "", fechaRecepcion: "" };
+  return { id, nombre: "", unidad: "UND.", cantidad: "", fechaRecepcion: "", inventarioId: null };
 }
 
 /** Fila normalizada, lista para tabla o PDF: catálogo primero, adicionales después. */
