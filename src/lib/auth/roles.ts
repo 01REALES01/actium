@@ -61,6 +61,15 @@ export function puedeGestionarFinanzas(rol: UserRole | null | undefined): boolea
   return rol === "super_admin" || rol === "financiero";
 }
 
+/**
+ * Puede gestionar los documentos de soldadura (WPS, PQR, WPQ). Solo
+ * `super_admin`: son documentos controlados de la empresa, no registros de
+ * obra, y una revisión mal emitida invalida el respaldo de un procedimiento.
+ */
+export function puedeGestionarSoldadura(rol: UserRole | null | undefined): boolean {
+  return esSuperAdmin(rol);
+}
+
 /** Puede registrar y firmar formularios SST. */
 export function puedeGestionarSST(rol: UserRole | null | undefined): boolean {
   return esSuperAdmin(rol);
@@ -149,6 +158,7 @@ export type NavKey =
   | "sst"
   | "finanzas"
   | "inventario"
+  | "soldadura"
   | "admin";
 
 export type NavItemDef = {
@@ -164,6 +174,7 @@ const ALL_NAV: NavItemDef[] = [
   { key: "sst", label: "SST", href: "/sst", icon: "ShieldAlert" },
   { key: "finanzas", label: "Finanzas", href: "/finanzas", icon: "Wallet" },
   { key: "inventario", label: "Inventario", href: "/inventario", icon: "Package" },
+  { key: "soldadura", label: "Soldadura", href: "/soldadura", icon: "FileCheck2" },
   { key: "admin", label: "Administración", href: "/admin", icon: "ShieldCheck" },
 ];
 
@@ -171,7 +182,7 @@ const ALL_NAV: NavItemDef[] = [
 // para admin/financiero (ven cifras, no CTAs de escritura — ver
 // puedeGestionarPresupuesto); solo super_admin puede escribir.
 const NAV_BY_ROLE: Record<UserRole, NavKey[]> = {
-  super_admin: ["dashboard", "personal", "sst", "finanzas", "inventario", "admin"],
+  super_admin: ["dashboard", "personal", "sst", "finanzas", "inventario", "soldadura", "admin"],
   admin: ["dashboard", "personal", "sst", "finanzas"],
   // El rol financiero solo opera Finanzas — no accede a ninguna otra sección.
   financiero: ["finanzas"],

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:types": "supabase gen types typescript --project-id vtksbnctdrszpodntyfw --schema public > src/types/database.types.ts"
+    "db:types": "supabase gen types typescript --project-id vtksbnctdrszpodntyfw --schema public > src/types/database.types.ts.tmp && mv src/types/database.types.ts.tmp src/types/database.types.ts || (rm -f src/types/database.types.ts.tmp && exit 1)"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",

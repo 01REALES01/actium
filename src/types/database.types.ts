@@ -1309,6 +1309,123 @@ export type Database = {
           },
         ]
       }
+      documento_soldadura_secuencias: {
+        Row: {
+          anio: number
+          empresa_id: string
+          tipo: Database["public"]["Enums"]["documento_soldadura_tipo"]
+          ultimo_num: number
+        }
+        Insert: {
+          anio: number
+          empresa_id: string
+          tipo: Database["public"]["Enums"]["documento_soldadura_tipo"]
+          ultimo_num?: number
+        }
+        Update: {
+          anio?: number
+          empresa_id?: string
+          tipo?: Database["public"]["Enums"]["documento_soldadura_tipo"]
+          ultimo_num?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_soldadura_secuencias_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_soldadura: {
+        Row: {
+          codigo_consecutivo: string | null
+          created_at: string
+          creado_por: string | null
+          empresa_id: string
+          estado: Database["public"]["Enums"]["formulario_estado"]
+          fecha: string | null
+          firmado_at: string | null
+          id: string
+          numero: string | null
+          pdf_generado_path: string | null
+          pqr_ref: string | null
+          proceso: string | null
+          revision: string | null
+          subempresa_id: string
+          tipo: Database["public"]["Enums"]["documento_soldadura_tipo"]
+          titulo: string | null
+          updated_at: string
+          variante: Database["public"]["Enums"]["documento_soldadura_variante"]
+          wps_ref: string | null
+        }
+        Insert: {
+          codigo_consecutivo?: string | null
+          created_at?: string
+          creado_por?: string | null
+          empresa_id: string
+          estado?: Database["public"]["Enums"]["formulario_estado"]
+          fecha?: string | null
+          firmado_at?: string | null
+          id?: string
+          numero?: string | null
+          pdf_generado_path?: string | null
+          pqr_ref?: string | null
+          proceso?: string | null
+          revision?: string | null
+          subempresa_id: string
+          tipo: Database["public"]["Enums"]["documento_soldadura_tipo"]
+          titulo?: string | null
+          updated_at?: string
+          variante: Database["public"]["Enums"]["documento_soldadura_variante"]
+          wps_ref?: string | null
+        }
+        Update: {
+          codigo_consecutivo?: string | null
+          created_at?: string
+          creado_por?: string | null
+          empresa_id?: string
+          estado?: Database["public"]["Enums"]["formulario_estado"]
+          fecha?: string | null
+          firmado_at?: string | null
+          id?: string
+          numero?: string | null
+          pdf_generado_path?: string | null
+          pqr_ref?: string | null
+          proceso?: string | null
+          revision?: string | null
+          subempresa_id?: string
+          tipo?: Database["public"]["Enums"]["documento_soldadura_tipo"]
+          titulo?: string | null
+          updated_at?: string
+          variante?: Database["public"]["Enums"]["documento_soldadura_variante"]
+          wps_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_soldadura_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_soldadura_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_soldadura_subempresa_id_fkey"
+            columns: ["subempresa_id"]
+            isOneToOne: false
+            referencedRelation: "subempresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empleado_documentos: {
         Row: {
           empleado_id: string
@@ -3890,6 +4007,8 @@ export type Database = {
         | "certificacion_caliente"
         | "examen_medico"
         | "otro"
+      documento_soldadura_tipo: "wps" | "pqr" | "wpq"
+      documento_soldadura_variante: "asme_ix" | "aws_d1_2"
       epp_movimiento_tipo: "ingreso" | "salida" | "ajuste"
       factura_estado: "pendiente" | "parcial" | "pagada" | "vencida" | "anulada"
       firma_momento: "inicio" | "fin"
@@ -4088,6 +4207,8 @@ export const Constants = {
         "examen_medico",
         "otro",
       ],
+      documento_soldadura_tipo: ["wps", "pqr", "wpq"],
+      documento_soldadura_variante: ["asme_ix", "aws_d1_2"],
       epp_movimiento_tipo: ["ingreso", "salida", "ajuste"],
       factura_estado: ["pendiente", "parcial", "pagada", "vencida", "anulada"],
       firma_momento: ["inicio", "fin"],

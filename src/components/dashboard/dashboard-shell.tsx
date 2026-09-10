@@ -21,6 +21,7 @@ import {
   Calculator,
   Wallet,
   Package,
+  FileCheck2,
   ChevronLeft,
   ChevronRight,
   type LucideIcon,
@@ -53,6 +54,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Wallet,
   Package,
   ShieldCheck,
+  FileCheck2,
 };
 
 const secondaryNavigation = [
