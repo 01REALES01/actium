@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { comprimirImagen } from "@/lib/imagen";
 import { listarFaltantes } from "@/lib/sst/faltantes";
+import { hoyLocal } from "@/lib/fecha";
 import {
   filaVacia,
   valoresIniciales,
@@ -61,6 +62,9 @@ export function DocumentoSoldaduraForm({
   valoresGuardados,
   pdfPathInicial = null,
   codigoInicial = "",
+  estadoInicial = "borrador",
+  firmaPropia = null,
+  usuarioNombre = "",
 }: {
   espec: EspecDocumento;
   empresas: OpcionEmpresa[];
@@ -70,8 +74,25 @@ export function DocumentoSoldaduraForm({
   valoresGuardados?: ValoresDocumento | null;
   pdfPathInicial?: string | null;
   codigoInicial?: string;
+  /** `firmado` reabre un documento ya emitido para corregirlo y reemitirlo. */
+  estadoInicial?: "borrador" | "firmado";
+  /** Firma guardada en el perfil de quien tiene la sesión, si cargó alguna. */
+  firmaPropia?: string | null;
+  /** Nombre de quien tiene la sesión, para estampar la reemisión en el PDF. */
+  usuarioNombre?: string;
 }) {
   const router = useRouter();
+
+  /**
+   * Modo corrección de un documento ya emitido.
+   *
+   * Cambia tres cosas que en un borrador son inofensivas y aquí no: no hay
+   * guardado intermedio (el JSON de respaldo tiene que seguir correspondiendo
+   * al PDF vigente), no se puede rellenar con otro documento (sustituiría en
+   * silencio el contenido de un registro de calidad), y el dueño queda fijo
+   * (la ruta del archivo y el consecutivo ya se numeraron por esa empresa).
+   */
+  const esEdicion = estadoInicial === "firmado";
 
   // El formato en blanco define la forma; lo guardado la sobreescribe. Así un
   // borrador de antes de que el formato creciera sigue abriendo con los campos
@@ -232,6 +253,13 @@ export function DocumentoSoldaduraForm({
    * sin número, que es justamente lo que identifica al documento en el archivo.
    */
   const asegurarDocumento = async () => {
+    // Un documento emitido ya tiene consecutivo y ruta, y el trigger que numera
+    // es BEFORE INSERT: no hay nada que pedirle al servidor. Además `guardarBorrador`
+    // rechaza a propósito cualquier fila que no siga en borrador.
+    if (esEdicion && documentoId && pdfPath) {
+      return { id: documentoId, pdfPath, codigo };
+    }
+
     const { guardarBorradorSoldaduraAction } = await import("@/lib/actions/soldadura");
     const res = await guardarBorradorSoldaduraAction(construirFormData());
     // El servidor devuelve sus errores como valor: lanzarlos aquí los deja en
@@ -301,6 +329,7 @@ export function DocumentoSoldaduraForm({
         espec,
         valores,
         codigo: doc.codigo,
+        reemision: esEdicion ? { fecha: hoyLocal(), usuario: usuarioNombre } : undefined,
         empresa: {
           nombre: empresaSel?.nombre ?? "",
           nit: empresaSel?.nit ?? "",
@@ -613,17 +642,20 @@ export function DocumentoSoldaduraForm({
               </p>
             )}
           </div>
-          <button type="button" onClick={handleRellenarUltimo} disabled={rellenando} className={`${BTN_SEC} w-full sm:w-auto`}>
-            {rellenando ? <Loader2 className="h-4 w-4 animate-spin" /> : <History className="h-4 w-4" />}
-            Rellenar con el último
-          </button>
+          {!esEdicion && (
+            <button type="button" onClick={handleRellenarUltimo} disabled={rellenando} className={`${BTN_SEC} w-full sm:w-auto`}>
+              {rellenando ? <Loader2 className="h-4 w-4 animate-spin" /> : <History className="h-4 w-4" />}
+              Rellenar con el último
+            </button>
+          )}
         </div>
         <div className="mt-6 grid grid-cols-1 gap-5 border-t border-white/5 pt-6 sm:grid-cols-2">
           <CampoForm label="Empresa propietaria">
             <select
               value={empresaId}
               onChange={(e) => cambiarEmpresa(e.target.value)}
-              className={FIELD + " w-full px-3 [&>option]:bg-[#1A1A1A] [&>option]:text-white"}
+              disabled={esEdicion}
+              className={FIELD + " w-full px-3 disabled:opacity-40 [&>option]:bg-[#1A1A1A] [&>option]:text-white"}
             >
               <option value="">Seleccione una empresa...</option>
               {empresas.map((e) => (
@@ -637,7 +669,7 @@ export function DocumentoSoldaduraForm({
             <select
               value={subempresaId}
               onChange={(e) => setSubempresaId(e.target.value)}
-              disabled={!empresaId}
+              disabled={esEdicion || !empresaId}
               className={FIELD + " w-full px-3 disabled:opacity-40 [&>option]:bg-[#1A1A1A] [&>option]:text-white"}
             >
               <option value="">
@@ -653,9 +685,19 @@ export function DocumentoSoldaduraForm({
         </div>
 
         <p className="mt-4 text-[11px] leading-relaxed text-white/30">
-          El documento queda archivado a nombre de esta empresa y su consecutivo se numera por ella.
-          &ldquo;Rellenar con el último&rdquo; copia las variables del documento anterior de este mismo
-          formato: el número, los croquis y las firmas se diligencian de nuevo cada vez.
+          {esEdicion ? (
+            <>
+              El documento ya fue emitido: conserva su consecutivo y su empresa, y por eso no pueden
+              cambiarse. Al emitir se reemplaza el PDF vigente, el enlace del documento no cambia y la
+              fecha de la firma original se conserva.
+            </>
+          ) : (
+            <>
+              El documento queda archivado a nombre de esta empresa y su consecutivo se numera por ella.
+              &ldquo;Rellenar con el último&rdquo; copia las variables del documento anterior de este mismo
+              formato: el número, los croquis y las firmas se diligencian de nuevo cada vez.
+            </>
+          )}
         </p>
       </div>
 
@@ -697,6 +739,11 @@ export function DocumentoSoldaduraForm({
               label={firma.label}
               initialValue={leerTexto(firma.id)}
               onSave={(dataUrl) => set(firma.id, dataUrl)}
+              // Es la única firma del sistema que pone el propio usuario: los
+              // demás formatos recogen firmas de trabajadores, donde estampar
+              // una firma guardada sería un problema de control documental.
+              permitirFirmaPropia
+              firmaPropia={firmaPropia}
             />
           ))}
         </div>
@@ -722,6 +769,12 @@ export function DocumentoSoldaduraForm({
             {avisoMsg}
           </div>
         )}
+        {esEdicion && espec.claves.revision && (
+          <p className="mt-6 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-[11px] font-medium leading-relaxed text-amber-400">
+            Si cambió el contenido técnico del procedimiento, actualice el número de revisión antes de
+            emitir. Si solo corrige una errata, déjelo como está.
+          </p>
+        )}
         {!errorMsg && !avisoMsg && faltanAhora.length > 0 && (
           <p className="mt-6 text-[11px] leading-relaxed text-white/30">
             Para emitir falta: {listarFaltantes(faltanAhora)}.
@@ -729,22 +782,27 @@ export function DocumentoSoldaduraForm({
         )}
 
         <div className="mt-8 flex flex-col gap-3 border-t border-white/5 pt-6 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={handleGuardarBorrador}
-            disabled={guardando || generando}
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-8 text-sm font-bold text-white transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            {guardando ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" /> Guardando...
-              </>
-            ) : (
-              <>
-                <Save className="h-5 w-5" /> Guardar borrador
-              </>
-            )}
-          </button>
+          {/* Sin guardado intermedio en edición: un JSON de respaldo guardado
+              sin regenerar el PDF dejaría de corresponder al archivo vigente, y
+              ese JSON es el que alimenta la reapertura y "rellenar con el último". */}
+          {!esEdicion && (
+            <button
+              type="button"
+              onClick={handleGuardarBorrador}
+              disabled={guardando || generando}
+              className="flex h-14 w-full items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/5 px-8 text-sm font-bold text-white transition-all hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            >
+              {guardando ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" /> Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5" /> Guardar borrador
+                </>
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleGenerar}
@@ -757,7 +815,7 @@ export function DocumentoSoldaduraForm({
               </>
             ) : (
               <>
-                <Download className="h-5 w-5" /> Emitir documento en PDF
+                <Download className="h-5 w-5" /> {esEdicion ? "Emitir nueva versión" : "Emitir documento en PDF"}
               </>
             )}
           </button>

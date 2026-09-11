@@ -22,7 +22,7 @@ import {
 
 type Props = {
   params: { tipo: string };
-  searchParams: { variante?: string; borradorId?: string };
+  searchParams: { variante?: string; documentoId?: string };
 };
 
 export default async function NuevoDocumentoSoldaduraPage({ params, searchParams }: Props) {
@@ -33,12 +33,15 @@ export default async function NuevoDocumentoSoldaduraPage({ params, searchParams
   if (!esTipoSoldadura(params.tipo)) notFound();
   const tipo = params.tipo;
 
-  // Un borrador ya sabe bajo qué norma se abrió: no se vuelve a preguntar.
-  const borrador = searchParams.borradorId
-    ? await obtenerDocumentoSoldadura(supabase, searchParams.borradorId)
+  // Se reabre tanto un borrador a medio llenar como un documento ya emitido
+  // que hay que corregir. Cualquiera de los dos ya sabe bajo qué norma se
+  // abrió: no se vuelve a preguntar.
+  const documento = searchParams.documentoId
+    ? await obtenerDocumentoSoldadura(supabase, searchParams.documentoId)
     : null;
+  const esEdicion = Boolean(documento) && documento!.estado !== "borrador";
 
-  const varianteParam = borrador?.variante ?? searchParams.variante;
+  const varianteParam = documento?.variante ?? searchParams.variante;
   const variante = varianteParam && esVarianteSoldadura(varianteParam) ? varianteParam : null;
 
   const cabecera = (
@@ -59,10 +62,11 @@ export default async function NuevoDocumentoSoldaduraPage({ params, searchParams
           className="mb-4 h-9 w-auto brightness-0 invert"
         />
         <h1 className="font-display text-3xl uppercase tracking-tight text-white md:text-4xl">
-          {SIGLA_TIPO_SOLDADURA[tipo]}
+          {esEdicion ? `Editar ${SIGLA_TIPO_SOLDADURA[tipo]}` : SIGLA_TIPO_SOLDADURA[tipo]}
         </h1>
         <p className="mt-2 text-[10px] font-medium uppercase tracking-widest text-white/40 md:text-sm">
           {NOMBRE_TIPO_SOLDADURA[tipo]}
+          {esEdicion && documento?.codigo_consecutivo ? ` · ${documento.codigo_consecutivo}` : ""}
         </p>
       </div>
     </div>
@@ -143,20 +147,55 @@ export default async function NuevoDocumentoSoldaduraPage({ params, searchParams
     // Sin subempresa no se puede adscribir el documento: la fila las exige.
     .filter((e) => e.subempresas.length > 0);
 
-  // Los valores de un borrador viven en el JSON de respaldo, junto al PDF.
+  // Los valores diligenciados viven en el JSON de respaldo, junto al PDF.
   let valoresGuardados: ValoresDocumento | null = null;
-  if (borrador?.pdf_generado_path) {
+  if (documento?.pdf_generado_path) {
     const { data: archivo } = await supabase.storage
       .from("pdfs-formularios")
-      .download(borrador.pdf_generado_path.replace(/\.pdf$/, ".json"));
+      .download(documento.pdf_generado_path.replace(/\.pdf$/, ".json"));
     if (archivo) {
       try {
         valoresGuardados = JSON.parse(await archivo.text());
       } catch (e) {
-        console.error("Respaldo JSON ilegible del borrador de soldadura:", e);
+        console.error("Respaldo JSON ilegible del documento de soldadura:", e);
       }
     }
   }
+
+  // Sin respaldo legible no se puede editar un documento emitido. Abrir el
+  // formulario en blanco y dejar emitir reemplazaría el PDF bueno por uno vacío
+  // en la misma ruta, con upsert, sin forma de recuperarlo. En un borrador es
+  // inofensivo —se vuelve a llenar—, así que el corte es solo para los emitidos.
+  if (esEdicion && !valoresGuardados) {
+    return (
+      <div className="flex flex-col gap-8 pb-12">
+        {cabecera}
+        <div className="max-w-3xl rounded-xl border border-amber-500/20 bg-amber-500/10 p-6">
+          <h2 className="font-subtitle text-lg font-semibold text-amber-400">
+            Este documento no se puede editar
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-white/60">
+            No conserva sus datos estructurados: solo existe su PDF. Editarlo desde aquí reemplazaría
+            ese archivo por uno en blanco. Emita un documento nuevo tomando este como referencia.
+          </p>
+          <Link
+            href={`/soldadura/${documento!.id}`}
+            className="mt-6 flex min-h-[44px] w-fit items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 text-sm font-bold text-white transition-all duration-200 hover:bg-white/10"
+          >
+            Volver al documento
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // La firma guardada se consulta aparte y no dentro de `getPerfilActual`: es
+  // un PNG en base64 y arrastrarlo a cada página del panel sería peso muerto.
+  const { data: firma } = await supabase
+    .from("usuarios")
+    .select("firma_png")
+    .eq("id", perfil!.id)
+    .single();
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -164,12 +203,15 @@ export default async function NuevoDocumentoSoldaduraPage({ params, searchParams
       <DocumentoSoldaduraForm
         espec={espec}
         empresas={empresas}
-        empresaIdInicial={borrador?.empresa_id ?? perfil?.empresa_id ?? ""}
-        subempresaIdInicial={borrador?.subempresa_id ?? perfil?.subempresa_id ?? ""}
-        documentoIdInicial={borrador?.id ?? null}
+        empresaIdInicial={documento?.empresa_id ?? perfil?.empresa_id ?? ""}
+        subempresaIdInicial={documento?.subempresa_id ?? perfil?.subempresa_id ?? ""}
+        documentoIdInicial={documento?.id ?? null}
         valoresGuardados={valoresGuardados}
-        pdfPathInicial={borrador?.pdf_generado_path ?? null}
-        codigoInicial={borrador?.codigo_consecutivo ?? ""}
+        pdfPathInicial={documento?.pdf_generado_path ?? null}
+        codigoInicial={documento?.codigo_consecutivo ?? ""}
+        estadoInicial={esEdicion ? "firmado" : "borrador"}
+        firmaPropia={(firma as { firma_png: string | null } | null)?.firma_png ?? null}
+        usuarioNombre={perfil?.nombre ?? ""}
       />
     </div>
   );

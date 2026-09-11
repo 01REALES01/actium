@@ -299,6 +299,26 @@ async function guardarPdf(formData: FormData): Promise<{
 
   const db = createAdminClient();
   const { empresaId, subempresaId } = await resolverPropietario(db, formData, perfil);
+
+  // Si la fila ya estaba emitida, esto es una REEMISIÓN, y hay que saberlo
+  // ANTES de tocar el bucket: `firmado_at` conserva la fecha real de la firma y
+  // la sustitución del archivo se anota aparte. Sellar hoy la firma de un
+  // documento de hace ocho meses falsificaría el dato que un registro de
+  // calidad no puede perder. De paso cierra un hueco: el `update` de más abajo
+  // no lleva `.select()`, así que con un id inexistente afectaría cero filas y
+  // devolvería éxito.
+  let reemision = false;
+  if (documentoId) {
+    const { data: previo, error: errPrevio } = await db
+      .from("documentos_soldadura")
+      .select("estado")
+      .eq("id", documentoId)
+      .maybeSingle();
+    if (errPrevio) throw new ErrorDeUso(`No fue posible leer el documento: ${errPrevio.message}`);
+    if (!previo) throw new ErrorDeUso("El documento que intenta emitir ya no existe.");
+    reemision = (previo as { estado: string }).estado !== "borrador";
+  }
+
   const storagePath =
     existingPdfPath || `${empresaId}/${subempresaId}/soldadura/${crypto.randomUUID()}.pdf`;
 
@@ -312,11 +332,14 @@ async function guardarPdf(formData: FormData): Promise<{
 
   await subirRespaldo(db, storagePath, payloadStr);
 
+  const ahora = new Date().toISOString();
   const columnas = {
     ...clavesDesdeValores(espec, valores),
     pdf_generado_path: storagePath,
     estado: "firmado" as const,
-    firmado_at: new Date().toISOString(),
+    ...(reemision
+      ? { pdf_regenerado_at: ahora, pdf_regenerado_por: perfil.id }
+      : { firmado_at: ahora }),
   };
 
   let id = documentoId;

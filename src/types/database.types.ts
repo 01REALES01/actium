@@ -1350,6 +1350,8 @@ export type Database = {
           id: string
           numero: string | null
           pdf_generado_path: string | null
+          pdf_regenerado_at: string | null
+          pdf_regenerado_por: string | null
           pqr_ref: string | null
           proceso: string | null
           revision: string | null
@@ -1371,6 +1373,8 @@ export type Database = {
           id?: string
           numero?: string | null
           pdf_generado_path?: string | null
+          pdf_regenerado_at?: string | null
+          pdf_regenerado_por?: string | null
           pqr_ref?: string | null
           proceso?: string | null
           revision?: string | null
@@ -1392,6 +1396,8 @@ export type Database = {
           id?: string
           numero?: string | null
           pdf_generado_path?: string | null
+          pdf_regenerado_at?: string | null
+          pdf_regenerado_por?: string | null
           pqr_ref?: string | null
           proceso?: string | null
           revision?: string | null
@@ -1406,6 +1412,13 @@ export type Database = {
           {
             foreignKeyName: "documentos_soldadura_creado_por_fkey"
             columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_soldadura_pdf_regenerado_por_fkey"
+            columns: ["pdf_regenerado_por"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -3432,6 +3445,7 @@ export type Database = {
           created_at: string
           email: string
           empresa_id: string | null
+          firma_png: string | null
           id: string
           nombre: string
           rol: Database["public"]["Enums"]["user_role"]
@@ -3448,6 +3462,7 @@ export type Database = {
           created_at?: string
           email: string
           empresa_id?: string | null
+          firma_png?: string | null
           id: string
           nombre: string
           rol: Database["public"]["Enums"]["user_role"]
@@ -3464,6 +3479,7 @@ export type Database = {
           created_at?: string
           email?: string
           empresa_id?: string | null
+          firma_png?: string | null
           id?: string
           nombre?: string
           rol?: Database["public"]["Enums"]["user_role"]

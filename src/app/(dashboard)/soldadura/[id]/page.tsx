@@ -8,6 +8,7 @@ import {
   Link2,
   FileEdit,
   Download,
+  History,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, esSuperAdmin } from "@/lib/auth/roles";
@@ -55,6 +56,13 @@ export default async function DocumentoSoldaduraDetallePage({ params }: { params
     { icono: <Link2 className="h-4 w-4" strokeWidth={1.5} />, rotulo: "WPS de referencia", valor: doc.wps_ref },
     { icono: <Link2 className="h-4 w-4" strokeWidth={1.5} />, rotulo: "PQR de referencia", valor: doc.pqr_ref },
     { icono: <User className="h-4 w-4" strokeWidth={1.5} />, rotulo: "Registrado por", valor: creador?.nombre ?? null },
+    {
+      icono: <History className="h-4 w-4" strokeWidth={1.5} />,
+      rotulo: "Reemitido",
+      valor: doc.pdf_regenerado_at
+        ? new Date(doc.pdf_regenerado_at).toLocaleDateString("es-CO", { dateStyle: "medium" })
+        : null,
+    },
   ].filter((d) => d.valor);
 
   return (
@@ -90,14 +98,13 @@ export default async function DocumentoSoldaduraDetallePage({ params }: { params
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          {esBorrador && (
-            <Link
-              href={`/soldadura/nuevo/${doc.tipo}?borradorId=${doc.id}`}
-              className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-actium-orange px-6 py-2.5 font-semibold text-white shadow-actium transition-all duration-200 hover:bg-actium-orange-hover hover:shadow-actium-lg"
-            >
-              <FileEdit className="h-4 w-4" /> Continuar diligenciando
-            </Link>
-          )}
+          <Link
+            href={`/soldadura/nuevo/${doc.tipo}?documentoId=${doc.id}`}
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-actium-orange px-6 py-2.5 font-semibold text-white shadow-actium transition-all duration-200 hover:bg-actium-orange-hover hover:shadow-actium-lg"
+          >
+            <FileEdit className="h-4 w-4" />
+            {esBorrador ? "Continuar diligenciando" : "Editar y reemitir"}
+          </Link>
           {pdfUrl && (
             <a
               href={pdfUrl}
@@ -111,6 +118,13 @@ export default async function DocumentoSoldaduraDetallePage({ params }: { params
           <EliminarDocumentoSoldadura id={doc.id} rotulo={`${SIGLA_TIPO_SOLDADURA[doc.tipo]} ${doc.numero || doc.codigo_consecutivo || ""}`} />
         </div>
       </div>
+
+      {!esBorrador && (
+        <p className="-mt-2 max-w-3xl text-xs leading-relaxed text-text-muted">
+          Al reemitir se reemplaza el PDF vigente. El documento conserva su consecutivo, su enlace y
+          la fecha de la firma original, y el pie del nuevo archivo deja constancia de la reemisión.
+        </p>
+      )}
 
       <div className="rounded-actium border border-border-subtle bg-bg-elevated p-6 shadow-actium">
         <h2 className="font-subtitle text-lg font-semibold text-text-primary">Datos del documento</h2>

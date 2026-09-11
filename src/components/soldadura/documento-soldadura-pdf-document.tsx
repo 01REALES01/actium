@@ -43,6 +43,12 @@ export type DocumentoSoldaduraPDFData = {
   /** Consecutivo interno de Actium: WPS-2026-0001. */
   codigo: string;
   empresa: EmpresaPDF;
+  /**
+   * Presente solo cuando se corrige un documento YA emitido. Se estampa en el
+   * pie para que una versión reemplazada no pueda confundirse con la original:
+   * el consecutivo, el enlace y la fecha de firma siguen siendo los mismos.
+   */
+  reemision?: { fecha: string; usuario: string };
 };
 
 const ORANGE = ACTIUM_PDF.orange;
@@ -353,7 +359,7 @@ function Seccion({ seccion, valores }: { seccion: SeccionSpec; valores: ValoresD
 }
 
 function DocumentoSoldaduraDocument({ data }: { data: DocumentoSoldaduraPDFData }) {
-  const { espec, valores, codigo, empresa } = data;
+  const { espec, valores, codigo, empresa, reemision } = data;
 
   return (
     <Document title={`${espec.formulario} ${codigo}`}>
@@ -424,6 +430,9 @@ function DocumentoSoldaduraDocument({ data }: { data: DocumentoSoldaduraPDFData 
         <View style={s.footer} fixed>
           <Text style={s.footerText}>
             {espec.formulario} · {espec.norma} · {codigo}
+            {reemision
+              ? ` · Reemitido el ${reemision.fecha}${reemision.usuario ? ` por ${reemision.usuario}` : ""}`
+              : ""}
           </Text>
           <Text
             style={s.footerPag}
