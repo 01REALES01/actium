@@ -18,33 +18,48 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PlanCuotasEditor, type CuotaCalculada } from "@/components/finanzas/plan-cuotas-editor";
 import { crearCxPAction } from "@/lib/actions/cxp";
+import { crearProveedorAction } from "@/lib/actions/proveedores";
+import type { Proveedor } from "@/lib/data/proveedores";
 import { hoyLocal } from "@/lib/fecha";
 import type { Tables } from "@/types/database.types";
 
 export function CxPFormDialog({
   proyectoId,
   rubrosEgreso,
+  proveedores,
 }: {
   proyectoId: string;
   rubrosEgreso: Pick<Tables<"rubros">, "id" | "nombre" | "codigo">[];
+  proveedores: Proveedor[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [listaProveedores, setListaProveedores] = useState(proveedores);
+  const [proveedorId, setProveedorId] = useState("");
+  const [nuevoProveedor, setNuevoProveedor] = useState(proveedores.length === 0);
+  const [nuevoProveedorNombre, setNuevoProveedorNombre] = useState("");
+  const [nuevoProveedorNit, setNuevoProveedorNit] = useState("");
+  const [guardandoProveedor, setGuardandoProveedor] = useState(false);
+  const [errorProveedor, setErrorProveedor] = useState<string | null>(null);
+
   const [rubroId, setRubroId] = useState("");
-  const [proveedorNombre, setProveedorNombre] = useState("");
-  const [proveedorNit, setProveedorNit] = useState("");
   const [numeroFactura, setNumeroFactura] = useState("");
   const [fechaEmision, setFechaEmision] = useState(hoyLocal());
   const [notas, setNotas] = useState("");
   const [cuotas, setCuotas] = useState<CuotaCalculada[]>([]);
 
+  const proveedorSeleccionado = listaProveedores.find((p) => p.id === proveedorId) ?? null;
+
   function resetForm() {
     setRubroId("");
-    setProveedorNombre("");
-    setProveedorNit("");
+    setProveedorId("");
+    setNuevoProveedor(listaProveedores.length === 0);
+    setNuevoProveedorNombre("");
+    setNuevoProveedorNit("");
+    setErrorProveedor(null);
     setNumeroFactura("");
     setFechaEmision(hoyLocal());
     setNotas("");
@@ -58,6 +73,31 @@ export function CxPFormDialog({
     if (!next) resetForm();
   }
 
+  async function guardarNuevoProveedor() {
+    setErrorProveedor(null);
+    if (!nuevoProveedorNombre.trim()) {
+      setErrorProveedor("El nombre es obligatorio.");
+      return;
+    }
+
+    setGuardandoProveedor(true);
+    try {
+      const proveedor = await crearProveedorAction({
+        nombre: nuevoProveedorNombre.trim(),
+        nit: nuevoProveedorNit.trim() || undefined,
+      });
+      setListaProveedores((prev) => [...prev, proveedor].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      setProveedorId(proveedor.id);
+      setNuevoProveedor(false);
+      setNuevoProveedorNombre("");
+      setNuevoProveedorNit("");
+    } catch (err) {
+      setErrorProveedor(err instanceof Error ? err.message : "No fue posible crear el proveedor.");
+    } finally {
+      setGuardandoProveedor(false);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -66,8 +106,12 @@ export function CxPFormDialog({
       setError("Selecciona el rubro.");
       return;
     }
-    if (!proveedorNombre.trim() || !numeroFactura.trim()) {
-      setError("Proveedor y número de factura son obligatorios.");
+    if (!proveedorSeleccionado) {
+      setError("Selecciona o crea un proveedor.");
+      return;
+    }
+    if (!numeroFactura.trim()) {
+      setError("El número de factura es obligatorio.");
       return;
     }
     if (cuotas.length === 0) {
@@ -80,8 +124,8 @@ export function CxPFormDialog({
       await crearCxPAction({
         proyectoId,
         rubroId,
-        proveedorNombre: proveedorNombre.trim(),
-        proveedorNit: proveedorNit.trim() || undefined,
+        proveedorNombre: proveedorSeleccionado.nombre,
+        proveedorNit: proveedorSeleccionado.nit ?? undefined,
         numeroFactura: numeroFactura.trim(),
         fechaEmision,
         notas: notas.trim() || undefined,
@@ -131,15 +175,69 @@ export function CxPFormDialog({
             </Select>
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <Label>Proveedor</Label>
+            {nuevoProveedor ? (
+              <div className="flex flex-col gap-2 rounded-xl border border-[--border-subtle] p-3">
+                <Input
+                  value={nuevoProveedorNombre}
+                  onChange={(e) => setNuevoProveedorNombre(e.target.value)}
+                  placeholder="Nombre del proveedor"
+                  autoFocus
+                />
+                <Input
+                  value={nuevoProveedorNit}
+                  onChange={(e) => setNuevoProveedorNit(e.target.value)}
+                  placeholder="NIT (opcional)"
+                />
+                {errorProveedor ? <p className="text-xs text-danger">{errorProveedor}</p> : null}
+                <div className="flex justify-end gap-2">
+                  {listaProveedores.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setNuevoProveedor(false);
+                        setErrorProveedor(null);
+                      }}
+                      disabled={guardandoProveedor}
+                    >
+                      Cancelar
+                    </Button>
+                  ) : null}
+                  <Button type="button" size="sm" onClick={guardarNuevoProveedor} disabled={guardandoProveedor}>
+                    {guardandoProveedor ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Guardar proveedor
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Select value={proveedorId} onValueChange={setProveedorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona el proveedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {listaProveedores.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={() => setNuevoProveedor(true)}>
+                  <Plus className="h-4 w-4" strokeWidth={1.5} />
+                  Nuevo
+                </Button>
+              </div>
+            )}
+            {proveedorSeleccionado?.nit ? (
+              <p className="text-xs text-[--text-secondary]">NIT: {proveedorSeleccionado.nit}</p>
+            ) : null}
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor="cxp-proveedor">Proveedor</Label>
-              <Input id="cxp-proveedor" value={proveedorNombre} onChange={(e) => setProveedorNombre(e.target.value)} required />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cxp-nit">NIT (opcional)</Label>
-              <Input id="cxp-nit" value={proveedorNit} onChange={(e) => setProveedorNit(e.target.value)} />
-            </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="cxp-factura">N.° de factura</Label>
               <Input id="cxp-factura" value={numeroFactura} onChange={(e) => setNumeroFactura(e.target.value)} required />
@@ -154,7 +252,7 @@ export function CxPFormDialog({
                 required
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
               <Label htmlFor="cxp-notas">Notas (opcional)</Label>
               <Input id="cxp-notas" value={notas} onChange={(e) => setNotas(e.target.value)} />
             </div>

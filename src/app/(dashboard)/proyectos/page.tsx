@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listProyectos, listProyectosArchivados } from "@/lib/data/proyectos";
-import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeVerProyectos } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeVerProyectos, esRolCliente } from "@/lib/auth/roles";
 import { ProyectosArchivadosSection } from "@/components/projects/proyectos-archivados-section";
 import type { ProyectoEstado } from "@/types/database.types";
 
@@ -36,7 +36,7 @@ export default async function ProyectosPage() {
   const puedeCrear = puedeGestionarProyectos(perfil?.rol);
 
   try {
-    proyectos = await listProyectos(supabase);
+    proyectos = await listProyectos(supabase, { ocultarCompletados: esRolCliente(perfil?.rol) });
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "No se pudieron cargar los proyectos.";
   }

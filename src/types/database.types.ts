@@ -2760,10 +2760,12 @@ export type Database = {
           cxp_id: string | null
           ejecutado_at: string | null
           estado: Database["public"]["Enums"]["movimiento_estado"]
+          factura_pendiente: boolean
           fecha_efectiva: string
           id: string
           justificacion: string
           monto: number
+          numero_factura: string | null
           proyecto_id: string
           rubro_destino_id: string
           rubro_origen_id: string | null
@@ -2781,10 +2783,12 @@ export type Database = {
           cxp_id?: string | null
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
+          factura_pendiente?: boolean
           fecha_efectiva?: string
           id?: string
           justificacion: string
           monto: number
+          numero_factura?: string | null
           proyecto_id: string
           rubro_destino_id: string
           rubro_origen_id?: string | null
@@ -2802,10 +2806,12 @@ export type Database = {
           cxp_id?: string | null
           ejecutado_at?: string | null
           estado?: Database["public"]["Enums"]["movimiento_estado"]
+          factura_pendiente?: boolean
           fecha_efectiva?: string
           id?: string
           justificacion?: string
           monto?: number
+          numero_factura?: string | null
           proyecto_id?: string
           rubro_destino_id?: string
           rubro_origen_id?: string | null
@@ -3047,6 +3053,44 @@ export type Database = {
             columns: ["subempresa_id"]
             isOneToOne: false
             referencedRelation: "subempresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proveedores: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          id: string
+          nit: string | null
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          nit?: string | null
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          id?: string
+          nit?: string | null
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proveedores_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
             referencedColumns: ["id"]
           },
         ]

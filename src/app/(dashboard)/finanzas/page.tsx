@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Landmark, FileText, FileMinus, LineChart } from "lucide-react";
+import { Landmark, FileText, FileMinus, LineChart, Truck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { getPerfilActual, getRutaInicio } from "@/lib/auth/roles";
@@ -48,6 +48,12 @@ export default async function FinanzasPage() {
       icon: LineChart,
       titulo: "Flujo de caja",
       descripcion: "Ingresos, egresos y saldo acumulado de todos los proyectos.",
+    },
+    {
+      href: "/finanzas/proveedores",
+      icon: Truck,
+      titulo: "Proveedores",
+      descripcion: "Nombre y NIT de sus proveedores frecuentes.",
     },
   ];
 

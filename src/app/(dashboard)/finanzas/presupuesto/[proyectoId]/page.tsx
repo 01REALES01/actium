@@ -11,6 +11,7 @@ import {
 } from "@/lib/data/presupuesto";
 import { listCxC } from "@/lib/data/cxc";
 import { listCxP } from "@/lib/data/cxp";
+import { listProveedores } from "@/lib/data/proveedores";
 import { RubrosTable } from "@/components/finanzas/rubros-table";
 import { RubrosDonutChart } from "@/components/finanzas/rubros-donut-chart";
 import { CrearRubroDialog } from "@/components/finanzas/crear-rubro-dialog";
@@ -40,7 +41,7 @@ export default async function PresupuestoDetallePage({
   const proyecto = await getProyectoFinanzas(supabase, params.proyectoId);
   if (!proyecto) notFound();
 
-  const [balance, rubros, movimientos, cxc, cxp] = await Promise.all([
+  const [balance, rubros, movimientos, cxc, cxp, proveedores] = await Promise.all([
     getRubrosBalance(supabase, params.proyectoId),
     getRubrosPorProyecto(supabase, params.proyectoId),
     listMovimientos(supabase, params.proyectoId),
@@ -48,6 +49,8 @@ export default async function PresupuestoDetallePage({
     listCxC(supabase, { proyectoId: params.proyectoId, estado: "pendientes", orden: "vence_pronto" }),
     // Solo pendientes/parciales, orden cronológico de registro (más reciente arriba).
     listCxP(supabase, { proyectoId: params.proyectoId, estado: "pendientes", orden: "recientes" }),
+    // Catálogo de proveedores para seleccionar en "Nueva factura".
+    listProveedores(supabase),
   ]);
 
   const rubrosIngreso = rubros.filter((r) => r.categoria === "ingresos");
@@ -175,7 +178,11 @@ export default async function PresupuestoDetallePage({
         <div className="mb-1 flex items-center justify-between">
           <h2 className="font-sans text-lg font-semibold text-[--text-primary]">Cuentas por pagar</h2>
           {puedeFinanzas ? (
-            <CxPFormDialog proyectoId={params.proyectoId} rubrosEgreso={rubrosEgreso} />
+            <CxPFormDialog
+              proyectoId={params.proyectoId}
+              rubrosEgreso={rubrosEgreso}
+              proveedores={proveedores}
+            />
           ) : null}
         </div>
         <p className="mb-4 text-xs text-[--text-secondary]">

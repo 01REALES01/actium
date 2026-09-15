@@ -16,6 +16,8 @@ const CATEGORIAS_EGRESO: CategoriaFlujo[] = [
 export type MovimientoConUsuarios = Tables<"movimientos"> & {
   solicitante: Pick<Tables<"usuarios">, "nombre"> | null;
   aprobador: Pick<Tables<"usuarios">, "nombre"> | null;
+  rubro_destino: Pick<Tables<"rubros">, "nombre" | "categoria"> | null;
+  rubro_origen: Pick<Tables<"rubros">, "nombre" | "categoria"> | null;
 };
 
 export async function getRubrosBalance(
@@ -65,7 +67,9 @@ export async function listMovimientos(
 ): Promise<MovimientoConUsuarios[]> {
   let query = supabase
     .from("movimientos")
-    .select("*, solicitante:solicitado_por (nombre), aprobador:aprobado_por (nombre)")
+    .select(
+      "*, solicitante:solicitado_por (nombre), aprobador:aprobado_por (nombre), rubro_destino:rubro_destino_id (nombre, categoria), rubro_origen:rubro_origen_id (nombre, categoria)",
+    )
     .eq("proyecto_id", proyectoId);
 
   if (opts.soloEjecutados) query = query.eq("estado", "ejecutado");

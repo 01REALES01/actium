@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { Pencil, ClipboardList, Calendar } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeEditarParteDiario, puedeVerProyectos, puedeVerBitacora } from "@/lib/auth/roles";
+import { getPerfilActual, getRutaInicio, puedeGestionarProyectos, puedeEditarParteDiario, puedeVerProyectos, puedeVerBitacora, esRolCliente } from "@/lib/auth/roles";
 import { getProyecto, getProyectoAvances, getObservaciones, getFotos, getProyectoMetas } from "@/lib/data/proyectos";
 import {
   getSSTStats,
@@ -97,6 +97,10 @@ export default async function ProyectoDashboardPage({ params, searchParams }: Pr
   }
 
   if (!proyecto) notFound();
+
+  if (esRolCliente(perfil?.rol) && proyecto.estado === "completado") {
+    notFound();
+  }
 
   const puedeEditar = puedeGestionarProyectos(perfil?.rol);
   const puedeRegistrarParte = puedeEditarParteDiario(perfil?.rol);

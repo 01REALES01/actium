@@ -31,6 +31,10 @@ export function esAdminOSuperior(rol: UserRole | null | undefined): boolean {
   return rol === "super_admin" || rol === "admin";
 }
 
+export function esRolCliente(rol: UserRole | null | undefined): boolean {
+  return rol === "cliente_principal" || rol === "subcliente";
+}
+
 /**
  * Por pedido del cliente, el único rol que puede INGRESAR información (cualquier
  * cosa que no sea mera visualización) es `super_admin`. La única excepción son

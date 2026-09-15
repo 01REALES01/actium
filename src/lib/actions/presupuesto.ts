@@ -205,6 +205,43 @@ export async function setSobregiroAction(
   return { activo: parsed.data.activo };
 }
 
+const ActualizarFacturaSchema = z
+  .object({
+    movimientoId: z.string().uuid(),
+    numeroFactura: z.string().trim().min(1).optional(),
+    facturaPendiente: z.boolean(),
+  })
+  .refine((v) => v.facturaPendiente || !!v.numeroFactura, {
+    message: "Ingresa el número de factura o marca \"Factura pendiente\".",
+  });
+
+/**
+ * Actualiza únicamente el número de factura (o su estado "pendiente") de un
+ * movimiento, sin importar en qué estado se encuentre (solicitado, aprobado,
+ * ejecutado, rechazado o anulado). A diferencia de aprobar/rechazar/ejecutar,
+ * no toca monto, rubro ni estado — el cliente diligencia la factura después
+ * de registrar el movimiento y a veces todavía no se la han emitido.
+ */
+export async function actualizarFacturaMovimientoAction(
+  input: z.infer<typeof ActualizarFacturaSchema>,
+): Promise<void> {
+  const parsed = ActualizarFacturaSchema.safeParse(input);
+  if (!parsed.success) throw new Error(`Datos inválidos: ${parsed.error.message}`);
+
+  const { supabase } = await assertPuedeFinanzas();
+  const { error } = await supabase
+    .from("movimientos")
+    .update({
+      numero_factura: parsed.data.facturaPendiente ? null : parsed.data.numeroFactura,
+      factura_pendiente: parsed.data.facturaPendiente,
+    })
+    .eq("id", parsed.data.movimientoId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/finanzas/presupuesto/[proyectoId]", "page");
+}
+
 /** Devuelve una URL firmada temporal para ver/descargar el comprobante de un movimiento. */
 export async function getComprobanteUrlAction(movimientoId: string): Promise<string> {
   const { supabase } = await assertSuperAdmin();

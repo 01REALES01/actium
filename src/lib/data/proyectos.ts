@@ -10,12 +10,20 @@ export type FotoConUrl = Tables<"fotos"> & {
   signedUrl: string | null;
 };
 
-export async function listProyectos(supabase: Client): Promise<Tables<"proyectos">[]> {
-  const { data, error } = await supabase
+export async function listProyectos(
+  supabase: Client,
+  options?: { ocultarCompletados?: boolean },
+): Promise<Tables<"proyectos">[]> {
+  let query = supabase
     .from("proyectos")
     .select("*")
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .is("deleted_at", null);
+
+  if (options?.ocultarCompletados) {
+    query = query.neq("estado", "completado");
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) throw error;
   return data ?? [];
