@@ -883,7 +883,14 @@ export function PermisoAlturaForm({ empresaInicial = "", proyectos = [] }: { emp
           </Campo>
         </div>
 
-        <SignaturePad onSave={setFirmaData} initialValue={firmaData} label="Firma de quien autoriza el permiso" />
+        <SignaturePad
+          onSave={(firma) => {
+            setFirmaData(firma);
+            if (firma) setErrorMsg((prev) => (prev.includes("firma de quien autoriza") ? "" : prev));
+          }}
+          initialValue={firmaData}
+          label="Firma de quien autoriza el permiso"
+        />
 
         <p className="mt-3 text-[10px] text-white/30 leading-relaxed italic">
           Esta firma tiene carácter informativo y NO constituye firma electrónica certificada según la Ley 527 de 1999.

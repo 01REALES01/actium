@@ -520,14 +520,13 @@ export function PreoperacionalForm({
 
   // ─── Generar PDF ────────────────────────────────────────────────────────────
 
-  const handleGenerar = async () => {
-    setErrorMsg("");
-    setAvisoMsg("");
-    setAvisoPendiente(false);
-
+  // Extraído del cuerpo de `handleGenerar` para poder recalcularlo cuando se
+  // firma, y así refrescar (o limpiar) el error en vez de dejarlo fijo en
+  // pantalla con una firma que ya se registró.
+  const calcularFaltantesEmision = (overrides?: { inspectorFirma?: string }): string[] => {
     const faltan: string[] = [];
     if (!fecha) faltan.push("fecha de inspección");
-    if (!inspectorFirma) faltan.push("firma de quien inspecciona");
+    if (!(overrides?.inspectorFirma ?? inspectorFirma)) faltan.push("firma de quien inspecciona");
 
     const sinEquipos = HERRAMIENTAS_PREOP.every(
       (h) => herramientas[h.id].noAplica || herramientas[h.id].equipos.length === 0,
@@ -537,6 +536,16 @@ export function PreoperacionalForm({
     // Un hallazgo crítico sin explicar deja el registro inservible: es justo lo
     // que hay que poder auditar después.
     faltan.push(...criticosSinObservacion());
+
+    return faltan;
+  };
+
+  const handleGenerar = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+
+    const faltan = calcularFaltantesEmision();
 
     if (faltan.length > 0) {
       setErrorMsg(
@@ -763,7 +772,21 @@ export function PreoperacionalForm({
             <Input value={inspectorCedula} onChange={(e) => setInspectorCedula(e.target.value)} inputMode="numeric" className={FIELD} />
           </CampoForm>
         </div>
-        <SignaturePad onSave={setInspectorFirma} initialValue={inspectorFirma} label="Firma de quien inspecciona (operador)" />
+        <SignaturePad
+          onSave={(firma) => {
+            setInspectorFirma(firma);
+            if (firma && errorMsg) {
+              const restante = calcularFaltantesEmision({ inspectorFirma: firma });
+              setErrorMsg(
+                restante.length > 0
+                  ? `No fue posible emitir la inspección. Falta diligenciar: ${listarFaltantes(restante)}.`
+                  : "",
+              );
+            }
+          }}
+          initialValue={inspectorFirma}
+          label="Firma de quien inspecciona (operador)"
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8 mb-6">
           <CampoForm label="Nombre del supervisor">

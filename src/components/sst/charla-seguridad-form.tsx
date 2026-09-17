@@ -395,11 +395,10 @@ export function CharlaSeguridadForm({
 
   // ─── Generar PDF ────────────────────────────────────────────────────────────
 
-  const handleGenerar = async () => {
-    setErrorMsg("");
-    setAvisoMsg("");
-    setAvisoPendiente(false);
-
+  // Extraído del cuerpo de `handleGenerar` para poder recalcularlo cuando se
+  // firma, y así refrescar (o limpiar) el error en vez de dejarlo fijo en
+  // pantalla con una firma que ya se registró.
+  const calcularFaltantesEmision = (overrides?: { capacitadorFirma?: string }): string[] => {
     const faltan: string[] = [];
     if (!proyectoId) faltan.push("proyecto asociado");
     if (!fecha) faltan.push("fecha");
@@ -412,7 +411,17 @@ export function CharlaSeguridadForm({
     const sinFirma = asistentesSinFirma(asistentes);
     if (sinFirma.length > 0) faltan.push(`firma de: ${sinFirma.join(", ")}`);
 
-    if (!capacitadorFirma) faltan.push("firma del capacitador");
+    if (!(overrides?.capacitadorFirma ?? capacitadorFirma)) faltan.push("firma del capacitador");
+
+    return faltan;
+  };
+
+  const handleGenerar = async () => {
+    setErrorMsg("");
+    setAvisoMsg("");
+    setAvisoPendiente(false);
+
+    const faltan = calcularFaltantesEmision();
 
     if (faltan.length > 0) {
       setErrorMsg(`No fue posible emitir el registro. Falta diligenciar: ${listarFaltantes(faltan)}.`);
@@ -736,7 +745,21 @@ export function CharlaSeguridadForm({
           <span className={NUM}>6</span> Firmas de cierre
         </h2>
 
-        <SignaturePad onSave={setCapacitadorFirma} initialValue={capacitadorFirma} label="Firma capacitador" />
+        <SignaturePad
+          onSave={(firma) => {
+            setCapacitadorFirma(firma);
+            if (firma && errorMsg) {
+              const restante = calcularFaltantesEmision({ capacitadorFirma: firma });
+              setErrorMsg(
+                restante.length > 0
+                  ? `No fue posible emitir el registro. Falta diligenciar: ${listarFaltantes(restante)}.`
+                  : "",
+              );
+            }
+          }}
+          initialValue={capacitadorFirma}
+          label="Firma capacitador"
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8 mb-4">
           <CampoForm label="Responsable SST / verificación">

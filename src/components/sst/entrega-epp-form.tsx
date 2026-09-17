@@ -384,17 +384,28 @@ export function EntregaEppForm({
 
   // ─── Generar PDF de una fila ─────────────────────────────────────────────────
 
-  const handleGenerarFila = async (empleado: EmpleadoOptEpp) => {
-    const fila = filas[empleado.id];
-    if (!fila) return;
-
+  // Extraído para poder recalcularlo cuando el trabajador firma, y así
+  // refrescar (o limpiar) el error de la fila en vez de dejarlo fijo en
+  // pantalla con una firma que ya se registró.
+  const calcularFaltantesFila = (
+    fila: FilaEppEstado,
+    overrides?: { firma?: string },
+  ): string[] => {
     const faltan: string[] = [];
     if (!proyectoId) faltan.push("proyecto asociado");
     if (!fecha) faltan.push("fecha de entrega");
     if (contarEntregados(fila.elementos, fila.adicionales) === 0) faltan.push("al menos un elemento entregado");
     const incompletas = filasIncompletas(fila.elementos, fila.adicionales);
     if (incompletas.length > 0) faltan.push(`cantidad o fecha de recepción de: ${incompletas.join(", ")}`);
-    if (!fila.firma) faltan.push("firma del trabajador");
+    if (!(overrides?.firma ?? fila.firma)) faltan.push("firma del trabajador");
+    return faltan;
+  };
+
+  const handleGenerarFila = async (empleado: EmpleadoOptEpp) => {
+    const fila = filas[empleado.id];
+    if (!fila) return;
+
+    const faltan = calcularFaltantesFila(fila);
 
     if (faltan.length > 0) {
       setFilaState(empleado.id, {
@@ -628,7 +639,18 @@ export function EntregaEppForm({
                   onCedula={(v) => setFilaState(empleado.id, { cedula: v })}
                   onCargo={(v) => setFilaState(empleado.id, { cargo: v })}
                   onObservaciones={(v) => setFilaState(empleado.id, { observaciones: v })}
-                  onFirma={(v) => setFilaState(empleado.id, { firma: v })}
+                  onFirma={(v) => {
+                    setFilaState(empleado.id, { firma: v });
+                    if (v && fila.errorMsg) {
+                      const restante = calcularFaltantesFila(fila, { firma: v });
+                      setFilaState(empleado.id, {
+                        errorMsg:
+                          restante.length > 0
+                            ? `No fue posible emitir el cargo. Falta diligenciar: ${listarFaltantes(restante)}.`
+                            : "",
+                      });
+                    }
+                  }}
                   onGuardarBorrador={() => handleGuardarBorradorFila(empleado)}
                   onGenerar={() => handleGenerarFila(empleado)}
                   onDescargar={() => descargarFila(empleado, fila)}

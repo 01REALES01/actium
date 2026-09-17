@@ -871,7 +871,14 @@ export function PermisoCalienteForm({ proyectos = [] }: { proyectos?: { id: stri
             <Campo label="Nombre del emisor del permiso">
               <Input value={emisorNombre} onChange={(e) => setEmisorNombre(e.target.value)} className={FIELD + " mb-4"} />
             </Campo>
-            <SignaturePad onSave={setEmisorFirma} initialValue={emisorFirma} label="Firma del emisor" />
+            <SignaturePad
+              onSave={(firma) => {
+                setEmisorFirma(firma);
+                if (firma) setErrorMsg((prev) => (prev.includes("firma del emisor") ? "" : prev));
+              }}
+              initialValue={emisorFirma}
+              label="Firma del emisor"
+            />
           </div>
           <div>
             <Campo label="Nombre del coordinador SISO">
